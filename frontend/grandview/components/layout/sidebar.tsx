@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Home, Play, Package, Wallet, ShoppingBag, User, LogOut, Menu, X, Building2 } from "lucide-react"
+import { Home, Play, Package, Wallet, ShoppingBag, User, LogOut, Menu, X, Building2, CreditCard, ShoppingCart } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 
@@ -17,6 +17,8 @@ const navigation = [
   { name: "Wallet", href: "/wallet", icon: Wallet },
   { name: "Store", href: "/store", icon: ShoppingBag },
   { name: "Profile", href: "/profile", icon: User },
+  { name: "Lipa Mdogo Mdogo", href: "/lipa", icon: CreditCard },
+  { name: "Orders", href: "/orders", icon: ShoppingCart },
 ]
 
 export function Sidebar() {

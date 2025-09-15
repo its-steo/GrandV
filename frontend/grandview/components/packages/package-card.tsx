@@ -208,14 +208,14 @@ export function PackageCard({
           ) : isActive ? (
             "Currently Active"
           ) : (
-            `Purchase for KSH ${formatCurrency(pkg.price)}`
+            `Purchase for ${formatCurrency(pkg.price)}`
           )}
         </Button>
 
         {/* Balance Info */}
         {walletBalance && !isActive && (
           <div className="text-xs sm:text-sm text-muted-foreground text-center">
-            Available: KSH{" "}
+            Available:{" "}
             {formatCurrency(
               isMarketer
                 ? Number.parseFloat(walletBalance.deposit_balance) +

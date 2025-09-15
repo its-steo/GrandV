@@ -1,13 +1,11 @@
 "use client"
 
-import { useState } from "react"
-import { Menu, X } from "lucide-react"
+import { ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ThemeToggle } from "@/components/theme/theme-toggle"
 
 export function TopBar() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-
   const navigationItems = [
     { name: "Home", href: "/" },
     { name: "About", href: "/about" },
@@ -17,22 +15,22 @@ export function TopBar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-6 h-16 flex items-center justify-between">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
         <div className="flex items-center">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">GV</span>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 bg-primary rounded-lg flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-base sm:text-lg">GV</span>
             </div>
-            <h1 className="text-xl font-bold text-foreground tracking-tight">GrandView</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-foreground tracking-tight">GrandView</h1>
           </div>
         </div>
 
-        <nav className="hidden md:flex items-center gap-8">
+        <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
           {navigationItems.map((item) => (
             <a
               key={item.name}
               href={item.href}
-              className="text-foreground hover:text-primary transition-colors duration-200 font-medium relative group"
+              className="text-foreground hover:text-primary transition-colors duration-200 font-medium relative group text-sm xl:text-base"
             >
               {item.name}
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-200 group-hover:w-full"></span>
@@ -40,39 +38,28 @@ export function TopBar() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <ThemeToggle />
 
-          {/* Mobile Menu Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden hover:bg-accent"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
-            {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="lg:hidden hover:bg-accent text-sm px-2 sm:px-3">
+                Menu
+                <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44 sm:w-48">
+              {navigationItems.map((item) => (
+                <DropdownMenuItem key={item.name} asChild>
+                  <a href={item.href} className="w-full cursor-pointer">
+                    {item.name}
+                  </a>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
-
-      {isMenuOpen && (
-        <div className="md:hidden border-t bg-background/95 backdrop-blur">
-          <div className="container mx-auto px-6 py-6">
-            <nav className="flex flex-col space-y-4">
-              {navigationItems.map((item) => (
-                <a
-                  key={item.name}
-                  href={item.href}
-                  className="text-foreground hover:text-primary transition-colors duration-200 font-medium py-2"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {item.name}
-                </a>
-              ))}
-            </nav>
-          </div>
-        </div>
-      )}
     </header>
   )
 }

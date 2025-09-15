@@ -37,7 +37,7 @@ export function StatsCards({ walletBalance }: StatsCardsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-secondary">
-             {formatCurrency(walletBalance?.views_earnings_balance || "0.00")}
+            {formatCurrency(walletBalance?.views_earnings_balance || "0.00")}
           </div>
           <p className="text-xs text-muted-foreground">From ad views</p>
         </CardContent>
@@ -50,7 +50,7 @@ export function StatsCards({ walletBalance }: StatsCardsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-accent">
-             {formatCurrency(walletBalance?.referral_balance || "0.00")}
+            {formatCurrency(walletBalance?.referral_balance || "0.00")}
           </div>
           <p className="text-xs text-muted-foreground">From referrals</p>
         </CardContent>

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import { Sidebar } from "@/components/layout/sidebar"
 import { StatsCards } from "@/components/dashboard/stats-cards"
-import { FeaturedProducts } from "@/components/dashboard/featured-products"
+import { FeaturedProducts } from "@/components/dashboard/featured-products" // Updated import to use dashboard-specific FeaturedProducts component
 import { ApiService, type WalletBalance } from "@/lib/api"
 import { Card, CardContent } from "@/components/ui/card"
 import { TrendingUp, Package, Eye, Users } from "lucide-react"

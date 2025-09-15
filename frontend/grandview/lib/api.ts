@@ -1,5 +1,16 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
 
+// Utility function to safely parse JSON responses
+async function safeParseJSON(response: Response): Promise<any> {
+  const text = await response.text()
+  if (!text) return null
+  try {
+    return JSON.parse(text)
+  } catch {
+    throw new Error(`Invalid JSON response: ${text}`)
+  }
+}
+
 // Helper function to get auth headers
 function getAuthHeaders(excludeContentType = false) {
   const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
@@ -23,7 +34,7 @@ export interface Product {
   description: string
   price: string
   main_image: string
-  sub_images: { id: number; image: string }[] // Updated for backend sub_images via ProductImage
+  sub_images: { id: number; image: string }[]
   category: {
     id: number
     name: string
@@ -31,13 +42,21 @@ export interface Product {
   }
   is_featured: boolean
   specifications?: string
+  installment_available: boolean
+  installment_plans: Array<{
+    months: number
+    monthly_payment: string
+    deposit_required: string
+    total_amount: string
+  }>
 }
 
 export interface WalletBalance {
-  main_balance: string // From serializer: deposit + views_earnings
+  main_balance: string
   referral_balance: string
-  deposit_balance?: string // Optional for detailed views
+  deposit_balance?: string
   views_earnings_balance?: string
+  total_balance: string
   transactions?: Transaction[]
 }
 
@@ -50,11 +69,19 @@ export interface DashboardStats {
 
 export interface Transaction {
   id: number
-  transaction_type: string
+  transaction_type: "deposit" | "withdrawal" | "commission" | "purchase" | "refund" | "installment_payment"
   amount: string
   description: string
+  status: "pending" | "completed" | "failed" | "cancelled"
+  balance_type: "deposit" | "views_earnings" | "referral" | "main"
   created_at: string
-  status?: string
+  updated_at: string
+  reference_id?: string
+  metadata?: {
+    order_id?: number
+    installment_id?: number
+    commission_source?: string
+  }
 }
 
 export interface PackageFeature {
@@ -82,6 +109,38 @@ export interface ReferralStats {
   active_referrals: number
   total_commission: string
   this_month_commission: string
+  pending_commission: string
+  referral_code: string
+  referral_link: string
+  commission_rate: number
+}
+
+export interface Referral {
+  id: number
+  referred_user: {
+    id: number
+    username: string
+    email: string
+    date_joined: string
+  }
+  commission_earned: string
+  status: "pending" | "active" | "inactive"
+  created_at: string
+  last_activity: string
+}
+
+export interface CommissionTransaction {
+  id: number
+  referral: number
+  transaction_type: "signup_bonus" | "purchase_commission" | "activity_bonus"
+  amount: string
+  description: string
+  status: "pending" | "approved" | "paid"
+  created_at: string
+  metadata?: {
+    order_id?: number
+    activity_type?: string
+  }
 }
 
 export interface Advert {
@@ -94,7 +153,6 @@ export interface Advert {
   has_submitted: boolean
 }
 
-// Added CartItem interface
 export interface CartItem {
   id: number
   product: Product
@@ -127,6 +185,70 @@ export interface PackageType {
   price: string
 }
 
+export interface LipaRegistration {
+  id: number
+  user: number
+  full_name: string
+  date_of_birth: string
+  address: string
+  status: "PENDING" | "APPROVED" | "REJECTED"
+  created_at: string
+  updated_at?: string
+  id_front?: string
+  id_back?: string
+  passport_photo?: string
+}
+
+export interface InstallmentOrder {
+  id: number
+  order: number
+  total_amount: string
+  deposit_amount: string
+  remaining_amount: string
+  monthly_payment: string
+  months: number
+  status: "active" | "completed" | "defaulted"
+  next_payment_date: string
+  created_at: string
+}
+
+export interface InstallmentPayment {
+  id: number
+  installment_order: number
+  amount: string
+  payment_date: string
+  status: "pending" | "completed" | "failed"
+}
+
+export interface Order {
+  id: number
+  user: number
+  total_amount: string
+  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled"
+  payment_type: "full" | "installment"
+  address: string
+  phone: string
+  delivery_fee: string
+  coupon_code?: string
+  created_at: string
+  updated_at: string
+  items: OrderItem[]
+  installment_order?: InstallmentOrder
+}
+
+export interface OrderItem {
+  id: number
+  product: {
+    id: number
+    name: string
+    price: string
+    main_image: string
+  }
+  quantity: number
+  price: string
+  subtotal: string
+}
+
 export class ApiService {
   // Auth endpoints (from accounts app)
   static async register(userData: {
@@ -144,11 +266,11 @@ export class ApiService {
     })
 
     if (!response.ok) {
-      const error = await response.json()
+      const error = await safeParseJSON(response)
       throw new Error(error.message || "Registration failed")
     }
 
-    return response.json()
+    return safeParseJSON(response)
   }
 
   static async login(credentials: { username: string; password: string }) {
@@ -159,18 +281,16 @@ export class ApiService {
     })
 
     if (!response.ok) {
-      const error = await response.json()
+      const error = await safeParseJSON(response)
       throw new Error(error.error || "Login failed")
     }
 
-    const data = await response.json()
+    const data = await safeParseJSON(response)
     if (typeof window !== "undefined") {
       localStorage.setItem("auth_token", data.token)
     }
     return data
   }
-
-  // Removed duplicate getReferralStats implementation to fix error
 
   static async updateUserInfo(data: { username?: string; email?: string; phone_number?: string }) {
     const response = await fetch(`${API_BASE_URL}/accounts/users/update/`, {
@@ -179,10 +299,10 @@ export class ApiService {
       body: JSON.stringify(data),
     })
     if (!response.ok) {
-      const error = await response.json()
+      const error = await safeParseJSON(response)
       throw new Error(error.message || "Failed to update profile")
     }
-    return response.json()
+    return safeParseJSON(response)
   }
 
   static async changePassword(data: { current_password: string; new_password: string; new_password_confirm: string }) {
@@ -192,10 +312,10 @@ export class ApiService {
       body: JSON.stringify(data),
     })
     if (!response.ok) {
-      const error = await response.json()
+      const error = await safeParseJSON(response)
       throw new Error(error.message || "Failed to change password")
     }
-    return response.json()
+    return safeParseJSON(response)
   }
 
   // Dashboard endpoints (from dashboard app)
@@ -208,7 +328,7 @@ export class ApiService {
       throw new Error("Failed to fetch featured products")
     }
 
-    return response.json()
+    return safeParseJSON(response)
   }
 
   static async getProduct(id: number): Promise<Product> {
@@ -220,7 +340,7 @@ export class ApiService {
       throw new Error("Failed to fetch product")
     }
 
-    return response.json()
+    return safeParseJSON(response)
   }
 
   // Cart endpoints
@@ -233,7 +353,7 @@ export class ApiService {
       throw new Error("Failed to fetch cart")
     }
 
-    return response.json()
+    return safeParseJSON(response)
   }
 
   static async addToCart(data: { product_id: number; quantity?: number }): Promise<any> {
@@ -244,11 +364,11 @@ export class ApiService {
     })
 
     if (!response.ok) {
-      const error = await response.json()
+      const error = await safeParseJSON(response)
       throw new Error(error.error || "Failed to add to cart")
     }
 
-    return response.json()
+    return safeParseJSON(response)
   }
 
   static async updateCartItem(data: { cart_item_id: number; quantity: number }): Promise<any> {
@@ -259,11 +379,11 @@ export class ApiService {
     })
 
     if (!response.ok) {
-      const error = await response.json()
+      const error = await safeParseJSON(response)
       throw new Error(error.error || "Failed to update cart")
     }
 
-    return response.json()
+    return safeParseJSON(response)
   }
 
   static async removeFromCart(cartItemId: number): Promise<any> {
@@ -274,14 +394,21 @@ export class ApiService {
     })
 
     if (!response.ok) {
-      const error = await response.json()
+      const error = await safeParseJSON(response)
       throw new Error(error.error || "Failed to remove item")
     }
 
-    return response.json()
+    return safeParseJSON(response)
   }
 
-  static async checkout(data: { address: string; phone: string; delivery_fee?: number }): Promise<any> {
+  static async checkout(data: {
+    address: string
+    phone: string
+    delivery_fee?: number
+    payment_type: "full" | "installment"
+    months?: number
+    coupon_code?: string
+  }): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/dashboard/checkout/`, {
       method: "POST",
       headers: getAuthHeaders(),
@@ -289,16 +416,16 @@ export class ApiService {
     })
 
     if (!response.ok) {
-      const error = await response.json()
+      const error = await safeParseJSON(response)
       throw new Error(error.error || "Failed to checkout")
     }
 
-    return response.json()
+    return safeParseJSON(response)
   }
 
   // Real store endpoints for products and categories
   static async getAllProducts(): Promise<Product[]> {
-    const response = await fetch(`${API_BASE_URL}/dashboard/products/`, {
+    const response = await fetch(`${API_BASE_URL}/dashboard/all-products/`, {
       headers: getAuthHeaders(),
     })
 
@@ -306,47 +433,249 @@ export class ApiService {
       throw new Error("Failed to fetch products")
     }
 
-    return response.json()
+    return safeParseJSON(response)
   }
 
   static async getCategories(): Promise<Category[]> {
+    const response = await fetch(`${API_BASE_URL}/dashboard/categories/`, {
+      headers: getAuthHeaders(),
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch categories")
+    }
+
+    return safeParseJSON(response)
+  }
+
+  static async registerForLipa(registrationData: {
+    full_name: string
+    date_of_birth: string
+    address: string
+    id_front: File
+    id_back: File
+    passport_photo: File
+  }): Promise<LipaRegistration> {
+    const formData = new FormData()
+    formData.append("full_name", registrationData.full_name)
+    formData.append("date_of_birth", registrationData.date_of_birth)
+    formData.append("address", registrationData.address)
+    formData.append("id_front", registrationData.id_front)
+    formData.append("id_back", registrationData.id_back)
+    formData.append("passport_photo", registrationData.passport_photo)
+
+    const response = await fetch(`${API_BASE_URL}/dashboard/lipa/register/`, {
+      method: "POST",
+      headers: getAuthHeaders(true),
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const error = await safeParseJSON(response)
+      throw new Error(JSON.stringify(error) || "Registration failed")
+    }
+
+    return safeParseJSON(response)
+  }
+
+  static async getLipaRegistration(): Promise<LipaRegistration | null> {
     try {
-      // First try to fetch from dedicated categories endpoint
-      const response = await fetch(`${API_BASE_URL}/categories/`, {
+      const response = await fetch(`${API_BASE_URL}/dashboard/lipa/registration/`, {
         headers: getAuthHeaders(),
       })
 
-      if (response.ok) {
-        return response.json()
-      }
-    } catch (error) {
-      console.log("Categories endpoint not available, extracting from products")
-    }
-
-    // Fallback: Extract unique categories from products
-    try {
-      const products = await this.getAllProducts()
-      const categoryMap = new Map<number, Category>()
-
-      products.forEach((product) => {
-        if (product.category && !categoryMap.has(product.category.id)) {
-          categoryMap.set(product.category.id, {
-            id: product.category.id,
-            name: product.category.name,
-            slug: product.category.slug,
-            count: 1,
-          })
-        } else if (product.category && categoryMap.has(product.category.id)) {
-          const existing = categoryMap.get(product.category.id)!
-          existing.count = (existing.count || 0) + 1
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          console.error("Authentication error: Invalid or missing token")
+          return null
         }
-      })
+        if (response.status === 404) {
+          return null
+        }
+        const error = await response.text()
+        console.error(`Failed to fetch Lipa registration: ${response.status} ${response.statusText} - ${error}`)
+        return null
+      }
 
-      return Array.from(categoryMap.values())
+      const contentType = response.headers.get("Content-Type")
+      if (!contentType || !contentType.includes("application/json")) {
+        console.error(`Unexpected Content-Type: ${contentType}`)
+        return null
+      }
+
+      return safeParseJSON(response)
     } catch (error) {
-      console.error("Failed to fetch categories:", error)
-      return []
+      console.error("Network error fetching Lipa registration:", error)
+      return null
     }
+  }
+
+  static async makeInstallmentPayment(data: {
+    installment_order_id: number
+    amount: number
+  }): Promise<InstallmentPayment> {
+    const response = await fetch(`${API_BASE_URL}/dashboard/installment/pay/`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    })
+
+    if (!response.ok) {
+      const error = await safeParseJSON(response)
+      throw new Error(error.error || "Failed to make installment payment")
+    }
+
+    return safeParseJSON(response)
+  }
+
+  static async validateCoupon(code: string): Promise<{ valid: boolean; discount: number; message?: string }> {
+    try {
+      return { valid: false, discount: 0, message: "Coupon validation not implemented" }
+    } catch (error) {
+      console.error("Error validating coupon:", error)
+      return { valid: false, discount: 0, message: "Coupon validation failed" }
+    }
+  }
+
+  static async createOrder(orderData: {
+    address: string
+    phone: string
+    payment_method: "FULL" | "INSTALLMENT"
+    coupon_code?: string
+    installment_months?: number
+  }): Promise<Order> {
+    const response = await fetch(`${API_BASE_URL}/dashboard/checkout/`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(orderData),
+    })
+
+    if (!response.ok) {
+      const error = await safeParseJSON(response)
+      throw new Error(error.message || "Failed to create order")
+    }
+
+    return safeParseJSON(response)
+  }
+
+  static async getOrders(): Promise<Order[]> {
+    const response = await fetch(`${API_BASE_URL}/dashboard/orders/`, {
+      headers: getAuthHeaders(),
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch orders")
+    }
+
+    const data = await safeParseJSON(response)
+    return Array.isArray(data) ? data : data.results || []
+  }
+
+  static async getInstallmentOrders(): Promise<InstallmentOrder[]> {
+    const response = await fetch(`${API_BASE_URL}/dashboard/installment/orders/`, {
+      headers: getAuthHeaders(),
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch installment orders")
+    }
+
+    const data = await safeParseJSON(response)
+    return Array.isArray(data) ? data : data.results || []
+  }
+
+  static async cancelOrder(orderId: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/dashboard/orders/${orderId}/cancel/`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+    })
+
+    if (!response.ok) {
+      const error = await safeParseJSON(response)
+      throw new Error(error.message || "Failed to cancel order")
+    }
+  }
+
+  static async trackOrder(orderId: number): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/dashboard/orders/${orderId}/track/`, {
+      headers: getAuthHeaders(),
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch tracking info")
+    }
+
+    return safeParseJSON(response)
+  }
+
+  // Wallet endpoints
+  static async getWalletBalance(): Promise<WalletBalance> {
+    const response = await fetch(`${API_BASE_URL}/wallet/`, {
+      headers: getAuthHeaders(),
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch wallet balance")
+    }
+
+    return safeParseJSON(response)
+  }
+
+  static async deposit(amount: number): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/wallet/deposit/`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ amount }),
+    })
+
+    if (!response.ok) {
+      const error = await safeParseJSON(response)
+      throw new Error(error.message || "Deposit failed")
+    }
+
+    return safeParseJSON(response)
+  }
+
+  static async withdrawMain(amount: number): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/wallet/withdraw/main/`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ amount }),
+    })
+
+    if (!response.ok) {
+      const error = await safeParseJSON(response)
+      throw new Error(error.message || "Withdrawal failed")
+    }
+
+    return safeParseJSON(response)
+  }
+
+  static async withdrawReferral(amount: number): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/wallet/withdraw/referral/`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ amount }),
+    })
+
+    if (!response.ok) {
+      const error = await safeParseJSON(response)
+      throw new Error(error.message || "Withdrawal failed")
+    }
+
+    return safeParseJSON(response)
+  }
+
+  static async getTransactionHistory(): Promise<Transaction[]> {
+    const response = await fetch(`${API_BASE_URL}/wallet/transactions/`, {
+      headers: getAuthHeaders(),
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch transactions")
+    }
+
+    return safeParseJSON(response)
   }
 
   static async getReferralStats(): Promise<ReferralStats> {
@@ -359,21 +688,23 @@ export class ApiService {
         throw new Error("Failed to fetch referral stats")
       }
 
-      return response.json()
+      return safeParseJSON(response)
     } catch (error) {
       console.error("Error fetching referral stats:", error)
-      // Return defaults if API fails
       return {
         total_referrals: 0,
         active_referrals: 0,
         total_commission: "0.00",
         this_month_commission: "0.00",
+        pending_commission: "0.00",
+        referral_code: "",
+        referral_link: "",
+        commission_rate: 0,
       }
     }
   }
 
   static async getDepositConfig(): Promise<DepositConfig> {
-    // Backend doesn't have this; return defaults
     return {
       quick_amounts: [100, 500, 1000, 2000, 5000],
       minimum_amount: 50,
@@ -381,10 +712,9 @@ export class ApiService {
     }
   }
 
-  // Packages endpoints (fixed)
+  // Packages endpoints
   static async getPackages(): Promise<{ packages: PackageType[]; user_package: UserPackage | null }> {
     const response = await fetch(`${API_BASE_URL}/packages/`, {
-      // Fixed: Single /packages/
       headers: getAuthHeaders(),
     })
 
@@ -392,10 +722,10 @@ export class ApiService {
       throw new Error("Failed to fetch packages")
     }
 
-    const packagesData = await response.json() // Backend returns array directly
+    const packagesData = await safeParseJSON(response)
     return {
       packages: Array.isArray(packagesData) ? packagesData : [],
-      user_package: null, // Overridden by getCurrentUserPackage
+      user_package: null,
     }
   }
 
@@ -409,7 +739,7 @@ export class ApiService {
         throw new Error("Failed to fetch user purchases")
       }
 
-      const purchases = await response.json()
+      const purchases = await safeParseJSON(response)
       const now = new Date().toISOString()
       const activePurchase = purchases.find((p: any) => new Date(p.expiry_date) > new Date(now))
 
@@ -436,13 +766,12 @@ export class ApiService {
     })
 
     if (!response.ok) {
-      const error = await response.json()
+      const error = await safeParseJSON(response)
       throw new Error(error.message || "Failed to purchase package")
     }
   }
 
   static async getPackageFeatures(): Promise<PackageFeature[]> {
-    // Hardcoded fallback (add backend /packages/features/ for dynamic)
     return [
       { name: "Access to advertisements", basic: true, standard: true, premium: true },
       { name: "Instant earnings", basic: true, standard: true, premium: true },
@@ -452,89 +781,17 @@ export class ApiService {
     ]
   }
 
-  // Wallet endpoints (fixed URL)
-  static async getWalletBalance(): Promise<WalletBalance> {
-    const response = await fetch(`${API_BASE_URL}/wallet/`, {
-      // Fixed: Single /wallet/
-      headers: getAuthHeaders(),
-    })
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch wallet balance")
-    }
-
-    return response.json()
-  }
-
-  static async deposit(amount: number): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/wallet/deposit/`, {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ amount }),
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || "Deposit failed")
-    }
-
-    return response.json()
-  }
-
-  static async withdrawMain(amount: number): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/wallet/withdraw/main/`, {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ amount }),
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || "Withdrawal failed")
-    }
-
-    return response.json()
-  }
-
-  static async withdrawReferral(amount: number): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/wallet/withdraw/referral/`, {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ amount }),
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || "Withdrawal failed")
-    }
-
-    return response.json()
-  }
-
-  static async getTransactionHistory(): Promise<Transaction[]> {
-    const response = await fetch(`${API_BASE_URL}/wallet/transactions/`, {
-      // Assume /wallet/transactions/ endpoint added if needed
-      headers: getAuthHeaders(),
-    })
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch transactions")
-    }
-
-    return response.json()
-  }
-
   // Ads endpoints
   static async getAdverts(): Promise<{ adverts: Advert[]; user_package: UserPackage | null }> {
     const response = await fetch(`${API_BASE_URL}/adverts/`, {
-      headers: getAuthHeaders(), // Defaults to false: includes JSON Content-Type
+      headers: getAuthHeaders(),
     })
 
     if (!response.ok) {
       throw new Error("Failed to fetch adverts")
     }
 
-    const responseData = await response.json()
+    const responseData = await safeParseJSON(response)
     return {
       adverts: Array.isArray(responseData.adverts) ? responseData.adverts : responseData,
       user_package: responseData.user_package || null,
@@ -543,7 +800,7 @@ export class ApiService {
 
   static async downloadAdvert(advertId: number): Promise<Blob> {
     const response = await fetch(`${API_BASE_URL}/adverts/${advertId}/download/`, {
-      headers: getAuthHeaders(), // Defaults to false
+      headers: getAuthHeaders(),
     })
 
     if (!response.ok) {
@@ -559,21 +816,14 @@ export class ApiService {
     formData.append("views_count", viewsCount.toString())
     formData.append("screenshot", screenshot)
 
-    // Added: Debug log FormData contents (keep for testing; remove in prod if noisy)
-    console.log("Submitting FormData:")
-    for (const [key, value] of formData.entries()) {
-      console.log(`${key}:`, value)
-    }
-
     const response = await fetch(`${API_BASE_URL}/adverts/submit/`, {
       method: "POST",
-      headers: getAuthHeaders(true), // true: Excludes Content-Type, lets browser set multipart boundary
+      headers: getAuthHeaders(true),
       body: formData,
     })
 
     if (!response.ok) {
-      const errorText = await response.text() // Use .text() first to avoid JSON parse issues
-      console.error("Submission error response:", errorText) // Log raw error for debugging
+      const errorText = await response.text()
       let error
       try {
         error = JSON.parse(errorText)
@@ -583,7 +833,7 @@ export class ApiService {
       throw new Error(error.error || "Failed to submit advert")
     }
 
-    return response.json()
+    return safeParseJSON(response)
   }
 
   static async getCartCount(): Promise<number> {
@@ -591,7 +841,7 @@ export class ApiService {
       const cart = await this.getCart()
       return cart.items.reduce((total, item) => total + item.quantity, 0)
     } catch (error) {
-      console.error("Failed to fetch cart count:", error)
+      console.warn("Cart service unavailable, returning 0 count:", error)
       return 0
     }
   }
@@ -600,5 +850,47 @@ export class ApiService {
     if (typeof window !== "undefined") {
       localStorage.removeItem("auth_token")
     }
+  }
+
+  static async getProducts(params?: {
+    page?: number
+    limit?: number
+    search?: string
+    category?: string
+  }): Promise<{
+    results: Product[]
+    count: number
+    next: string | null
+    previous: string | null
+  }> {
+    const searchParams = new URLSearchParams()
+
+    if (params?.page) searchParams.append("page", params.page.toString())
+    if (params?.limit) searchParams.append("limit", params.limit.toString())
+    if (params?.search) searchParams.append("search", params.search)
+    if (params?.category) searchParams.append("category", params.category)
+
+    const url = `${API_BASE_URL}/dashboard/all-products/${searchParams.toString() ? "?" + searchParams.toString() : ""}`
+
+    const response = await fetch(url, {
+      headers: getAuthHeaders(),
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch products")
+    }
+
+    const data = await safeParseJSON(response)
+
+    if (Array.isArray(data)) {
+      return {
+        results: data,
+        count: data.length,
+        next: null,
+        previous: null,
+      }
+    }
+
+    return data
   }
 }
