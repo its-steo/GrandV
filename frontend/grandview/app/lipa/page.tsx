@@ -116,9 +116,7 @@ export default function LipaPage() {
       <div className="ml-0 md:ml-64 p-3 sm:p-4 md:p-6">
         <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              Lipa Mdogo Mdogo
-            </h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-primary">Lipa Mdogo Mdogo</h1>
             <p className="text-sm sm:text-base text-muted-foreground mt-2">
               Buy now, pay later with our flexible installment program
             </p>

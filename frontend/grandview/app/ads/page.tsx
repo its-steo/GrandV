@@ -6,7 +6,7 @@ import { AdvertCard } from "@/components/ads/advert-card"
 import { SubmissionModal } from "@/components/ads/submission-modal"
 import { PackageStatus } from "@/components/ads/package-status"
 import { ApiService, type Advert, type UserPackage } from "@/lib/api"
-import { toast } from "sonner" // Changed: Use sonner directly for global toast
+import { toast } from "sonner"
 import { Loader2, Play, TrendingUp } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -17,7 +17,6 @@ export default function AdsPage() {
   const [loading, setLoading] = useState(true)
   const [selectedAdvert, setSelectedAdvert] = useState<Advert | null>(null)
   const [userPackage, setUserPackage] = useState<UserPackage | null>(null)
-  // Removed: const { toast } = useToast()
 
   useEffect(() => {
     fetchAdverts()
@@ -27,7 +26,6 @@ export default function AdsPage() {
     try {
       setLoading(true)
       const response = await ApiService.getAdverts()
-      // Backend provides can_submit and has_submitted
       setAdverts(response.adverts || [])
       setUserPackage(response.user_package)
     } catch (error) {
@@ -39,10 +37,11 @@ export default function AdsPage() {
     }
   }
 
-  const handleSubmissionSuccess = (advertId: number) => {
-    setSelectedAdvert(null)
-    fetchAdverts() // Refresh with backend has_submitted
-  }
+ const handleSubmissionSuccess = (advertId: number) => {
+  console.log(`Advert ${advertId} submitted successfully`); // Example usage
+  setSelectedAdvert(null);
+  fetchAdverts();
+};
 
   const availableAdverts = adverts.filter((ad) => ad.can_submit && !ad.has_submitted)
   const submittedAdverts = adverts.filter((ad) => ad.has_submitted)
@@ -147,7 +146,7 @@ export default function AdsPage() {
         <SubmissionModal
           isOpen={!!selectedAdvert}
           onClose={() => setSelectedAdvert(null)}
-          advertId={selectedAdvert.id}
+          advertId={selectedAdvert.id} // Restored advertId prop
           advertTitle={selectedAdvert.title}
           ratePerView={selectedAdvert.rate_category}
           onSuccess={() => handleSubmissionSuccess(selectedAdvert.id)}

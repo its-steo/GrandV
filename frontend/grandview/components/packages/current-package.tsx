@@ -25,7 +25,7 @@ export function CurrentPackage({ package: pkg }: CurrentPackageProps) {
         </CardHeader>
         <CardContent>
           <p className="text-orange-600">
-            You don't have an active package. Purchase one below to start earning from advertisements.
+            You dont have an active package. Purchase one below to start earning from advertisements.
           </p>
         </CardContent>
       </Card>

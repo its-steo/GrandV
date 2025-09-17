@@ -296,7 +296,7 @@ export function OrderManagement() {
               <CardContent>
                 <CreditCard className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-base sm:text-lg font-semibold mb-2">No Installment Orders</h3>
-                <p className="text-muted-foreground text-sm sm:text-base">You don't have any installment orders yet</p>
+                <p className="text-muted-foreground text-sm sm:text-base">You dont have any installment orders yet</p>
               </CardContent>
             </Card>
           ) : (

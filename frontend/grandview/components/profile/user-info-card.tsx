@@ -24,7 +24,7 @@ export function UserInfoCard() {
       // API call to update user info would go here
       toast.success("Your profile information has been updated successfully")
       setIsEditing(false)
-    } catch (error) {
+    } catch {
       toast.error("Failed to update profile information")
     }
   }

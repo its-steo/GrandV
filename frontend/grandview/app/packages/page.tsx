@@ -30,12 +30,12 @@ export default function PackagesPage() {
         ApiService.getCurrentUserPackage(),
         ApiService.getWalletBalance(),
       ])
-
+  
       setPackages(packagesRes.packages || [])
       setUserPackage(userPackageRes)
       setWalletBalance(walletData)
     } catch (error) {
-      toast.error("Failed to load packages data")
+      toast.error(`Failed to load packages data: ${error instanceof Error ? error.message : "Unknown error"}`)
     } finally {
       setLoading(false)
     }

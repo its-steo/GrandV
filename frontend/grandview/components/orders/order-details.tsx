@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -15,17 +15,20 @@ interface OrderDetailsModalProps {
   onClose: () => void
 }
 
+interface TrackingInfo {
+  tracking_number?: string
+  estimated_delivery?: string
+  history?: Array<{
+    description: string
+    timestamp: string
+  }>
+}
+
 export function OrderDetailsModal({ order, onClose }: OrderDetailsModalProps) {
-  const [trackingInfo, setTrackingInfo] = useState<any>(null)
+  const [trackingInfo, setTrackingInfo] = useState<TrackingInfo | null>(null)
   const [loadingTracking, setLoadingTracking] = useState(false)
 
-  useEffect(() => {
-    if (order.status === "shipped" || order.status === "delivered") {
-      fetchTrackingInfo()
-    }
-  }, [order.id])
-
-  const fetchTrackingInfo = async () => {
+  const fetchTrackingInfo = useCallback(async () => {
     try {
       setLoadingTracking(true)
       const tracking = await ApiService.trackOrder(order.id)
@@ -35,7 +38,13 @@ export function OrderDetailsModal({ order, onClose }: OrderDetailsModalProps) {
     } finally {
       setLoadingTracking(false)
     }
-  }
+  }, [order.id])
+
+  useEffect(() => {
+    if (order.status === "shipped" || order.status === "delivered") {
+      fetchTrackingInfo()
+    }
+  }, [order.id, order.status, fetchTrackingInfo])
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -164,7 +173,7 @@ export function OrderDetailsModal({ order, onClose }: OrderDetailsModalProps) {
               {order.coupon_code && (
                 <div className="mt-3 p-2 sm:p-3 bg-green-50 dark:bg-green-900/20 rounded">
                   <p className="text-xs sm:text-sm text-green-700 dark:text-green-300">
-                    Coupon "{order.coupon_code}" applied
+                    Coupon `{order.coupon_code}` applied
                   </p>
                 </div>
               )}
@@ -235,7 +244,7 @@ export function OrderDetailsModal({ order, onClose }: OrderDetailsModalProps) {
                       <div>
                         <p className="text-xs sm:text-sm text-muted-foreground mb-2">Tracking History</p>
                         <div className="space-y-2 max-h-32 sm:max-h-40 overflow-y-auto">
-                          {trackingInfo.history.map((event: any, index: number) => (
+                          {trackingInfo.history.map((event, index) => (
                             <div key={index} className="flex items-start gap-3 p-2 bg-muted/50 rounded">
                               <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
                               <div className="flex-1 min-w-0">

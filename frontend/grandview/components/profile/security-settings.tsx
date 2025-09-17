@@ -48,8 +48,9 @@ export function SecuritySettings() {
       toast.success("Your password has been updated successfully")
 
       setPasswords({ current: "", new: "", confirm: "" })
-    } catch (error: any) {
-      toast.error(error.message || "Failed to update password. Please try again.")
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to update password. Please try again."
+      toast.error(errorMessage)
     } finally {
       setIsChanging(false)
     }

@@ -27,7 +27,7 @@ export function DepositForm({ onSuccess }: DepositFormProps) {
         if (config.quick_amounts && config.quick_amounts.length > 0) {
           setQuickAmounts(config.quick_amounts)
         }
-      } catch (error) {
+      } catch {
         // Keep default amounts if API fails
         console.log("Using default quick amounts")
       }
@@ -102,7 +102,7 @@ export function DepositForm({ onSuccess }: DepositFormProps) {
                   onClick={() => setAmount(quickAmount.toString())}
                   className="bg-transparent border-white/20 hover:bg-blue-500/10"
                 >
-                 {formatCurrency(quickAmount)}
+                  {formatCurrency(quickAmount)}
                 </Button>
               ))}
             </div>

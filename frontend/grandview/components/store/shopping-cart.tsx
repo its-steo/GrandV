@@ -63,12 +63,15 @@ export default function ShoppingCart({ cartCount, onCartUpdate }: CartProps) {
     return () => window.removeEventListener("cartUpdated", handleCartUpdate)
   }, [onCartUpdate])
 
+  // Define the type for items returned by the API
+  type ApiCartItem = Omit<CartItem, "subtotal"> & { subtotal?: string }
+
   const fetchCart = async () => {
     try {
       setLoading(true)
       const data = await ApiService.getCart()
       setCartItems(
-        (data.items || []).map((item: any) => ({
+        (data.items || []).map((item: ApiCartItem) => ({
           ...item,
           subtotal: item.subtotal ?? (Number.parseFloat(item.product.price) * item.quantity).toFixed(2),
         })),
@@ -130,7 +133,7 @@ export default function ShoppingCart({ cartCount, onCartUpdate }: CartProps) {
       } else {
         toast.error(result.message || "Invalid coupon code")
       }
-    } catch (error) {
+    } catch {
       setCoupon((prev) => ({
         ...prev,
         isValid: false,
@@ -154,6 +157,7 @@ export default function ShoppingCart({ cartCount, onCartUpdate }: CartProps) {
 
   const handleCheckout = () => {
     if (cartItems.length === 0) return
+    setIsCheckingOut(true)
     setShowCheckout(true)
   }
 
@@ -228,7 +232,10 @@ export default function ShoppingCart({ cartCount, onCartUpdate }: CartProps) {
             <>
               <div className="flex-1 overflow-y-auto space-y-3 sm:space-y-4 py-2">
                 {cartItems.map((item) => (
-                  <div key={item.id} className="flex gap-3 sm:gap-4 border-b border-white/10 pb-3 sm:pb-4 last:border-b-0">
+                  <div
+                    key={item.id}
+                    className="flex gap-3 sm:gap-4 border-b border-white/10 pb-3 sm:pb-4 last:border-b-0"
+                  >
                     <img
                       src={item.product.main_image || "/placeholder.svg"}
                       alt={item.product.name}
@@ -284,7 +291,7 @@ export default function ShoppingCart({ cartCount, onCartUpdate }: CartProps) {
                     <div className="flex items-center gap-2 p-2 sm:p-3 bg-green-50 border border-green-200 rounded-lg">
                       <Check className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
                       <span className="text-xs sm:text-sm text-green-700 flex-1">
-                        Coupon "{coupon.code}" applied ({coupon.discount}% off)
+                        Coupon `{coupon.code}` applied ({coupon.discount}% off)
                       </span>
                       <Button
                         size="sm"

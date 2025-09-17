@@ -25,7 +25,7 @@ export default function WalletPage() {
       const balance = await ApiService.getWalletBalance()
       setWalletBalance(balance)
     } catch (error) {
-      toast.error("Failed to load wallet balance")
+      toast.error(`Failed to load wallet balance: ${error instanceof Error ? error.message : "Unknown error"}`)
     } finally {
       setLoading(false)
     }
@@ -141,7 +141,7 @@ export default function WalletPage() {
                   <li>• All withdrawals require admin approval</li>
                   <li>• Processing time: 1-3 business days</li>
                   <li>• Minimum withdrawal amount: KSH 50.00</li>
-                  <li>• You'll receive email notifications on status updates</li>
+                  <li>• You will receive email notifications on status updates</li>
                 </ul>
               </CardContent>
             </Card>

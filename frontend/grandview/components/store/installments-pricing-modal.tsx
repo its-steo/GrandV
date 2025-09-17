@@ -11,7 +11,7 @@ import { formatCurrency } from "@/lib/utils"
 interface InstallmentPricingModalProps {
   product: Product
   onClose: () => void
-  onSelectPlan: (plan: any) => void
+  onSelectPlan: (plan: unknown) => void
 }
 
 export function InstallmentPricingModal({ product, onClose, onSelectPlan }: InstallmentPricingModalProps) {

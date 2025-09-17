@@ -38,7 +38,7 @@ export default function DashboardPage() {
             <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               Welcome back, {user?.username}!
             </h1>
-            <p className="text-muted-foreground">Here's what's happening with your account today.</p>
+            <p className="text-muted-foreground">Here is what is happening with your account today.</p>
           </div>
 
           {/* Stats Cards */}

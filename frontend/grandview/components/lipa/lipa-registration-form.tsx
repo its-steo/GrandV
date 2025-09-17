@@ -55,8 +55,7 @@ export function LipaRegistrationForm({ registration, onRegistrationUpdate }: Lip
     e.preventDefault()
 
     if (registration) {
-      const normalizedStatus = (registration.status || "").toLowerCase()
-      toast.error(`You are already registered for Lipa Mdogo Mdogo. Your status is ${normalizedStatus}.`)
+      toast.error(`You are already registered for Lipa Mdogo Mdogo. Your status is ${getNormalizedStatus(registration.status)}.`)
       return
     }
 
@@ -133,7 +132,6 @@ export function LipaRegistrationForm({ registration, onRegistrationUpdate }: Lip
   }
 
   if (registration) {
-    const normalizedStatus = getNormalizedStatus(registration.status)
     return (
       <Card className="glass-card border-white/20">
         <CardHeader>

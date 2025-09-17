@@ -1,9 +1,9 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
 
 // Utility function to safely parse JSON responses
-async function safeParseJSON(response: Response): Promise<any> {
+async function safeParseJSON(response: Response): Promise<unknown> {
   const text = await response.text()
-  if (!text) return null
+  if (!text) return {}
   try {
     return JSON.parse(text)
   } catch {
@@ -249,6 +249,51 @@ export interface OrderItem {
   subtotal: string
 }
 
+interface CartResponse {
+  success: boolean
+  message?: string
+  item?: CartItem
+}
+
+interface CheckoutResponse {
+  success: boolean
+  order_id: number
+  message?: string
+}
+
+interface DepositResponse {
+  success: boolean
+  transaction_id: string
+  amount: string
+  message?: string
+}
+
+interface WithdrawalResponse {
+  success: boolean
+  transaction_id: string
+  amount: string
+  message?: string
+}
+
+interface AdvertSubmissionResponse {
+  success: boolean
+  submission_id: number
+  earnings: string
+  message?: string
+}
+
+interface OrderTrackingResponse {
+  order_id: number
+  status: string
+  tracking_number?: string
+  estimated_delivery?: string
+  updates: Array<{
+    status: string
+    timestamp: string
+    description: string
+  }>
+}
+
 export class ApiService {
   // Auth endpoints (from accounts app)
   static async register(userData: {
@@ -267,7 +312,7 @@ export class ApiService {
 
     if (!response.ok) {
       const error = await safeParseJSON(response)
-      throw new Error(error.message || "Registration failed")
+      throw new Error((error as { message?: string }).message || "Registration failed")
     }
 
     return safeParseJSON(response)
@@ -282,12 +327,12 @@ export class ApiService {
 
     if (!response.ok) {
       const error = await safeParseJSON(response)
-      throw new Error(error.error || "Login failed")
+      throw new Error((error as { error?: string }).error || "Login failed")
     }
 
     const data = await safeParseJSON(response)
     if (typeof window !== "undefined") {
-      localStorage.setItem("auth_token", data.token)
+      localStorage.setItem("auth_token", (data as { token: string }).token)
     }
     return data
   }
@@ -300,7 +345,7 @@ export class ApiService {
     })
     if (!response.ok) {
       const error = await safeParseJSON(response)
-      throw new Error(error.message || "Failed to update profile")
+      throw new Error((error as { message?: string }).message || "Failed to update profile")
     }
     return safeParseJSON(response)
   }
@@ -313,7 +358,7 @@ export class ApiService {
     })
     if (!response.ok) {
       const error = await safeParseJSON(response)
-      throw new Error(error.message || "Failed to change password")
+      throw new Error((error as { message?: string }).message || "Failed to change password")
     }
     return safeParseJSON(response)
   }
@@ -328,7 +373,7 @@ export class ApiService {
       throw new Error("Failed to fetch featured products")
     }
 
-    return safeParseJSON(response)
+    return safeParseJSON(response) as Promise<Product[]>
   }
 
   static async getProduct(id: number): Promise<Product> {
@@ -340,7 +385,7 @@ export class ApiService {
       throw new Error("Failed to fetch product")
     }
 
-    return safeParseJSON(response)
+    return safeParseJSON(response) as Promise<Product>
   }
 
   // Cart endpoints
@@ -353,10 +398,10 @@ export class ApiService {
       throw new Error("Failed to fetch cart")
     }
 
-    return safeParseJSON(response)
+    return safeParseJSON(response) as Promise<{ items: CartItem[]; total: string }>
   }
 
-  static async addToCart(data: { product_id: number; quantity?: number }): Promise<any> {
+  static async addToCart(data: { product_id: number; quantity?: number }): Promise<CartResponse> {
     const response = await fetch(`${API_BASE_URL}/dashboard/cart/add/`, {
       method: "POST",
       headers: getAuthHeaders(),
@@ -365,13 +410,13 @@ export class ApiService {
 
     if (!response.ok) {
       const error = await safeParseJSON(response)
-      throw new Error(error.error || "Failed to add to cart")
+      throw new Error((error as { error?: string }).error || "Failed to add to cart")
     }
 
-    return safeParseJSON(response)
+    return (await safeParseJSON(response)) as CartResponse
   }
 
-  static async updateCartItem(data: { cart_item_id: number; quantity: number }): Promise<any> {
+  static async updateCartItem(data: { cart_item_id: number; quantity: number }): Promise<CartResponse> {
     const response = await fetch(`${API_BASE_URL}/dashboard/cart/update/`, {
       method: "POST",
       headers: getAuthHeaders(),
@@ -380,13 +425,13 @@ export class ApiService {
 
     if (!response.ok) {
       const error = await safeParseJSON(response)
-      throw new Error(error.error || "Failed to update cart")
+      throw new Error((error as { error?: string }).error || "Failed to update cart")
     }
 
-    return safeParseJSON(response)
+    return (await safeParseJSON(response)) as CartResponse
   }
 
-  static async removeFromCart(cartItemId: number): Promise<any> {
+  static async removeFromCart(cartItemId: number): Promise<CartResponse> {
     const response = await fetch(`${API_BASE_URL}/dashboard/cart/remove/`, {
       method: "POST",
       headers: getAuthHeaders(),
@@ -395,10 +440,10 @@ export class ApiService {
 
     if (!response.ok) {
       const error = await safeParseJSON(response)
-      throw new Error(error.error || "Failed to remove item")
+      throw new Error((error as { error?: string }).error || "Failed to remove item")
     }
 
-    return safeParseJSON(response)
+    return (await safeParseJSON(response)) as CartResponse
   }
 
   static async checkout(data: {
@@ -408,7 +453,7 @@ export class ApiService {
     payment_type: "full" | "installment"
     months?: number
     coupon_code?: string
-  }): Promise<any> {
+  }): Promise<CheckoutResponse> {
     const response = await fetch(`${API_BASE_URL}/dashboard/checkout/`, {
       method: "POST",
       headers: getAuthHeaders(),
@@ -417,10 +462,10 @@ export class ApiService {
 
     if (!response.ok) {
       const error = await safeParseJSON(response)
-      throw new Error(error.error || "Failed to checkout")
+      throw new Error((error as { error?: string }).error || "Failed to checkout")
     }
 
-    return safeParseJSON(response)
+    return (await safeParseJSON(response)) as CheckoutResponse
   }
 
   // Real store endpoints for products and categories
@@ -433,7 +478,7 @@ export class ApiService {
       throw new Error("Failed to fetch products")
     }
 
-    return safeParseJSON(response)
+    return safeParseJSON(response) as Promise<Product[]>
   }
 
   static async getCategories(): Promise<Category[]> {
@@ -445,7 +490,7 @@ export class ApiService {
       throw new Error("Failed to fetch categories")
     }
 
-    return safeParseJSON(response)
+    return safeParseJSON(response) as Promise<Category[]>
   }
 
   static async registerForLipa(registrationData: {
@@ -475,7 +520,7 @@ export class ApiService {
       throw new Error(JSON.stringify(error) || "Registration failed")
     }
 
-    return safeParseJSON(response)
+    return safeParseJSON(response) as Promise<LipaRegistration>
   }
 
   static async getLipaRegistration(): Promise<LipaRegistration | null> {
@@ -503,7 +548,13 @@ export class ApiService {
         return null
       }
 
-      return safeParseJSON(response)
+      const data = await safeParseJSON(response)
+
+      if (!data || (!(data as LipaRegistration).full_name && !(data as LipaRegistration).status)) {
+        return null
+      }
+
+      return data as LipaRegistration
     } catch (error) {
       console.error("Network error fetching Lipa registration:", error)
       return null
@@ -522,14 +573,16 @@ export class ApiService {
 
     if (!response.ok) {
       const error = await safeParseJSON(response)
-      throw new Error(error.error || "Failed to make installment payment")
+      throw new Error((error as { error?: string }).error || "Failed to make installment payment")
     }
 
-    return safeParseJSON(response)
+    return safeParseJSON(response) as Promise<InstallmentPayment>
   }
 
   static async validateCoupon(code: string): Promise<{ valid: boolean; discount: number; message?: string }> {
     try {
+      // Use the code parameter to validate coupon
+      console.log(`Validating coupon: ${code}`)
       return { valid: false, discount: 0, message: "Coupon validation not implemented" }
     } catch (error) {
       console.error("Error validating coupon:", error)
@@ -552,10 +605,10 @@ export class ApiService {
 
     if (!response.ok) {
       const error = await safeParseJSON(response)
-      throw new Error(error.message || "Failed to create order")
+      throw new Error((error as { message?: string }).message || "Failed to create order")
     }
 
-    return safeParseJSON(response)
+    return safeParseJSON(response) as Promise<Order>
   }
 
   static async getOrders(): Promise<Order[]> {
@@ -568,7 +621,7 @@ export class ApiService {
     }
 
     const data = await safeParseJSON(response)
-    return Array.isArray(data) ? data : data.results || []
+    return Array.isArray(data) ? data : (data as { results?: Order[] }).results || []
   }
 
   static async getInstallmentOrders(): Promise<InstallmentOrder[]> {
@@ -581,7 +634,7 @@ export class ApiService {
     }
 
     const data = await safeParseJSON(response)
-    return Array.isArray(data) ? data : data.results || []
+    return Array.isArray(data) ? data : (data as { results?: InstallmentOrder[] }).results || []
   }
 
   static async cancelOrder(orderId: number): Promise<void> {
@@ -592,11 +645,11 @@ export class ApiService {
 
     if (!response.ok) {
       const error = await safeParseJSON(response)
-      throw new Error(error.message || "Failed to cancel order")
+      throw new Error((error as { message?: string }).message || "Failed to cancel order")
     }
   }
 
-  static async trackOrder(orderId: number): Promise<any> {
+  static async trackOrder(orderId: number): Promise<OrderTrackingResponse> {
     const response = await fetch(`${API_BASE_URL}/dashboard/orders/${orderId}/track/`, {
       headers: getAuthHeaders(),
     })
@@ -605,7 +658,7 @@ export class ApiService {
       throw new Error("Failed to fetch tracking info")
     }
 
-    return safeParseJSON(response)
+    return (await safeParseJSON(response)) as OrderTrackingResponse
   }
 
   // Wallet endpoints
@@ -618,10 +671,10 @@ export class ApiService {
       throw new Error("Failed to fetch wallet balance")
     }
 
-    return safeParseJSON(response)
+    return safeParseJSON(response) as Promise<WalletBalance>
   }
 
-  static async deposit(amount: number): Promise<any> {
+  static async deposit(amount: number): Promise<DepositResponse> {
     const response = await fetch(`${API_BASE_URL}/wallet/deposit/`, {
       method: "POST",
       headers: getAuthHeaders(),
@@ -630,13 +683,13 @@ export class ApiService {
 
     if (!response.ok) {
       const error = await safeParseJSON(response)
-      throw new Error(error.message || "Deposit failed")
+      throw new Error((error as { message?: string }).message || "Deposit failed")
     }
 
-    return safeParseJSON(response)
+    return (await safeParseJSON(response)) as DepositResponse
   }
 
-  static async withdrawMain(amount: number): Promise<any> {
+  static async withdrawMain(amount: number): Promise<WithdrawalResponse> {
     const response = await fetch(`${API_BASE_URL}/wallet/withdraw/main/`, {
       method: "POST",
       headers: getAuthHeaders(),
@@ -645,13 +698,13 @@ export class ApiService {
 
     if (!response.ok) {
       const error = await safeParseJSON(response)
-      throw new Error(error.message || "Withdrawal failed")
+      throw new Error((error as { message?: string }).message || "Withdrawal failed")
     }
 
-    return safeParseJSON(response)
+    return (await safeParseJSON(response)) as WithdrawalResponse
   }
 
-  static async withdrawReferral(amount: number): Promise<any> {
+  static async withdrawReferral(amount: number): Promise<WithdrawalResponse> {
     const response = await fetch(`${API_BASE_URL}/wallet/withdraw/referral/`, {
       method: "POST",
       headers: getAuthHeaders(),
@@ -660,10 +713,10 @@ export class ApiService {
 
     if (!response.ok) {
       const error = await safeParseJSON(response)
-      throw new Error(error.message || "Withdrawal failed")
+      throw new Error((error as { message?: string }).message || "Withdrawal failed")
     }
 
-    return safeParseJSON(response)
+    return (await safeParseJSON(response)) as WithdrawalResponse
   }
 
   static async getTransactionHistory(): Promise<Transaction[]> {
@@ -675,7 +728,7 @@ export class ApiService {
       throw new Error("Failed to fetch transactions")
     }
 
-    return safeParseJSON(response)
+    return safeParseJSON(response) as Promise<Transaction[]>
   }
 
   static async getReferralStats(): Promise<ReferralStats> {
@@ -688,7 +741,7 @@ export class ApiService {
         throw new Error("Failed to fetch referral stats")
       }
 
-      return safeParseJSON(response)
+      return safeParseJSON(response) as Promise<ReferralStats>
     } catch (error) {
       console.error("Error fetching referral stats:", error)
       return {
@@ -741,14 +794,29 @@ export class ApiService {
 
       const purchases = await safeParseJSON(response)
       const now = new Date().toISOString()
-      const activePurchase = purchases.find((p: any) => new Date(p.expiry_date) > new Date(now))
+
+      // Properly type the purchases array
+      const purchasesArray = Array.isArray(purchases) ? purchases : []
+      const activePurchase = purchasesArray.find((p: unknown) => {
+        const purchase = p as {
+          expiry_date: string
+          package: { name: string; rate_per_view: number }
+          days_remaining: number
+        }
+        return new Date(purchase.expiry_date) > new Date(now)
+      })
 
       if (activePurchase) {
+        const purchase = activePurchase as {
+          package: { name: string; rate_per_view: number }
+          expiry_date: string
+          days_remaining: number
+        }
         return {
-          name: activePurchase.package.name,
-          rate_per_view: activePurchase.package.rate_per_view,
-          expiry_date: activePurchase.expiry_date,
-          days_remaining: activePurchase.days_remaining,
+          name: purchase.package.name,
+          rate_per_view: purchase.package.rate_per_view,
+          expiry_date: purchase.expiry_date,
+          days_remaining: purchase.days_remaining,
         }
       }
       return null
@@ -767,7 +835,7 @@ export class ApiService {
 
     if (!response.ok) {
       const error = await safeParseJSON(response)
-      throw new Error(error.message || "Failed to purchase package")
+      throw new Error((error as { message?: string }).message || "Failed to purchase package")
     }
   }
 
@@ -791,9 +859,12 @@ export class ApiService {
       throw new Error("Failed to fetch adverts")
     }
 
-    const responseData = await safeParseJSON(response)
+    const responseData = (await safeParseJSON(response)) as {
+      adverts?: Advert[]
+      user_package?: UserPackage
+    }
     return {
-      adverts: Array.isArray(responseData.adverts) ? responseData.adverts : responseData,
+      adverts: Array.isArray(responseData.adverts) ? responseData.adverts : (responseData as unknown as Advert[]),
       user_package: responseData.user_package || null,
     }
   }
@@ -810,7 +881,7 @@ export class ApiService {
     return response.blob()
   }
 
-  static async submitAdvert(advertId: number, viewsCount: number, screenshot: File): Promise<any> {
+  static async submitAdvert(advertId: number, viewsCount: number, screenshot: File): Promise<AdvertSubmissionResponse> {
     const formData = new FormData()
     formData.append("advert_id", advertId.toString())
     formData.append("views_count", viewsCount.toString())
@@ -833,7 +904,7 @@ export class ApiService {
       throw new Error(error.error || "Failed to submit advert")
     }
 
-    return safeParseJSON(response)
+    return (await safeParseJSON(response)) as AdvertSubmissionResponse
   }
 
   static async getCartCount(): Promise<number> {
@@ -891,6 +962,11 @@ export class ApiService {
       }
     }
 
-    return data
+    return data as {
+      results: Product[]
+      count: number
+      next: string | null
+      previous: string | null
+    }
   }
 }

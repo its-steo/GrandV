@@ -8,6 +8,7 @@ import { Check, Star, Clock, DollarSign, Loader2 } from "lucide-react"
 import { ApiService } from "@/lib/api"
 import { toast } from "sonner"
 import { formatCurrency } from "@/lib/utils"
+import Image from "next/image"
 
 interface Package {
   id: number
@@ -92,7 +93,7 @@ export function PackageCard({
 
     try {
       setIsPurchasing(true)
-      const response = await ApiService.purchasePackage(pkg.id)
+      await ApiService.purchasePackage(pkg.id)
 
       toast.success(`Successfully purchased ${pkg.name} package`)
 
@@ -147,9 +148,11 @@ export function PackageCard({
 
       <CardHeader className="text-center pb-2 sm:pb-4">
         <div className="mx-auto mb-2 sm:mb-4 relative">
-          <img
+          <Image
             src={pkg.image || "/placeholder.svg?height=80&width=80&query=package"}
             alt={pkg.name}
+            width={80}
+            height={80}
             className="h-16 w-16 sm:h-20 sm:w-20 rounded-full object-cover mx-auto"
           />
         </div>
@@ -157,7 +160,7 @@ export function PackageCard({
         <div
           className={`text-2xl sm:text-3xl font-bold bg-gradient-to-r ${getRateColor(pkg.rate_per_view)} bg-clip-text text-transparent`}
         >
-         {formatCurrency(pkg.price)}
+          {formatCurrency(pkg.price)}
         </div>
         <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">{pkg.description}</p>
       </CardHeader>

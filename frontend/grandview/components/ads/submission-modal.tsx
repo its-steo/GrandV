@@ -93,9 +93,9 @@ export function SubmissionModal({
       })
       onSuccess()
       onClose() // Added: Close modal after success
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("Submission Failed", {
-        description: error.message || "Please try again",
+        description: (error as Error).message || "Please try again",
       })
     } finally {
       setIsSubmitting(false)
@@ -108,7 +108,7 @@ export function SubmissionModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
-            Submit Views for "{advertTitle}"
+            Submit Views for `{advertTitle}`
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">

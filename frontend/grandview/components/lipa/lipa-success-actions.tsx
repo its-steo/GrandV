@@ -23,7 +23,7 @@ export function LipaSuccessActions({ registration }: LipaSuccessActionsProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
           <CheckCircle className="h-5 w-5" />
-          Congratulations! You're Approved
+          Congratulations! You Are Approved
           <Badge className="bg-green-500 text-white">
             <Sparkles className="h-3 w-3 mr-1" />
             Active
