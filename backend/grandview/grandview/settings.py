@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from pathlib import Path
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -27,7 +28,9 @@ SECRET_KEY = 'django-insecure-p=ag)#dxywkov=na&&l9%6kp!y%)$%$anw(gxamoih__oxwujl
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True  # Set to False in production
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']  # Add your domain in production, e.g., ['yourdomain.com']
+# For local mobile testing: Add your local IP (e.g., run `ipconfig` or `ifconfig` to find it)
+# Example: ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.1.100']  # Replace with your machine's IP
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']  # Added '0.0.0.0' for broader local access; restrict in prod
 
 
 # Application definition
@@ -73,19 +76,36 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',  # Secure API by default
     ],
-    # Allow unauthenticated access to login endpoint (override per view if needed)
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
     ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/day',
+        'user': '1000/day'
+    },
+    # Token expiry: DRF Token doesn't expire by default. For expiry, consider JWT (install djangorestframework-simplejwt)
+    # If using JWT, add 'rest_framework_simplejwt' to INSTALLED_APPS and update DEFAULT_AUTHENTICATION_CLASSES to:
+    # ['rest_framework_simplejwt.authentication.JWTAuthentication', ...]
+    # SIMPLE_JWT = { 'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60), 'REFRESH_TOKEN_LIFETIME': timedelta(days=7) }
     'UNAUTHENTICATED_USER': None,  # Handle unauthenticated users gracefully
 }
 
-# CORS Settings (for Next.js frontend)
+# For token expiry with DRF Token: You'll need a custom token model or periodic cleanup task.
+# Example: In a management command, delete old tokens: Token.objects.filter(created__lt=timezone.now() - timedelta(days=7)).delete()
+# Run via cron: 0 0 * * * python manage.py cleanup_tokens
+
+# CORS Settings (for Next.js frontend and mobile local testing)
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # Your Next.js dev server
     "http://127.0.0.1:3000",
-    # Add production frontend URL, e.g., "https://yourfrontenddomain.com"
+    # For mobile local testing: Add your machine's IP (e.g., for accessing frontend on mobile browser)
+    # "http://192.168.1.100:3000",  # Replace with your local IP
+    # For Django API from mobile: Mobile apps/browsers can access via IP:port, but CORS is for web origins
 ]
+
+# Allow all origins for local dev (insecure, remove in prod! Use specific origins above)
+CORS_ALLOW_ALL_ORIGINS = True  # Temporary for local/mobile testing; set to False in production
 
 CORS_ALLOW_HEADERS = [
     'accept',
@@ -104,7 +124,8 @@ CORS_ALLOW_CREDENTIALS = True  # Allow cookies/sessions if using session auth
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    # Add production origins
+    # For mobile: Add your local IP
+    # "http://192.168.1.100:3000",  # Replace with your local IP
 ]
 
 ROOT_URLCONF = 'grandview.urls'
@@ -192,22 +213,58 @@ EMAIL_HOST = 'smtp.gmail.com'  # Updated to Gmail SMTP (replace with your provid
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'globalgrowthinvest@gmail.com'  # Your email
-EMAIL_HOST_PASSWORD = 'fdvyuvtreqtoocir'  # Your app-specific password (see note below)
+EMAIL_HOST_PASSWORD = 'fdvyuvtreqtoocir'  # Your app-specific password (see note below) - NEVER commit this in prod; use env vars
 
 # For development, use console backend instead (prints emails to console)
 # EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-# Security settings (add these for better protection)
+# Security settings (enhanced for better protection)
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
 CSRF_COOKIE_SECURE = False  # Set to True in production with HTTPS
+SESSION_COOKIE_HTTPONLY = True  # Prevent JS access to session cookie
+CSRF_COOKIE_HTTPONLY = False  # Typically False for AJAX
+SECURE_HSTS_SECONDS = 0  # Set >0 in production for HSTS
+SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+SECURE_HSTS_PRELOAD = False
+SECURE_REDIRECT_EXEMPT = []  # Customize if needed
+
+# For production: Add SECURE_SSL_REDIRECT = True when behind HTTPS proxy/load balancer
 
 # Login/Redirect Settings
 LOGIN_URL = '/api/accounts/login/'  # Your API login endpoint
 LOGOUT_REDIRECT_URL = '/'
 LOGIN_REDIRECT_URL = '/'  # Redirect after login
 
-# Install django-cors-headers if not already installed
-# pip install django-cors-headers
+# Logging (for debugging issues)
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
+# For mobile local testing:
+# 1. Run Django: python manage.py runserver 0.0.0.0:8000
+# 2. Find your machine's IP (e.g., 192.168.1.100)
+# 3. On mobile: Access http://192.168.1.100:8000/api/... for API
+# 4. For Next.js frontend: Run on same machine, access http://192.168.1.100:3000 on mobile
+# 5. Update ALLOWED_HOSTS and CORS_ALLOWED_ORIGINS with your IP as shown in comments above
+# 6. Ensure mobile and machine on same WiFi network
+# 7. For token expiry: If needed, install djangorestframework-simplejwt via pip and uncomment the JWT config above
