@@ -26,11 +26,13 @@ SECRET_KEY = 'django-insecure-p=ag)#dxywkov=na&&l9%6kp!y%)$%$anw(gxamoih__oxwujl
 # To generate a new secret key: python -c "import secrets; print(secrets.token_urlsafe(50))"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True  # Set to False in production
+#DEBUG = True 
+DEBUG = False  # Set to False in production
 
 # For local mobile testing: Add your local IP (e.g., run `ipconfig` or `ifconfig` to find it)
 # Example: ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.1.100']  # Replace with your machine's IP
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']  # Added '0.0.0.0' for broader local access; restrict in prod
+#ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0'] 
+ALLOWED_HOSTS = ['https://grandview-shop.onrender.com','https://grandview-shop.onrender.com', '127.0.0.1', '0.0.0.0'] 
 
 
 # Application definition
@@ -99,9 +101,8 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # Your Next.js dev server
     "http://127.0.0.1:3000",
-    # For mobile local testing: Add your machine's IP (e.g., for accessing frontend on mobile browser)
-    # "http://192.168.1.100:3000",  # Replace with your local IP
-    # For Django API from mobile: Mobile apps/browsers can access via IP:port, but CORS is for web origins
+    "https://grand-v.vercel.app",  # Your deployed frontend domain
+    
 ]
 
 # Allow all origins for local dev (insecure, remove in prod! Use specific origins above)
@@ -124,8 +125,7 @@ CORS_ALLOW_CREDENTIALS = True  # Allow cookies/sessions if using session auth
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    # For mobile: Add your local IP
-    # "http://192.168.1.100:3000",  # Replace with your local IP
+    "https://grand-v.vercel.app",  # Your deployed frontend domain
 ]
 
 ROOT_URLCONF = 'grandview.urls'
@@ -152,16 +152,23 @@ WSGI_APPLICATION = 'grandview.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+#DATABASES = {
+#    'default': {
+#        'ENGINE': 'django.db.backends.sqlite3',
+#        'NAME': BASE_DIR / 'db.sqlite3',
+#    }
+#}
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME', 'grandview'),
+        'USER': os.getenv('DB_USER', 'grandview_user'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'gsbgVstgELjnfD6KJmSCpkKl7LgIdbXO'),
+        'HOST': os.getenv('DB_HOST', 'dpg-d35a1l33fgac73b9mvjg-a.oregon-postgres.render.com'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
-
-
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
