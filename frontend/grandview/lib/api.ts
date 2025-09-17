@@ -454,19 +454,27 @@ export class ApiService {
     payment_type: "full" | "installment"
     months?: number
     coupon_code?: string
-  }): Promise<CheckoutResponse> {
+  }): Promise<void> {
+    // Transform frontend payload to match backend expectations
+    const backendData = {
+      address: data.address,
+      phone: data.phone,
+      delivery_fee: data.delivery_fee,
+      payment_method: data.payment_type === "full" ? "FULL" : "INSTALLMENT", // Map payment_type to payment_method
+      installment_months: data.months, // Map months to installment_months
+      coupon_code: data.coupon_code,
+    }
+
     const response = await fetch(`${API_BASE_URL}/dashboard/checkout/`, {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify(data),
+      body: JSON.stringify(backendData), // Use transformed data
     })
 
     if (!response.ok) {
       const error = await safeParseJSON(response)
       throw new Error((error as { error?: string }).error || "Failed to checkout")
     }
-
-    return (await safeParseJSON(response)) as CheckoutResponse
   }
 
   // Real store endpoints for products and categories

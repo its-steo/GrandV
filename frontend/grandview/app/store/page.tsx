@@ -174,7 +174,9 @@ export default function StorePage() {
                     </CardContent>
                   </Card>
                 ) : (
-                  <div className={`grid gap-4 sm:gap-6 ${viewMode === "grid" ? "md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1"}`}>
+                  <div
+                    className={`grid gap-4 sm:gap-6 ${viewMode === "grid" ? "md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1"}`}
+                  >
                     {filteredProducts.map((product) => (
                       <ProductCard key={product.id} product={product} onAddToCart={handleCartUpdate} />
                     ))}

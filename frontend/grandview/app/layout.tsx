@@ -10,7 +10,7 @@ import { AuthProvider } from "@/hooks/use-auth"
 import { Toaster } from "sonner" // Use sonner directly instead of shadcn/ui's Toaster
 
 export const metadata: Metadata = {
-  title: "v0 App",
+  title: "grandview - Shop, Advertise and Earn",
   description: "Created with v0",
   generator: "v0.app",
 }

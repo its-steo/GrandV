@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { ShoppingCart, ArrowLeft, Star, Truck, Shield, RefreshCw, Loader2 } from "lucide-react"
 import { ApiService, type Product } from "@/lib/api"
-import { formatCurrency } from "@/lib/utils"
+import { formatCurrency, getImageUrl } from "@/lib/utils"
 import { toast } from "sonner"
 import ShoppingCartComponent from "@/components/store/shopping-cart"
 
@@ -31,7 +31,7 @@ export default function ProductDetailPage() {
     try {
       const productData = await ApiService.getProduct(id)
       setProduct(productData)
-      setSelectedImage(productData.main_image)
+      setSelectedImage(getImageUrl(productData.main_image))
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load product details")
     } finally {
@@ -127,24 +127,34 @@ export default function ProductDetailPage() {
               <div className="space-y-3 sm:space-y-4">
                 <div className="aspect-square bg-muted rounded-lg overflow-hidden">
                   <img
-                    src={selectedImage || "/placeholder.svg"}
+                    src={selectedImage || getImageUrl(null)}
                     alt={product.name}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement
+                      target.src = "https://placehold.co/400x400?text=Image+Not+Found&font=montserrat"  // Larger size for main image
+                    }}
                   />
                 </div>
                 {product.sub_images && product.sub_images.length > 0 && (
                   <div className="flex gap-2 overflow-x-auto pb-2">
                     {[product.main_image, ...product.sub_images.map((img) => img.image)].map((img, index) => (
-                      <img
-                        key={index}
-                        src={img || "/placeholder.svg"}
-                        alt={`${product.name} ${index + 1}`}
-                        className={`w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 object-cover rounded cursor-pointer transition-opacity flex-shrink-0 ${
-                          selectedImage === img ? "opacity-100 ring-2 ring-primary" : "opacity-60 hover:opacity-100"
-                        }`}
-                        onClick={() => setSelectedImage(img)}
-                      />
-                    ))}
+                    <img
+                      key={index}
+                      src={getImageUrl(img) || "https://placehold.co/80x80?text=No+Image&font=montserrat"}
+                      alt={`${product.name} ${index + 1}`}
+                      className={`w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 object-cover rounded cursor-pointer transition-opacity flex-shrink-0 ${
+                        selectedImage === getImageUrl(img)
+                          ? "opacity-100 ring-2 ring-primary"
+                          : "opacity-60 hover:opacity-100"
+                      }`}
+                      onClick={() => setSelectedImage(getImageUrl(img))}
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement
+                        target.src = "https://placehold.co/80x80?text=No+Image&font=montserrat"  // External fallback
+                      }}
+                    />
+                  ))}
                   </div>
                 )}
               </div>
@@ -161,9 +171,13 @@ export default function ProductDetailPage() {
                   </div>
                 </div>
 
-                <div className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-primary">{formatCurrency(product.price)}</div>
+                <div className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-primary">
+                  {formatCurrency(product.price)}
+                </div>
 
-                <p className="text-xs sm:text-sm md:text-base text-muted-foreground leading-relaxed">{product.description}</p>
+                <p className="text-xs sm:text-sm md:text-base text-muted-foreground leading-relaxed">
+                  {product.description}
+                </p>
 
                 <div className="flex gap-3 sm:gap-4">
                   <Button

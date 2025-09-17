@@ -117,14 +117,17 @@ export function CheckoutForm({ cartItems, totalAmount, onCheckoutComplete, onClo
     try {
       setIsSubmitting(true)
 
+      // Use correct keys as expected by ApiService.checkout
       const checkoutData = {
         address: formData.address,
         phone: formData.phone,
-        delivery_fee: formData.delivery_fee, // Now passing as number instead of string
-        payment_type: paymentType, // Changed from payment_method to payment_type
+        delivery_fee: formData.delivery_fee,
+        payment_type: paymentType, // "full" or "installment"
         ...(paymentType === "installment" && { months: installmentMonths }),
         ...(appliedCoupon && { coupon_code: appliedCoupon.code }),
       }
+
+      console.log("Submitting checkout data:", checkoutData) // Add logging for debugging
 
       await ApiService.checkout(checkoutData)
 
@@ -136,6 +139,7 @@ export function CheckoutForm({ cartItems, totalAmount, onCheckoutComplete, onClo
 
       onCheckoutComplete()
     } catch (error) {
+      console.error("Checkout error:", error) // Add logging for debugging
       toast.error(error instanceof Error ? error.message : "Failed to place order")
     } finally {
       setIsSubmitting(false)

@@ -21,3 +21,19 @@ export function formatNumber(value: string | number): string {
 
   return numValue.toLocaleString("en-US")
 }
+
+export function getImageUrl(imagePath: string | null | undefined): string {
+  const pathStr = imagePath?.toString() || ""
+
+  if (!pathStr || pathStr.trim() === "") {
+    // Use external service for fallback (adjust size as needed)
+    return "https://placehold.co/300x300?text=No+Image&font=montserrat"
+  }
+
+  if (pathStr.startsWith("http")) {
+    return pathStr
+  }
+
+  // Prepend the backend URL for relative paths (this remains unchanged)
+  return `http://localhost:8000${pathStr}`
+}

@@ -146,16 +146,17 @@ export function PackageCard({
         </Badge>
       )}
 
+      <div className="relative w-full h-32 sm:h-40">
+        <Image
+          src={pkg.image.startsWith('http') ? pkg.image : `http://localhost:8000${pkg.image}`}
+          alt={pkg.name}
+          fill
+          className="object-cover"
+          sizes="(max-width: 640px) 90vw, 284px"
+        />
+      </div>
+
       <CardHeader className="text-center pb-2 sm:pb-4">
-        <div className="mx-auto mb-2 sm:mb-4 relative">
-          <Image
-            src={pkg.image || "/placeholder.svg?height=80&width=80&query=package"}
-            alt={pkg.name}
-            width={80}
-            height={80}
-            className="h-16 w-16 sm:h-20 sm:w-20 rounded-full object-cover mx-auto"
-          />
-        </div>
         <CardTitle className="text-lg sm:text-xl md:text-2xl mb-1 sm:mb-2">{pkg.name}</CardTitle>
         <div
           className={`text-2xl sm:text-3xl font-bold bg-gradient-to-r ${getRateColor(pkg.rate_per_view)} bg-clip-text text-transparent`}
