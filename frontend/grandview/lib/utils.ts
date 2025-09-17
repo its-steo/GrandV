@@ -35,5 +35,5 @@ export function getImageUrl(imagePath: string | null | undefined): string {
   }
 
   // Prepend the backend URL for relative paths (this remains unchanged)
-  return `http://localhost:8000${pathStr}`
+  return `http://grandview-shop.onrender.com${pathStr}`
 }
