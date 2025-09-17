@@ -2,6 +2,10 @@ import os
 from pathlib import Path
 from datetime import timedelta
 import dj_database_url
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -12,11 +16,8 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-p=ag)#dxywkov=na&&l
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False') == 'True'  # Controlled by Render env var
 
-ALLOWED_HOSTS = [
-    'grandview-shop.onrender.com',  # Render domain
-    '127.0.0.1',  # For local testing
-    '0.0.0.0',  # For local testing
-]
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0').split(',')
+ALLOWED_HOSTS.append('grandview-shop.onrender.com')  # Ensure Render domain is included
 
 # Application definition
 INSTALLED_APPS = [
@@ -28,9 +29,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
-    'rest_framework_simplejwt',  # Added for JWT authentication
+    'rest_framework_simplejwt',  # For JWT authentication
     'corsheaders',  # For CORS support
-    'channels',  # Added for Django Channels
+    'channels',  # For Django Channels
     'accounts',
     'phonenumber_field',
     'packages',
@@ -84,31 +85,21 @@ SIMPLE_JWT = {
 ASGI_APPLICATION = 'grandview.asgi.application'
 CHANNEL_LAYERS = {
     'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer',  # For development
-        # For production, use Redis (uncomment below and set REDIS_URL in Render)
-        # 'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        # 'CONFIG': {
-        #     'hosts': [(os.getenv('REDIS_URL', 'redis://localhost:6379/0'))],
-        # },
+        #'BACKEND': 'channels.layers.InMemoryChannelLayer',  # For development
+        # For production, use Redis (uncomment and set REDIS_URL in Render)
+         'BACKEND': 'channels_redis.core.RedisChannelLayer',
+         'CONFIG': {
+             'hosts': [(os.getenv('REDIS_URL', 'redis://localhost:6379/0'))],
+         },
     },
 }
 
 # CORS settings
-CORS_ALLOWED_ORIGINS = [
-    "https://grand-v.vercel.app",  # Production frontend
-    "http://localhost:3000",  # Local Next.js dev server
-    "http://127.0.0.1:3000",  # Local Next.js dev server
-]
-
-CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'False') == 'True'  # False in production
+CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000,https://grand-v.vercel.app').split(',')
+CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'False') == 'False'  # False in production
 CORS_ALLOW_CREDENTIALS = True  # Allow cookies/sessions
 
-CSRF_TRUSTED_ORIGINS = [
-    "https://grandview-shop.onrender.com",  # Render backend
-    "https://grand-v.vercel.app",  # Production frontend
-    "http://localhost:3000",  # Local testing
-    "http://127.0.0.1:3000",  # Local testing
-]
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000,https://grandview-shop.onrender.com,https://grand-v.vercel.app').split(',')
 
 ROOT_URLCONF = 'grandview.urls'
 
@@ -129,26 +120,27 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'grandview.wsgi.application'
-ASGI_APPLICATION = 'grandview.asgi.application'  # Added for Channels
+ASGI_APPLICATION = 'grandview.asgi.application'  # For Channels
 
-# Database
-#DATABASES = {
-#    'default': dj_database_url.config(
-#        default=os.getenv('DATABASE_URL'),
-#        conn_max_age=600
-#    )
-#}
-
+# Database (Render production configuration)
 DATABASES = {
-    'default': {
-        'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql'),
-        'NAME': os.getenv('DB_NAME', 'grandview'),
-        'USER': os.getenv('DB_USER', 'grandview_user'),
-        'PASSWORD': os.getenv('DB_PASSWORD', 'gsbgVstgELjnfD6KJmSCpkKl7LgIdbXO'),
-        'HOST': os.getenv('DB_HOST', 'dpg-d35a1l33fgac73b9mvjg-a.oregon-postgres.render.com'),
-        'PORT': os.getenv('DB_PORT', '5432'),
-    }
+    'default': dj_database_url.config(
+        default=os.getenv('DATABASE_URL'),
+        conn_max_age=600
+    )
 }
+
+# Local database configuration (commented out as requested)
+# DATABASES = {
+#     'default': {
+#         'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql'),
+#         'NAME': os.getenv('DB_NAME', 'grandview'),
+#         'USER': os.getenv('DB_USER', 'grandview_user'),
+#         'PASSWORD': os.getenv('DB_PASSWORD', 'gsbgVstgELjnfD6KJmSCpkKl7LgIdbXO'),
+#         'HOST': os.getenv('DB_HOST', 'localhost'),
+#         'PORT': os.getenv('DB_PORT', '5432'),
+#     }
+# }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -195,15 +187,16 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')  # Set in Render dashboar
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
-SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'True') == 'True'  # True in production
-CSRF_COOKIE_SECURE = os.getenv('CSRF_COOKIE_SECURE', 'True') == 'True'  # True in production
+SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'True') == 'True'
+CSRF_COOKIE_SECURE = os.getenv('CSRF_COOKIE_SECURE', 'True') == 'True'
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = False  # For AJAX
-SECURE_HSTS_SECONDS = 31536000  # Enable HSTS for 1 year
+SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS', 31536000))  # Enable HSTS for 1 year
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
-SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'True') == 'True'  # True in production
+SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'True') == 'True'
 SECURE_REDIRECT_EXEMPT = []
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')  # Handle Render's HTTPS proxy
 
 # Login/Redirect Settings
 LOGIN_URL = '/api/accounts/login/'
