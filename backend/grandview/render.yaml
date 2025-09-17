@@ -5,8 +5,8 @@ services:
   - type: web
     name: grandview-backend
     env: python
-    region: oregon  # Choose your preferred region (e.g., oregon, frankfurt, singapore)
-    plan: free  # Options: free, starter, standard, pro, etc. (adjust based on needs)
+    region: oregon  # Match the region of your database
+    plan: free  # Adjust based on needs (free, starter, standard, pro)
     buildCommand: |
       pip install -r requirements.txt
       python manage.py collectstatic --noinput
@@ -14,36 +14,35 @@ services:
     startCommand: gunicorn grandview.wsgi:application --bind 0.0.0.0:$PORT
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11  # Use a specific Python version compatible with Django 5.2.6
+        value: 3.11  # Compatible with Django 5.2.4
       - key: DJANGO_SECRET_KEY
         sync: false
-        value: your_secure_secret_key_here  # Replace with a secure key; never commit this
+        value: your_secure_secret_key_here  # Set in Render dashboard
       - key: DEBUG
         value: "False"  # Disable debug in production
       - key: ALLOWED_HOSTS
-        value: "your-render-domain.onrender.com"  # Replace with your Render app domain
+        value: "grandview-shop.onrender.com"  # Your Render domain
       - key: CORS_ALLOWED_ORIGINS
-        value: "https://your-frontend-domain.vercel.app"  # Your production frontend domain
+        value: "https://grand-v.vercel.app"  # Your frontend domain
       - key: CORS_ALLOW_ALL_ORIGINS
-        value: "False"  # Disable for production security
+        value: "False"  # Disable for production
       - key: CSRF_TRUSTED_ORIGINS
-        value: "https://your-render-domain.onrender.com,https://your-frontend-domain.vercel.app"
+        value: "https://grandview-shop.onrender.com,https://grand-v.vercel.app"
       - key: EMAIL_HOST_USER
-        value: "globalgrowthinvest@gmail.com"  # Your email (consider using env vars in production)
+        value: "globalgrowthinvest@gmail.com"  # Set in Render dashboard
       - key: EMAIL_HOST_PASSWORD
         sync: false
-        value: "fdvyuvtreqtoocir"  # App-specific password; never commit, use Render secrets
+        value: "fdvyuvtreqtoocir"  # Set in Render dashboard
       - key: DATABASE_URL
         fromDatabase:
           name: grandview-db
           property: connectionString
-        # Note: SQLite is used in settings.py; for production, consider PostgreSQL (configured below)
       - key: SESSION_COOKIE_SECURE
         value: "True"  # Enable for HTTPS
       - key: CSRF_COOKIE_SECURE
         value: "True"  # Enable for HTTPS
       - key: SECURE_SSL_REDIRECT
-        value: "True"  # Redirect HTTP to HTTPS (Render handles SSL)
+        value: "True"  # Redirect HTTP to HTTPS
       - key: SECURE_HSTS_SECONDS
         value: "31536000"  # Enable HSTS for 1 year
       - key: SECURE_HSTS_INCLUDE_SUBDOMAINS
@@ -51,7 +50,6 @@ services:
       - key: SECURE_HSTS_PRELOAD
         value: "True"
 
-# Optional: Define a managed PostgreSQL database (recommended for production)
 databases:
   - name: grandview-db
     databaseName: grandview
