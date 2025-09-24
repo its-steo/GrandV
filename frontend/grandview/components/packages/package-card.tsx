@@ -184,7 +184,7 @@ export function PackageCard({
       <div className="relative w-full h-48 overflow-hidden">
         <div className={`absolute inset-0 bg-gradient-to-br ${theme.bg} opacity-90`} />
         <Image
-          src={pkg.image.startsWith("http") ? pkg.image : `http://localhost:8000${pkg.image}`}
+          src={pkg.image.startsWith("http") ? pkg.image : `https://grandview-shop.onrender.com${pkg.image}`}
           alt={pkg.name}
           fill
           className="object-cover"
