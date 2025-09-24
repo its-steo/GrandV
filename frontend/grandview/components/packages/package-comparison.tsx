@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Check, X } from "lucide-react"
+import { Check, X, Star } from "lucide-react"
 import { ApiService } from "@/lib/api"
 
 interface PackageFeature {
@@ -23,11 +23,15 @@ export function PackageComparison() {
         setFeatures(data)
       } catch (error) {
         console.error("Failed to fetch package features:", error)
-        // Fallback to basic features if API fails
         setFeatures([
-          { name: "Access to advertisements", basic: true, standard: true, premium: true },
-          { name: "Instant earnings", basic: true, standard: true, premium: true },
-          { name: "24/7 support", basic: true, standard: true, premium: true },
+          { name: "Access to premium advertisements", basic: true, standard: true, premium: true },
+          { name: "Instant earnings processing", basic: true, standard: true, premium: true },
+          { name: "24/7 customer support", basic: true, standard: true, premium: true },
+          { name: "Priority ad queue access", basic: false, standard: true, premium: true },
+          { name: "Exclusive high-rate campaigns", basic: false, standard: false, premium: true },
+          { name: "Dedicated account manager", basic: false, standard: false, premium: true },
+          { name: "Advanced analytics dashboard", basic: false, standard: true, premium: true },
+          { name: "Early access to new features", basic: false, standard: false, premium: true },
         ])
       } finally {
         setLoading(false)
@@ -39,21 +43,20 @@ export function PackageComparison() {
 
   if (loading) {
     return (
-      <Card className="glass-card border-white/20">
+      <Card className="professional-card">
         <CardHeader>
-          <CardTitle className="text-center bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            Package Comparison
-          </CardTitle>
+          <CardTitle className="text-center text-2xl font-bold">Package Comparison</CardTitle>
+          <p className="text-center text-muted-foreground">Compare features across all packages</p>
         </CardHeader>
         <CardContent>
           <div className="animate-pulse space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="flex justify-between items-center">
-                <div className="w-32 h-4 bg-muted rounded"></div>
-                <div className="flex gap-8">
-                  <div className="w-6 h-6 bg-muted rounded"></div>
-                  <div className="w-6 h-6 bg-muted rounded"></div>
-                  <div className="w-6 h-6 bg-muted rounded"></div>
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="flex justify-between items-center py-3">
+                <div className="w-48 h-4 bg-muted rounded" />
+                <div className="flex gap-12">
+                  <div className="w-6 h-6 bg-muted rounded" />
+                  <div className="w-6 h-6 bg-muted rounded" />
+                  <div className="w-6 h-6 bg-muted rounded" />
                 </div>
               </div>
             ))}
@@ -64,55 +67,86 @@ export function PackageComparison() {
   }
 
   return (
-    <Card className="glass-card border-white/20">
-      <CardHeader>
-        <CardTitle className="text-center bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-          Package Comparison
-        </CardTitle>
+    <Card className="professional-card">
+      <CardHeader className="text-center space-y-4">
+        <CardTitle className="text-3xl font-bold">Package Comparison</CardTitle>
+        <p className="text-muted-foreground text-lg">Compare features across all packages to find your perfect fit</p>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/20">
-                <th className="text-left py-3 px-4">Features</th>
-                <th className="text-center py-3 px-4">
-                  <div className="text-blue-600 font-semibold">Basic</div>
-                  <div className="text-sm text-muted-foreground">KSH 90/view</div>
+              <tr className="border-b-2 border-border">
+                <th className="text-left py-6 px-6 font-semibold text-lg">Features</th>
+                <th className="text-center py-6 px-6 min-w-[140px]">
+                  <div className="space-y-2">
+                    <div className="text-blue-600 font-bold text-lg">Starter</div>
+                    <div className="text-sm text-muted-foreground">KSH 90/view</div>
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
+                      <Star className="h-4 w-4 text-blue-600" />
+                    </div>
+                  </div>
                 </th>
-                <th className="text-center py-3 px-4">
-                  <div className="text-green-600 font-semibold">Standard</div>
-                  <div className="text-sm text-muted-foreground">KSH 100/view</div>
+                <th className="text-center py-6 px-6 min-w-[140px] relative">
+                  <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
+                    <span className="bg-gradient-to-r from-chart-1 to-chart-2 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                      POPULAR
+                    </span>
+                  </div>
+                  <div className="space-y-2 mt-4">
+                    <div className="text-chart-1 font-bold text-lg">Standard</div>
+                    <div className="text-sm text-muted-foreground">KSH 100/view</div>
+                    <div className="w-8 h-8 bg-chart-1/20 rounded-full flex items-center justify-center mx-auto">
+                      <Star className="h-4 w-4 text-chart-1" />
+                    </div>
+                  </div>
                 </th>
-                <th className="text-center py-3 px-4">
-                  <div className="text-purple-600 font-semibold">Premium</div>
-                  <div className="text-sm text-muted-foreground">KSH 120/view</div>
+                <th className="text-center py-6 px-6 min-w-[140px]">
+                  <div className="space-y-2">
+                    <div className="text-primary font-bold text-lg">Premium</div>
+                    <div className="text-sm text-muted-foreground">KSH 120/view</div>
+                    <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center mx-auto">
+                      <Star className="h-4 w-4 text-primary" />
+                    </div>
+                  </div>
                 </th>
               </tr>
             </thead>
             <tbody>
               {features.map((feature, index) => (
-                <tr key={index} className="border-b border-white/10">
-                  <td className="py-3 px-4 text-sm">{feature.name}</td>
-                  <td className="py-3 px-4 text-center">
+                <tr key={index} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                  <td className="py-4 px-6 font-medium">{feature.name}</td>
+                  <td className="py-4 px-6 text-center">
                     {feature.basic ? (
-                      <Check className="h-4 w-4 text-green-500 mx-auto" />
+                      <div className="w-6 h-6 bg-chart-1/20 rounded-full flex items-center justify-center mx-auto">
+                        <Check className="h-4 w-4 text-chart-1" />
+                      </div>
                     ) : (
-                      <X className="h-4 w-4 text-gray-400 mx-auto" />
+                      <div className="w-6 h-6 bg-muted/20 rounded-full flex items-center justify-center mx-auto">
+                        <X className="h-4 w-4 text-muted-foreground" />
+                      </div>
                     )}
                   </td>
-                  <td className="py-3 px-4 text-center">
+                  <td className="py-4 px-6 text-center">
                     {feature.standard ? (
-                      <Check className="h-4 w-4 text-green-500 mx-auto" />
+                      <div className="w-6 h-6 bg-chart-1/20 rounded-full flex items-center justify-center mx-auto">
+                        <Check className="h-4 w-4 text-chart-1" />
+                      </div>
                     ) : (
-                      <X className="h-4 w-4 text-gray-400 mx-auto" />
+                      <div className="w-6 h-6 bg-muted/20 rounded-full flex items-center justify-center mx-auto">
+                        <X className="h-4 w-4 text-muted-foreground" />
+                      </div>
                     )}
                   </td>
-                  <td className="py-3 px-4 text-center">
+                  <td className="py-4 px-6 text-center">
                     {feature.premium ? (
-                      <Check className="h-4 w-4 text-green-500 mx-auto" />
+                      <div className="w-6 h-6 bg-chart-1/20 rounded-full flex items-center justify-center mx-auto">
+                        <Check className="h-4 w-4 text-chart-1" />
+                      </div>
                     ) : (
-                      <X className="h-4 w-4 text-gray-400 mx-auto" />
+                      <div className="w-6 h-6 bg-muted/20 rounded-full flex items-center justify-center mx-auto">
+                        <X className="h-4 w-4 text-muted-foreground" />
+                      </div>
                     )}
                   </td>
                 </tr>

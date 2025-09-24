@@ -1,6 +1,8 @@
 from django.apps import AppConfig
 
-
 class DashboardConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'dashboard'
+    name = 'dashboard'  # Replace with your app name
+
+    def ready(self):
+        import dashboard.signals  # Replace with your app name

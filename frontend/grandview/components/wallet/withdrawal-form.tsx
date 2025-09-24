@@ -1,14 +1,14 @@
+// Updated withdrawal-form.tsx to add mpesa_number input
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Minus, Loader2, TrendingDown, Users } from "lucide-react"
+import { Minus, Loader2, TrendingDown, Users} from "lucide-react"
 import { ApiService } from "@/lib/api"
 import { toast } from "sonner"
 import { formatCurrency } from "@/lib/utils"
@@ -25,6 +25,8 @@ interface WithdrawalFormProps {
 export function WithdrawalForm({ walletBalance, onSuccess }: WithdrawalFormProps) {
   const [mainAmount, setMainAmount] = useState("")
   const [referralAmount, setReferralAmount] = useState("")
+  const [mainMpesaNumber, setMainMpesaNumber] = useState("")
+  const [referralMpesaNumber, setReferralMpesaNumber] = useState("")
   const [isWithdrawingMain, setIsWithdrawingMain] = useState(false)
   const [isWithdrawingReferral, setIsWithdrawingReferral] = useState(false)
 
@@ -34,6 +36,10 @@ export function WithdrawalForm({ walletBalance, onSuccess }: WithdrawalFormProps
     : 0
 
   const referralBalance = walletBalance ? Number.parseFloat(walletBalance.referral_balance) || 0 : 0
+
+  const validateMpesaNumber = (number: string) => {
+    return number.match(/^254\d{9}$/)
+  }
 
   const handleMainWithdrawal = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -49,18 +55,27 @@ export function WithdrawalForm({ walletBalance, onSuccess }: WithdrawalFormProps
       return
     }
 
-    if (withdrawAmount < 5) {
-      toast.error("Minimum withdrawal amount is KSH 5.00")
+    if (withdrawAmount < 50) {
+      toast.error("Minimum withdrawal amount is KSH 50.00")
+      return
+    }
+
+    if (!validateMpesaNumber(mainMpesaNumber)) {
+      toast.error("Please enter a valid M-Pesa number (254xxxxxxxxx)")
       return
     }
 
     try {
       setIsWithdrawingMain(true)
-      await ApiService.withdrawMain(withdrawAmount)
-
-      toast.success(` ${formatCurrency(withdrawAmount)} withdrawal is pending approval`)
+      const payload = {
+        amount: withdrawAmount,
+        mpesa_number: mainMpesaNumber
+      }
+      const response = await ApiService.withdrawMain(payload)
+      toast.success(response.message || `Withdrawal of ${formatCurrency(withdrawAmount)} is pending approval. You'll receive an email once processed.`)
 
       setMainAmount("")
+      setMainMpesaNumber("")
       onSuccess()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to process withdrawal")
@@ -83,18 +98,27 @@ export function WithdrawalForm({ walletBalance, onSuccess }: WithdrawalFormProps
       return
     }
 
-    if (withdrawAmount < 5) {
-      toast.error("Minimum withdrawal amount is KSH 5.00")
+    if (withdrawAmount < 50) {
+      toast.error("Minimum withdrawal amount is KSH 50.00")
+      return
+    }
+
+    if (!validateMpesaNumber(referralMpesaNumber)) {
+      toast.error("Please enter a valid M-Pesa number (254xxxxxxxxx)")
       return
     }
 
     try {
       setIsWithdrawingReferral(true)
-      await ApiService.withdrawReferral(withdrawAmount)
-
-      toast.success(` ${formatCurrency(withdrawAmount)} referral withdrawal is pending approval`)
+      const payload = {
+        amount: withdrawAmount,
+        mpesa_number: referralMpesaNumber
+      }
+      const response = await ApiService.withdrawReferral(payload)
+      toast.success(response.message || `Referral withdrawal of ${formatCurrency(withdrawAmount)} is pending approval. You'll receive an email once processed.`)
 
       setReferralAmount("")
+      setReferralMpesaNumber("")
       onSuccess()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to process withdrawal")
@@ -114,18 +138,8 @@ export function WithdrawalForm({ walletBalance, onSuccess }: WithdrawalFormProps
       <CardContent>
         <Tabs defaultValue="main" className="space-y-4">
           <TabsList className="grid w-full grid-cols-2 glass">
-            <TabsTrigger
-              value="main"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-green-600 data-[state=active]:text-white"
-            >
-              Main Balance
-            </TabsTrigger>
-            <TabsTrigger
-              value="referral"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
-            >
-              Referral Balance
-            </TabsTrigger>
+            <TabsTrigger value="main">Main Balance</TabsTrigger>
+            <TabsTrigger value="referral">Referral Balance</TabsTrigger>
           </TabsList>
 
           <TabsContent value="main" className="space-y-4">
@@ -134,9 +148,7 @@ export function WithdrawalForm({ walletBalance, onSuccess }: WithdrawalFormProps
                 <TrendingDown className="h-4 w-4 text-green-600" />
                 <span className="font-semibold text-green-800">Main Balance</span>
               </div>
-              <p className="text-sm text-green-700">
-                Available: {formatCurrency(mainBalance)} (Deposit + Views Earnings)
-              </p>
+              <p className="text-sm text-green-700">Available: {formatCurrency(mainBalance)}</p>
             </div>
 
             <form onSubmit={handleMainWithdrawal} className="space-y-4">
@@ -146,7 +158,7 @@ export function WithdrawalForm({ walletBalance, onSuccess }: WithdrawalFormProps
                   id="main-amount"
                   type="number"
                   step="0.01"
-                  min="5"
+                  min="50"
                   max={mainBalance > 0 ? mainBalance : undefined}
                   placeholder="Enter amount to withdraw"
                   value={mainAmount}
@@ -154,13 +166,25 @@ export function WithdrawalForm({ walletBalance, onSuccess }: WithdrawalFormProps
                   className="glass border-white/20"
                   required
                 />
-                <p className="text-xs text-muted-foreground">Minimum withdrawal: KSH 5.00</p>
+                <p className="text-xs text-muted-foreground">Minimum withdrawal: KSH 50.00</p>
               </div>
-
+              <div className="space-y-2">
+                <Label htmlFor="main-mpesa">M-Pesa Number</Label>
+                <Input
+                  id="main-mpesa"
+                  type="text"
+                  placeholder="254xxxxxxxxx"
+                  value={mainMpesaNumber}
+                  onChange={(e) => setMainMpesaNumber(e.target.value)}
+                  className="glass border-white/20"
+                  required
+                />
+                <p className="text-xs text-muted-foreground">Enter your M-Pesa number (254xxxxxxxxx)</p>
+              </div>
               <Button
                 type="submit"
                 className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                disabled={isWithdrawingMain || mainBalance < 5}
+                disabled={isWithdrawingMain || mainBalance < 50}
               >
                 {isWithdrawingMain ? (
                   <>
@@ -193,7 +217,7 @@ export function WithdrawalForm({ walletBalance, onSuccess }: WithdrawalFormProps
                   id="referral-amount"
                   type="number"
                   step="0.01"
-                  min="5"
+                  min="50"
                   max={referralBalance > 0 ? referralBalance : undefined}
                   placeholder="Enter amount to withdraw"
                   value={referralAmount}
@@ -201,13 +225,25 @@ export function WithdrawalForm({ walletBalance, onSuccess }: WithdrawalFormProps
                   className="glass border-white/20"
                   required
                 />
-                <p className="text-xs text-muted-foreground">Minimum withdrawal: KSH 5.00</p>
+                <p className="text-xs text-muted-foreground">Minimum withdrawal: KSH 50.00 (5% fee for marketers)</p>
               </div>
-
+              <div className="space-y-2">
+                <Label htmlFor="referral-mpesa">M-Pesa Number</Label>
+                <Input
+                  id="referral-mpesa"
+                  type="text"
+                  placeholder="254xxxxxxxxx"
+                  value={referralMpesaNumber}
+                  onChange={(e) => setReferralMpesaNumber(e.target.value)}
+                  className="glass border-white/20"
+                  required
+                />
+                <p className="text-xs text-muted-foreground">Enter your M-Pesa number (254xxxxxxxxx)</p>
+              </div>
               <Button
                 type="submit"
                 className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
-                disabled={isWithdrawingReferral || referralBalance < 5}
+                disabled={isWithdrawingReferral || referralBalance < 50}
               >
                 {isWithdrawingReferral ? (
                   <>
@@ -227,7 +263,7 @@ export function WithdrawalForm({ walletBalance, onSuccess }: WithdrawalFormProps
 
         <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
           <p className="text-sm text-orange-700">
-            ℹ️ All withdrawals require admin approval and may take 1-3 business days to process.
+            ℹ️ All withdrawals require admin approval (1-3 business days). You will receive an email once processed.
           </p>
         </div>
       </CardContent>

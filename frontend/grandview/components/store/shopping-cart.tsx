@@ -120,18 +120,23 @@ export default function ShoppingCart({ cartCount, onCartUpdate }: CartProps) {
 
     try {
       const result = await ApiService.validateCoupon(code)
+      const isValid = !!result.code && result.discount_value > 0
       setCoupon((prev) => ({
         ...prev,
-        isValid: result.valid,
-        discount: result.valid ? result.discount : 0,
-        message: result.message,
+        isValid: isValid,
+        discount: isValid ? result.discount_value : 0,
+        message: typeof result === "object" && result !== null && "message" in result ? (result as { message?: string }).message ?? "" : "",
         isValidating: false,
       }))
 
-      if (result.valid) {
-        toast.success(`Coupon applied! ${result.discount}% discount`)
+      if (isValid) {
+        toast.success(`Coupon applied! ${result.discount_value}% discount`)
       } else {
-        toast.error(result.message || "Invalid coupon code")
+        toast.error(
+          typeof result === "object" && result !== null && "message" in result
+            ? (result as { message?: string }).message || "Invalid coupon code"
+            : "Invalid coupon code"
+        )
       }
     } catch {
       setCoupon((prev) => ({

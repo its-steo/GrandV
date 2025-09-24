@@ -13,6 +13,11 @@ services:
       python manage.py migrate
     startCommand: gunicorn grandview.wsgi:application --bind 0.0.0.0:$PORT
     envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://grandview-shop.onrender.com/api
+      - key: NEXT_PUBLIC_BACKEND_URL
+        value: https://grandview-shop.onrender.com
+    envVars:
       - key: PYTHON_VERSION
         value: 3.11  # Compatible with Django 5.2.4
       - key: DJANGO_SECRET_KEY

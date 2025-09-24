@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { ShoppingCart, Star, Calendar, CreditCard } from "lucide-react"
 import { ApiService, type Product } from "@/lib/api"
 import { toast } from "sonner"
-import { formatCurrency, getImageUrl } from "@/lib/utils"
+import { formatCurrency } from "@/lib/utils"
 
 export function FeaturedProducts() {
   const [products, setProducts] = useState<Product[]>([])
@@ -79,7 +79,7 @@ export function FeaturedProducts() {
                 ? product.installment_plans.reduce((best, current) =>
                     Number.parseFloat(current.monthly_payment) < Number.parseFloat(best.monthly_payment)
                       ? current
-                      : best,
+                      : best
                   )
                 : null
 
@@ -87,12 +87,12 @@ export function FeaturedProducts() {
               <div key={product.id} className="group">
                 <div className="relative overflow-hidden rounded-lg bg-muted aspect-square mb-3">
                   <img
-                    src={getImageUrl(product.main_image) || "/placeholder.svg"}
+                    src={product.main_image}
                     alt={product.name}
                     className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement
-                      target.src = "/placeholder.svg?height=200&width=200&text=Image Not Found"
+                      target.src = "https://placehold.co/300x300?text=Image+Not+Found&font=montserrat"
                     }}
                   />
                   <div className="absolute top-2 left-2 flex flex-col gap-1">

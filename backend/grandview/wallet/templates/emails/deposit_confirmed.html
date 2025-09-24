@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deposit Confirmed - GrandView</title>
+    <style>
+        body { font-family: 'Arial', sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        .header { background: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%); color: white; padding: 30px; text-align: center; }
+        .header h1 { margin: 0; font-size: 28px; }
+        .header p { margin: 5px 0 0; opacity: 0.9; }
+        .content { padding: 30px; text-align: center; }
+        .content p { font-size: 16px; line-height: 1.6; margin-bottom: 20px; }
+        .amount-highlight { background: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%); color: white; padding: 10px 20px; border-radius: 50px; display: inline-block; font-weight: bold; font-size: 24px; margin: 20px 0; }
+        .button { display: inline-block; background: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; margin-top: 20px; }
+        .footer { background-color: #f8fafc; padding: 20px; text-align: center; color: #64748b; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎉 Deposit Confirmed!</h1>
+            <p>Welcome back, {{ user.username }}!</p>
+        </div>
+        <div class="content">
+            <p>Your deposit has been successfully processed and added to your GrandView wallet.</p>
+            <div class="amount-highlight">KSh {{ amount }}</div>
+            <p>Start maximizing your earnings with premium ads today!</p>
+            <a href="https://grand-v.vercel.app" class="button">View Dashboard</a>
+        </div>
+        <div class="footer">
+            <p>If you have any questions, our support team is here to help.<br>
+            Best regards,<br><strong>GrandView Business Platform Team</strong></p>
+        </div>
+    </div>
+</body>
+</html>

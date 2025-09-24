@@ -5,7 +5,7 @@ from django.contrib.auth import authenticate
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True)
     password2 = serializers.CharField(write_only=True, required=True)
-    referral_code = serializers.CharField(required=False, allow_blank=True)
+    referral_code = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     class Meta:
         model = CustomUser
@@ -16,6 +16,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"password": "Passwords must match."})
         
         referral_code = data.pop('referral_code', None)
+        data['referred_by'] = None  # Default to None if no code
         if referral_code:
             try:
                 referrer = CustomUser.objects.get(referral_code=referral_code)
@@ -33,7 +34,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             phone_number=validated_data['phone_number'],
             password=validated_data['password'],
         )
-        if 'referred_by' in validated_data:
+        if 'referred_by' in validated_data and validated_data['referred_by']:
             user.referred_by = validated_data['referred_by']
             user.save()
         return user

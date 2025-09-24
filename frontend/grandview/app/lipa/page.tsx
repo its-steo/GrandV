@@ -70,29 +70,53 @@ export default function LipaPage() {
     fetchData()
   }
 
-  const calculateInstallmentStats = () => {
-    const activeOrders = installmentOrders.filter((order) => order.status === "active")
-    const completedOrders = installmentOrders.filter((order) => order.status === "completed")
-    const totalOwed = activeOrders.reduce((sum, order) => sum + Number.parseFloat(order.remaining_amount), 0)
-    const totalPaid = installmentOrders.reduce(
-      (sum, order) => sum + (Number.parseFloat(order.total_amount) - Number.parseFloat(order.remaining_amount)),
-      0,
-    )
+const calculateInstallmentStats = () => {
+  // Define active statuses based on backend serializer
+  const activeStatuses = ["ONGOING", "OVERDUE"];
+  const completedStatuses = ["PAID"];
 
-    const overdueOrders = activeOrders.filter((order) => {
-      const dueDate = new Date(order.next_payment_date)
-      const today = new Date()
-      return dueDate < today
-    })
+  // Filter active and completed orders
+  const activeOrders = installmentOrders.filter((order) =>
+    activeStatuses.includes(order.status.toUpperCase())
+  );
+  const completedOrders = installmentOrders.filter((order) =>
+    completedStatuses.includes(order.status.toUpperCase())
+  );
 
-    return {
-      activeOrders: activeOrders.length,
-      completedOrders: completedOrders.length,
-      totalOwed,
-      totalPaid,
-      overdueOrders: overdueOrders.length,
-    }
-  }
+  // Calculate totalOwed and totalPaid
+  const totalOwed = activeOrders.reduce((sum, order) => {
+    const remaining = Number.parseFloat(order.remaining_amount || "0");
+    return sum + (isNaN(remaining) ? 0 : remaining);
+  }, 0);
+
+  const totalPaid = installmentOrders.reduce((sum, order) => {
+    // Calculate total_amount as in installment-order-card.tsx
+    const initialDeposit = Number.parseFloat(order.initial_deposit || "0");
+    const remainingAmount = Number.parseFloat(order.remaining_amount || "0");
+    const paymentsSum = order.payments.reduce(
+      (paymentSum, p) => paymentSum + Number.parseFloat(p.amount || "0"),
+      0
+    );
+    const totalAmount = initialDeposit + remainingAmount + paymentsSum;
+    const paidAmount = totalAmount - remainingAmount;
+    return sum + (isNaN(paidAmount) ? 0 : paidAmount);
+  }, 0);
+
+  // Calculate overdue orders
+  const overdueOrders = activeOrders.filter((order) => {
+    const dueDate = new Date(order.next_payment_date);
+    const today = new Date();
+    return dueDate < today && !isNaN(dueDate.getTime());
+  });
+
+  return {
+    activeOrders: activeOrders.length,
+    completedOrders: completedOrders.length,
+    totalOwed,
+    totalPaid,
+    overdueOrders: overdueOrders.length,
+  };
+};
 
   if (loading) {
     return (

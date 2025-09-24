@@ -1,0 +1,55 @@
+<!-- templates/emails/premium_upgrade.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Upgrade Achieved!</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .header { background-color: #673AB7; color: white; padding: 40px 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 28px; }
+        .content { padding: 30px 20px; text-align: center; }
+        .content p { font-size: 16px; line-height: 1.6; color: #333; }
+        .premium-box { background-color: #EDE7F6; border-radius: 8px; padding: 20px; margin: 20px 0; font-size: 20px; font-weight: bold; color: #4527A0; }
+        .features-list { text-align: left; max-width: 400px; margin: 20px auto; }
+        .features-list li { margin-bottom: 10px; list-style-type: disc; }
+        .cta-button { display: inline-block; background-color: #673AB7; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-size: 18px; margin: 20px 0; }
+        .footer { background-color: #f4f4f4; padding: 20px; text-align: center; font-size: 14px; color: #777; }
+        .emoji { font-size: 24px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Elite Status Unlocked, {{ user.username }}! 🏆</h1>
+            <p class="emoji">Welcome to Premium!</p>
+        </div>
+        <div class="content">
+            <p>You've upgraded from KSH {{ previous_rate }} per view to our top-tier <strong>{{ package.name }}</strong> Premium package at KSH 120 per view.</p>
+            <div class="premium-box">
+                Premium Package: {{ package.name }}<br>
+                Elite Rate: KSH {{ package.rate_per_view }} per view<br>
+                Price: KSH {{ price }}<br>
+                Expires: {{ expiry_date|date:"F j, Y" }}
+            </div>
+            <p>As a Premium member, you now have access to exclusive benefits:</p>
+            <ul class="features-list">
+                <li>Instant withdrawal options for your earnings 💸</li>
+                <li>Priority access to high-value adverts 📈</li>
+                <li>Personalized support and tips for maximizing earnings 🛠️</li>
+                <li>Exclusive bonuses and promotions 🎁</li>
+                <li>Advanced analytics on your performance 📊</li>
+            </ul>
+            <p>Dive into premium opportunities and watch your earnings soar!</p>
+            <a href="https://grand-v.vercel.app" class="cta-button">Access Your Premium Dashboard</a>
+            <p>Celebrate your upgrade—contact us for any premium queries!</p>
+        </div>
+        <div class="footer">
+            <p>&copy; {{ 'now'|date:"Y" }} Your App Name. All rights reserved.</p>
+            <p>You're receiving this email because you upgraded to Premium on our platform.</p>
+        </div>
+    </div>
+</body>
+</html>

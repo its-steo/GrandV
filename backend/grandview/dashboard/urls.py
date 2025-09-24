@@ -1,21 +1,27 @@
 from django.urls import path
-from django.conf import settings
-from django.conf.urls.static import static
-from .views import ProductListView, ProductDetailView, AddToCartView, CartView, CheckoutView, RemoveCartItemView, UpdateCartItemView, LipaRegisterView, MakeInstallmentPaymentView, CategoryListView, AllProductsView, LipaRegistrationView, InstallmentOrderListView, OrderListView
+from .views import (
+    ProductListView, AllProductsView, ProductDetailView,
+    CartView, AddToCartView, UpdateCartView, RemoveFromCartView,
+    CheckoutView, OrderListView, InstallmentOrderListView,
+    InstallmentPaymentView, LipaRegisterView, LipaPresignedUploadView,
+    LipaRegistrationView, TrackOrderView, CouponValidateView
+)
 
 urlpatterns = [
     path('dashboard/products/', ProductListView.as_view(), name='product_list'),
-    path('dashboard/products/<int:pk>/', ProductDetailView.as_view(), name='product_detail'),
-    path('dashboard/cart/add/', AddToCartView.as_view(), name='add_to_cart'),
-    path('dashboard/cart/', CartView.as_view(), name='cart'),
-    path('dashboard/checkout/', CheckoutView.as_view(), name='checkout'),
-    path('dashboard/cart/update/', UpdateCartItemView.as_view(), name='update_cart_item'),
-    path('dashboard/cart/remove/', RemoveCartItemView.as_view(), name='remove_cart_item'),
-    path('dashboard/lipa/register/', LipaRegisterView.as_view(), name='lipa_register'),
-    path('dashboard/installment/pay/', MakeInstallmentPaymentView.as_view(), name='installment_pay'),
-    path('dashboard/categories/', CategoryListView.as_view(), name='category_list'),
     path('dashboard/all-products/', AllProductsView.as_view(), name='all_products'),
-    path('dashboard/lipa/registration/', LipaRegistrationView.as_view(), name='lipa_registration_status'),
-    path('dashboard/installment/orders/', InstallmentOrderListView.as_view(), name='installment_orders'),
+    path('dashboard/products/<int:pk>/', ProductDetailView.as_view(), name='product_detail'),
+    path('dashboard/cart/', CartView.as_view(), name='cart'),
+    path('dashboard/cart/add/', AddToCartView.as_view(), name='add_to_cart'),
+    path('dashboard/cart/update/', UpdateCartView.as_view(), name='update_cart'),
+    path('dashboard/cart/remove/', RemoveFromCartView.as_view(), name='remove_from_cart'),
+    path('dashboard/checkout/', CheckoutView.as_view(), name='checkout'),
     path('dashboard/orders/', OrderListView.as_view(), name='order_list'),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    path('dashboard/installment/orders/', InstallmentOrderListView.as_view(), name='installment_orders'),
+    path('dashboard/installment/pay/', InstallmentPaymentView.as_view(), name='installment_payment'),
+    path('dashboard/lipa/register/', LipaRegisterView.as_view(), name='lipa_register'),
+    path('dashboard/lipa/registration/', LipaRegistrationView.as_view(), name='lipa_registration'),
+    path('dashboard/lipa/presign/', LipaPresignedUploadView.as_view(), name='lipa_presign'),
+    path('dashboard/orders/<int:order_id>/track/', TrackOrderView.as_view(), name='track_order'),
+    path('dashboard/coupon/validate/', CouponValidateView.as_view(), name='coupon_validate'),
+]

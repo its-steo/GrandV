@@ -1,3 +1,4 @@
+// app/wallet/page.tsx
 "use client"
 
 import { useState, useEffect } from "react"
@@ -11,10 +12,12 @@ import { formatCurrency } from "@/lib/utils"
 import { toast } from "sonner"
 import { Loader2, TrendingUp } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
+import { useAuth } from "@/hooks/use-auth"
 
 export default function WalletPage() {
   const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null)
   const [loading, setLoading] = useState(true)
+  const { user } = useAuth()
 
   useEffect(() => {
     fetchWalletBalance()
@@ -25,6 +28,7 @@ export default function WalletPage() {
       const balance = await ApiService.getWalletBalance()
       setWalletBalance(balance)
     } catch (error) {
+      console.error("Failed to fetch wallet balance:", error)
       toast.error(`Failed to load wallet balance: ${error instanceof Error ? error.message : "Unknown error"}`)
     } finally {
       setLoading(false)
@@ -44,6 +48,18 @@ export default function WalletPage() {
             <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
             <p className="text-muted-foreground">Loading wallet...</p>
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!BalanceCards) {
+    console.error("BalanceCards component is undefined. Check import from '@/components/wallet/balance-cards'")
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
+        <Sidebar />
+        <div className="md:ml-64 p-6">
+          <p className="text-red-600">Error: Wallet interface unavailable. Please try again later.</p>
         </div>
       </div>
     )
@@ -90,7 +106,7 @@ export default function WalletPage() {
                     views_earnings_balance: walletBalance.views_earnings_balance ?? "0",
                     referral_balance: walletBalance.referral_balance ?? "0",
                   }
-                : null
+                : { deposit_balance: "0", views_earnings_balance: "0", referral_balance: "0" }
             }
           />
 
@@ -105,7 +121,7 @@ export default function WalletPage() {
                       views_earnings_balance: walletBalance.views_earnings_balance ?? "0",
                       referral_balance: walletBalance.referral_balance ?? "0",
                     }
-                  : null
+                  : { deposit_balance: "0", views_earnings_balance: "0", referral_balance: "0" }
               }
               onSuccess={handleTransactionSuccess}
             />
@@ -121,27 +137,27 @@ export default function WalletPage() {
                 <h3 className="font-semibold text-blue-800 mb-2">How Your Wallet Works</h3>
                 <ul className="text-sm text-blue-700 space-y-1">
                   <li>
-                    • <strong>Deposit Balance:</strong> Funds you add manually
+                    • <strong>Deposit Balance:</strong> Funds deposited via M-Pesa
                   </li>
                   <li>
-                    • <strong>Views Earnings:</strong> Money earned from viewing ads
+                    • <strong>Views Earnings:</strong> Earned from viewing ads
                   </li>
                   <li>
-                    • <strong>Referral Earnings:</strong> Commissions from your referrals
+                    • <strong>Referral Earnings:</strong> Commissions from referrals
                   </li>
-                  <li>• You can withdraw from any balance (minimum KSH 50.00)</li>
+                  <li>• Minimum withdrawal: KSH 50.00 (pending admin approval)</li>
                 </ul>
               </CardContent>
             </Card>
 
             <Card className="glass-card border-orange-200 bg-gradient-to-r from-orange-50 to-yellow-50">
               <CardContent className="p-6">
-                <h3 className="font-semibold text-orange-800 mb-2">Withdrawal Information</h3>
+                <h3 className="font-semibold text-orange-800 mb-2">Deposit & Withdrawal Information</h3>
                 <ul className="text-sm text-orange-700 space-y-1">
-                  <li>• All withdrawals require admin approval</li>
-                  <li>• Processing time: 1-3 business days</li>
-                  <li>• Minimum withdrawal amount: KSH 50.00</li>
-                  <li>• You will receive email notifications on status updates</li>
+                  <li>• Deposits: Use M-Pesa STK Push or manual Paybill 516600, Account 938628</li>
+                  <li>• Manual deposits require admin approval</li>
+                  <li>• Withdrawals require admin approval (1-3 business days)</li>
+                  <li>• Email notifications sent for deposit and withdrawal updates</li>
                 </ul>
               </CardContent>
             </Card>

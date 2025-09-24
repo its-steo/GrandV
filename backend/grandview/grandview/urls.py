@@ -26,6 +26,7 @@ urlpatterns = [
     path('api/', include('dashboard.urls')), # /api/dashboard/products/, etc.
     path('api/', include('packages.urls')),  # /api/packages/, /api/packages/purchase/, /api/packages/purchases/
     path('api/', include('wallet.urls')),    # /api/wallet/, /api/wallet/deposit/, etc.
+    path('api/', include('support.urls')),   # /api/support/messages/, etc.
 ]
 
 # Serve media files in development - Fixed: Add this

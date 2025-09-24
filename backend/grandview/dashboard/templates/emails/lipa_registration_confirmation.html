@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lipa Mdogo Mdogo Registration Confirmation</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .header { background-color: #2196F3; color: white; padding: 40px 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 28px; }
+        .content { padding: 30px 20px; text-align: center; }
+        .content p { font-size: 16px; line-height: 1.6; color: #333; }
+        .details-box { background-color: #E3F2FD; border-radius: 8px; padding: 20px; margin: 20px 0; font-size: 18px; color: #1565C0; }
+        .cta-button { display: inline-block; background-color: #2196F3; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-size: 18px; margin: 20px 0; }
+        .footer { background-color: #f4f4f4; padding: 20px; text-align: center; font-size: 14px; color: #777; }
+        .emoji { font-size: 24px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Registration Received, {{ user.username }}! 📝</h1>
+            <p class="emoji">Thank You for Applying to Lipa Mdogo Mdogo</p>
+        </div>
+        <div class="content">
+            <p>We've received your application for the Lipa Mdogo Mdogo program. Our team will review it shortly.</p>
+            <div class="details-box">
+                Full Name: {{ full_name }}<br>
+                Submitted On: {{ created_at|date:"F j, Y" }}
+            </div>
+            <p>You'll receive an update via email once reviewed. In the meantime, explore our products!</p>
+            <a href="https://grand-v.vercel.app" class="cta-button">Go to Dashboard</a>
+            <p>If you have questions, contact support. We're here to help!</p>
+        </div>
+        <div class="footer">
+            <p>&copy; {{ 'now'|date:"Y" }} Your App Name. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

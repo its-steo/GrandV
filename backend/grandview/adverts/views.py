@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.exceptions import UnsupportedMediaType, ParseError, ValidationError
 from django.http import HttpResponse
-from django.db import transaction  # Added: For atomic
+from django.db import transaction
 from .models import Advert, Submission
 from packages.models import Package, Purchase
 from wallet.models import Wallet, Transaction
@@ -14,6 +14,11 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from decimal import Decimal
 import logging
+import time
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from django.template.exceptions import TemplateDoesNotExist  # Added: To handle template not found specifically
 
 logger = logging.getLogger(__name__)
 
@@ -55,24 +60,23 @@ class SubmissionView(APIView):
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]  # MultiPart first for file uploads
 
-    @transaction.atomic  # Added: Ensures all-or-nothing (submission + wallet + tx)
+    @transaction.atomic
     def post(self, request):
         try:
             logger.info(f"Submission request content-type: {request.content_type}")
-            logger.debug(f"Parsed data: {dict(request.data)}")  # Changed to debug
+            logger.debug(f"Parsed data: {dict(request.data)}")
             logger.debug(f"FILES keys: {list(request.FILES.keys())}")
 
             advert_id_raw = request.data.get('advert_id', None)
             views_count_str = request.data.get('views_count', '1')
             screenshot = request.FILES.get('screenshot')
 
-            # Enhanced: Handle potential whitespace/empty values
             if advert_id_raw is None or str(advert_id_raw).strip() == '':
                 logger.warning(f"Invalid advert_id: {repr(advert_id_raw)}")
                 return Response({"error": "advert_id is required and must be a valid number"}, status=status.HTTP_400_BAD_REQUEST)
 
             try:
-                advert_id = int(str(advert_id_raw).strip())  # Coerce to int safely
+                advert_id = int(str(advert_id_raw).strip())
                 logger.debug(f"Parsed advert_id: {advert_id}")
             except ValueError:
                 logger.warning(f"Invalid advert_id value: {repr(advert_id_raw)}")
@@ -110,7 +114,6 @@ class SubmissionView(APIView):
                 logger.warning("No screenshot file provided")
                 return Response({"error": "Screenshot is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Optional: Basic file validation (e.g., size/type could be added here if needed)
             if screenshot.size > 5 * 1024 * 1024:  # 5MB limit
                 return Response({"error": "Screenshot file too large (max 5MB)"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -124,7 +127,6 @@ class SubmissionView(APIView):
                 earnings=earnings
             )
 
-            # Fixed: Use request.user, not self.user
             wallet = Wallet.objects.get(user=request.user)
             wallet.views_earnings_balance += earnings
             wallet.save()
@@ -136,6 +138,35 @@ class SubmissionView(APIView):
                 description=f'Earned KSH {earnings} from {views_count} views of "{advert.title}"'
             )
 
+            # Artificial delay
+            time.sleep(2)
+
+            # Send email notification in a separate try-except to prevent failure if template is missing
+            try:
+                subject = "Congratulations! You've Earned from WhatsApp Views"
+                html_message = render_to_string('emails/earning_notification.html', {
+                    'user': request.user,
+                    'earnings': earnings,
+                    'views_count': views_count,
+                    'advert_title': advert.title,
+                })
+                plain_message = strip_tags(html_message)
+                from_email = 'yourapp@example.com'  # Replace with your sender email
+                to_email = request.user.email
+
+                send_mail(
+                    subject,
+                    plain_message,
+                    from_email,
+                    [to_email],
+                    html_message=html_message,
+                )
+                logger.info(f"Email sent to {to_email} for earnings: {earnings}")
+            except TemplateDoesNotExist as e:
+                logger.warning(f"Email template not found: {str(e)}. Skipping email notification.")
+            except Exception as e:
+                logger.error(f"Failed to send email: {str(e)}. Submission succeeded but email not sent.")
+
             serializer = SubmissionSerializer(submission)
             logger.info(f"Submission created successfully: ID={submission.id}, earnings={earnings}")
             return Response({'submission': serializer.data}, status=status.HTTP_201_CREATED)
@@ -145,10 +176,10 @@ class SubmissionView(APIView):
         except ParseError as e:
             logger.warning(f"Parse error: {str(e)}")
             return Response({"error": "Invalid request format. Ensure multipart/form-data is used for file uploads."}, status=status.HTTP_400_BAD_REQUEST)
-        except ValidationError as e:  # Catch DRF validation errors (e.g., from parsers)
+        except ValidationError as e:
             logger.warning(f"Validation error: {str(e)}")
             return Response({"error": str(e.detail if hasattr(e, 'detail') else e)}, status=status.HTTP_400_BAD_REQUEST)
-        except Wallet.DoesNotExist:  # Added: Specific catch for wallet missing (rare, but post-signal)
+        except Wallet.DoesNotExist:
             logger.error("User wallet not found")
             return Response({"error": "User wallet not found. Please contact support."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:

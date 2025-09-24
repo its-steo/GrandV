@@ -1,0 +1,45 @@
+<!-- templates/emails/purchase_confirmation.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Your New Package!</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .header { background-color: #2196F3; color: white; padding: 40px 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 28px; }
+        .content { padding: 30px 20px; text-align: center; }
+        .content p { font-size: 16px; line-height: 1.6; color: #333; }
+        .package-box { background-color: #E3F2FD; border-radius: 8px; padding: 20px; margin: 20px 0; font-size: 20px; font-weight: bold; color: #1565C0; }
+        .cta-button { display: inline-block; background-color: #2196F3; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-size: 18px; margin: 20px 0; }
+        .footer { background-color: #f4f4f4; padding: 20px; text-align: center; font-size: 14px; color: #777; }
+        .emoji { font-size: 24px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Welcome, {{ user.username }}! ✨</h1>
+            <p class="emoji">Your Package Purchase is Complete!</p>
+        </div>
+        <div class="content">
+            <p>Thank you for choosing our platform. You've successfully purchased the <strong>{{ package.name }}</strong> package.</p>
+            <div class="package-box">
+                Package: {{ package.name }}<br>
+                Rate: KSH {{ package.rate_per_view }} per view<br>
+                Price: KSH {{ price }}<br>
+                Expires: {{ expiry_date|date:"F j, Y" }}
+            </div>
+            <p>Start viewing ads and earning rewards right away. Your new package unlocks exciting opportunities!</p>
+            <a href="https://grand-v.vercel.app" class="cta-button">Login to Your Account</a>
+            <p>If you have any questions, our support team is ready to assist. Happy earning!</p>
+        </div>
+        <div class="footer">
+            <p>&copy; {{ 'now'|date:"Y" }} Your App Name. All rights reserved.</p>
+            <p>You're receiving this email because you purchased a package on our platform.</p>
+        </div>
+    </div>
+</body>
+</html>

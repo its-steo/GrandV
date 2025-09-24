@@ -23,7 +23,7 @@ class AdvertSerializer(serializers.ModelSerializer):
         active_purchases = Purchase.objects.filter(
             user=request.user,
             expiry_date__gt=timezone.now()
-        )
+        ).order_by('-purchase_date')  # Get latest purchase
         if not active_purchases.exists():
             return False
         active_rate = active_purchases.first().package.rate_per_view

@@ -103,17 +103,17 @@ export function OrderManagement() {
   }
 
   const getInstallmentStatusColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "bg-green-500"
-      case "active":
-        return "bg-blue-500"
-      case "defaulted":
-        return "bg-red-500"
-      default:
-        return "bg-gray-500"
-    }
+  switch (status) {
+    case "PAID":
+      return "bg-green-500";
+    case "ACTIVE":
+      return "bg-blue-500";
+    case "OVERDUE":
+      return "bg-red-500";
+    default:
+      return "bg-gray-500";
   }
+};
 
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
@@ -290,86 +290,95 @@ export function OrderManagement() {
           )}
         </TabsContent>
 
-        <TabsContent value="installments" className="space-y-4">
-          {installmentOrders.length === 0 ? (
-            <Card className="glass-card border-white/20 text-center py-8 sm:py-12">
-              <CardContent>
-                <CreditCard className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-base sm:text-lg font-semibold mb-2">No Installment Orders</h3>
-                <p className="text-muted-foreground text-sm sm:text-base">You dont have any installment orders yet</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-3 sm:gap-4">
-              {installmentOrders.map((installment) => (
-                <Card key={installment.id} className="glass-card border-white/20">
-                  <CardContent className="p-3 sm:p-4 md:p-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4">
-                      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                        <div className="flex items-center gap-2">
-                          <CreditCard className="h-4 w-4 text-blue-500" />
-                          <span className="font-semibold text-sm sm:text-base">Installment #{installment.id}</span>
-                        </div>
-                        <Badge
-                          className={`${getInstallmentStatusColor(installment.status)} text-white text-xs sm:text-sm`}
-                        >
-                          {installment.status.charAt(0).toUpperCase() + installment.status.slice(1)}
-                        </Badge>
-                      </div>
-                      <div className="text-xs sm:text-sm text-muted-foreground">
-                        {new Date(installment.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4">
-                      <div>
-                        <span className="text-xs sm:text-sm text-muted-foreground">Total Amount:</span>
-                        <p className="font-semibold text-primary text-sm sm:text-base">
-                          {formatCurrency(installment.total_amount)}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-xs sm:text-sm text-muted-foreground">Remaining:</span>
-                        <p className="font-semibold text-orange-600 text-sm sm:text-base">
-                          {formatCurrency(installment.remaining_amount)}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-xs sm:text-sm text-muted-foreground">Monthly Payment:</span>
-                        <p className="font-medium text-sm sm:text-base">
-                          {formatCurrency(installment.monthly_payment)}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-xs sm:text-sm text-muted-foreground">Plan:</span>
-                        <p className="font-medium text-sm sm:text-base">{installment.months} months</p>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                      <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4 flex-shrink-0" />
-                        <span>Next Payment: {new Date(installment.next_payment_date).toLocaleDateString()}</span>
-                      </div>
-
-                      {installment.status === "active" && (
-                        <Button
-                          size="sm"
-                          className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 w-full sm:w-auto text-xs sm:text-sm"
-                          onClick={() => {
-                            window.location.href = `/lipa?payment=${installment.id}`
-                          }}
-                        >
-                          Pay {formatCurrency(installment.monthly_payment)}
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
+       <TabsContent value="installments" className="space-y-4">
+         {installmentOrders.length === 0 ? (
+           <Card className="glass-card border-white/20 text-center py-8 sm:py-12">
+             <CardContent>
+               <CreditCard className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-4" />
+               <h3 className="text-base sm:text-lg font-semibold mb-2">No Installment Orders</h3>
+               <p className="text-muted-foreground text-sm sm:text-base">You dont have any installment orders yet</p>
+             </CardContent>
+           </Card>
+         ) : (
+           <div className="grid gap-3 sm:gap-4">
+             {installmentOrders.map((installment) => {
+               // Normalize status for display
+               const displayStatus = {
+                 ACTIVE: "Active",
+                 PAID: "Completed",
+                 OVERDUE: "Defaulted",
+               }[installment.status] || "Unknown";
+       
+               return (
+                 <Card key={installment.id} className="glass-card border-white/20">
+                   <CardContent className="p-3 sm:p-4 md:p-6">
+                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4">
+                       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                         <div className="flex items-center gap-2">
+                           <CreditCard className="h-4 w-4 text-blue-500" />
+                           <span className="font-semibold text-sm sm:text-base">Installment #{installment.id}</span>
+                         </div>
+                         <Badge
+                           className={`${getInstallmentStatusColor(installment.status || "ACTIVE")} text-white text-xs sm:text-sm`}
+                         >
+                           {displayStatus}
+                         </Badge>
+                       </div>
+                       <div className="text-xs sm:text-sm text-muted-foreground">
+                         {new Date(installment.created_at).toLocaleDateString()}
+                       </div>
+                     </div>
+       
+                     <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4">
+                       <div>
+                         <span className="text-xs sm:text-sm text-muted-foreground">Total Amount:</span>
+                         <p className="font-semibold text-primary text-sm sm:text-base">
+                           {formatCurrency(installment.total_amount)}
+                         </p>
+                       </div>
+                       <div>
+                         <span className="text-xs sm:text-sm text-muted-foreground">Remaining:</span>
+                         <p className="font-semibold text-orange-600 text-sm sm:text-base">
+                           {formatCurrency(installment.remaining_amount)}
+                         </p>
+                       </div>
+                       <div>
+                         <span className="text-xs sm:text-sm text-muted-foreground">Monthly Payment:</span>
+                         <p className="font-medium text-sm sm:text-base">
+                           {formatCurrency(installment.monthly_payment)}
+                         </p>
+                       </div>
+                       <div>
+                         <span className="text-xs sm:text-sm text-muted-foreground">Plan:</span>
+                         <p className="font-medium text-sm sm:text-base">{installment.months} months</p>
+                       </div>
+                     </div>
+       
+                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                       <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+                         <Calendar className="h-4 w-4 flex-shrink-0" />
+                         <span>Next Payment: {new Date(installment.next_payment_date).toLocaleDateString()}</span>
+                       </div>
+       
+                       {(installment.status === "ACTIVE" || !installment.status) && (
+                         <Button
+                           size="sm"
+                           className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 w-full sm:w-auto text-xs sm:text-sm"
+                           onClick={() => {
+                             window.location.href = `/lipa?payment=${installment.id}`;
+                           }}
+                         >
+                           Pay {formatCurrency(installment.monthly_payment)}
+                         </Button>
+                       )}
+                     </div>
+                   </CardContent>
+                 </Card>
+               );
+             })}
+           </div>
+         )}
+       </TabsContent>
       </Tabs>
 
       {/* Order Details Modal */}

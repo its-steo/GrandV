@@ -1,224 +1,316 @@
 from rest_framework import serializers
-from .models import Product, Cart, CartItem, Order, OrderItem, Image, Category, ProductImage, Coupon, LipaProgramRegistration, InstallmentOrder, InstallmentPayment
-from accounts.models import CustomUser
-from wallet.models import Wallet, Transaction
-from decimal import Decimal
-from django.utils import timezone
-from django.core.mail import send_mail
 from django.db import transaction
+from django.utils import timezone
+from rest_framework.exceptions import ValidationError
+from .models import Category, Product, Image, ProductImage, Cart, CartItem, Coupon, InstallmentOrder, Order, OrderItem, InstallmentPayment, LipaProgramRegistration
+from wallet.models import Transaction, Wallet
+from accounts.models import CustomUser
+from decimal import Decimal
 import logging
 
 logger = logging.getLogger(__name__)
-
-class ProductImageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ProductImage
-        fields = ['id', 'image']
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ['id', 'name', 'slug']
 
+class ImageSerializer(serializers.ModelSerializer):
+    file = serializers.ImageField(use_url=True)
+
+    class Meta:
+        model = Image
+        fields = ['id', 'file']
+
+class ProductImageSerializer(serializers.ModelSerializer):
+    image = ImageSerializer()
+
+    class Meta:
+        model = ProductImage
+        fields = ['id', 'image']
+
 class ProductSerializer(serializers.ModelSerializer):
-    sub_images = ProductImageSerializer(source='productimage_set', many=True, read_only=True)
     category = CategorySerializer(read_only=True)
+    category_id = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(),
+        source='category',
+        write_only=True
+    )
+    sub_images = ProductImageSerializer(source='productimage_set', many=True, read_only=True)
+    main_image = serializers.ImageField(use_url=True)
 
     class Meta:
         model = Product
-        fields = ['id', 'name', 'price', 'main_image', 'sub_images', 'description', 'category', 'supports_installments']
+        fields = ['id', 'name', 'price', 'main_image', 'sub_images', 'description', 'category', 'category_id', 'is_featured', 'supports_installments']
 
 class CartItemSerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
+    product_id = serializers.PrimaryKeyRelatedField(
+        queryset=Product.objects.all(),
+        source='product',
+        write_only=True
+    )
     subtotal = serializers.SerializerMethodField()
-
-    def get_subtotal(self, obj):
-        return obj.product.price * obj.quantity
 
     class Meta:
         model = CartItem
-        fields = ['id', 'product', 'quantity', 'subtotal']
+        fields = ['id', 'product', 'product_id', 'quantity', 'subtotal']
+
+    def get_subtotal(self, obj):
+        return obj.quantity * obj.product.price
 
 class CartSerializer(serializers.ModelSerializer):
     items = CartItemSerializer(many=True, read_only=True)
     total = serializers.SerializerMethodField()
 
-    def get_total(self, obj):
-        return sum(item.product.price * item.quantity for item in obj.items.all())
-
     class Meta:
         model = Cart
-        fields = ['id', 'user', 'created_at', 'items', 'total']
+        fields = ['id', 'items', 'total', 'created_at']
 
-class OrderItemSerializer(serializers.ModelSerializer):
-    product = ProductSerializer(read_only=True)
-
-    class Meta:
-        model = OrderItem
-        fields = ['id', 'product', 'quantity', 'price_at_purchase']
+    def get_total(self, obj):
+        return sum(item.quantity * item.product.price for item in obj.items.all())
 
 class CouponSerializer(serializers.ModelSerializer):
     class Meta:
         model = Coupon
-        fields = '__all__'
+        fields = ['id', 'code', 'discount_type', 'discount_value', 'is_active']
+
+class InstallmentPaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InstallmentPayment
+        fields = ['id', 'amount', 'paid_at']
+
+class InstallmentOrderSerializer(serializers.ModelSerializer):
+    payments = InstallmentPaymentSerializer(many=True, read_only=True)
+    remaining_amount = serializers.DecimalField(source='remaining_balance', max_digits=10, decimal_places=2)
+    next_payment_date = serializers.DateTimeField(source='due_date')
+    status = serializers.CharField(source='installment_status')
+
+    class Meta:
+        model = InstallmentOrder
+        fields = ['id', 'order', 'initial_deposit', 'remaining_amount', 'months', 'monthly_payment', 'next_payment_date', 'status', 'payments']
+
+class OrderSerializer(serializers.ModelSerializer):
+    items = CartItemSerializer(many=True, required=False)
+    coupon_code = serializers.CharField(max_length=50, required=False, allow_blank=True, write_only=True)
+    payment_method = serializers.ChoiceField(choices=['FULL', 'INSTALLMENT'], write_only=True)
+    installment_months = serializers.IntegerField(min_value=1, max_value=12, required=False, write_only=True)
+    address = serializers.CharField(required=True, write_only=True)
+    phone = serializers.CharField(required=True, write_only=True)
+    delivery_fee = serializers.DecimalField(max_digits=10, decimal_places=2, required=True, write_only=True)
+
+    class Meta:
+        model = Order
+        fields = ['id', 'total', 'discounted_total', 'coupon', 'payment_method', 'status', 'ordered_at', 'items', 'coupon_code', 'installment_months', 'address', 'phone', 'delivery_fee']
+        read_only_fields = ['total', 'discounted_total', 'coupon', 'status', 'ordered_at']
+
+    def validate(self, data):
+        logger.debug(f"Validating checkout data: {data}")
+        user = self.context['request'].user
+        # Handle field aliases from frontend
+        payment_method = data.get('payment_method') or data.get('payment_type')
+        if payment_method:
+            data['payment_method'] = payment_method.upper()
+        installment_months = data.get('installment_months') or data.get('months')
+        if installment_months:
+            data['installment_months'] = installment_months
+        coupon_code = data.get('coupon_code', '')
+
+        # Fetch items from cart if not provided
+        items = data.get('items', [])
+        if not items:
+            cart, _ = Cart.objects.get_or_create(user=user)
+            items = [{'product': item.product, 'quantity': item.quantity} for item in cart.items.all()]
+            if not items:
+                logger.warning("No items in cart for checkout")
+                raise ValidationError({"items": "Your cart is empty. Add items before checking out."})
+            data['items'] = items
+
+        # Validate items
+        for item in items:
+            product = item.get('product')
+            quantity = item.get('quantity')
+            if not product:
+                logger.warning(f"Invalid product in items: {item}")
+                raise ValidationError({"items": "Each item must have a valid product."})
+            if not isinstance(quantity, int) or quantity <= 0:
+                logger.warning(f"Invalid quantity for product {product.id}: {quantity}")
+                raise ValidationError({"items": f"Invalid quantity for product {product.id}."})
+
+        # Calculate total from items (recalculated in backend for security)
+        total = sum(item['quantity'] * item['product'].price for item in items)
+
+        # Validate payment method and installment
+        payment_method = data.get('payment_method')
+        installment_months = data.get('installment_months')
+        if payment_method == 'INSTALLMENT':
+            if not installment_months:
+                logger.warning("Installment months missing for INSTALLMENT payment")
+                raise ValidationError({"installment_months": "Installment months required for installment payment."})
+            lipa_registration = LipaProgramRegistration.objects.filter(user=user, status='APPROVED').first()
+            if not lipa_registration:
+                logger.warning(f"User {user.username} not approved for Lipa Mdogo Mdogo")
+                raise ValidationError({"payment_method": "Lipa Mdogo Mdogo registration not approved."})
+            for item in items:
+                if not item['product'].supports_installments:
+                    logger.warning(f"Product {item['product'].id} does not support installments")
+                    raise ValidationError({"items": f"Product {item['product'].name} does not support installment payments."})
+
+        # Validate address and phone (required fields)
+        if not data.get('address'):
+            raise ValidationError({"address": "This field is required."})
+        if not data.get('phone'):
+            raise ValidationError({"phone": "This field is required."})
+
+        # Apply coupon if provided
+        if coupon_code:
+            coupon = Coupon.objects.filter(code=coupon_code, is_active=True).first()
+            if not coupon:
+                logger.warning(f"Invalid coupon code: {coupon_code}")
+                raise ValidationError({"coupon_code": "Invalid or inactive coupon code."})
+            data['coupon'] = coupon
+            if coupon.discount_type == 'PERCENT':
+                discount = total * (coupon.discount_value / Decimal('100'))
+            else:
+                discount = coupon.discount_value
+            data['discounted_total'] = max(total - discount, Decimal('0'))
+        else:
+            data['coupon'] = None
+            data['discounted_total'] = total
+        data['total'] = total
+
+        # Validate wallet balance
+        wallet = Wallet.objects.get(user=user)
+        amount_to_deduct = data['discounted_total'] if payment_method == 'FULL' else data['discounted_total'] * Decimal('0.4')
+        if user.is_marketer:
+            if wallet.deposit_balance + wallet.views_earnings_balance < amount_to_deduct:
+                logger.warning(f"Insufficient balance for user {user.username}: {wallet.deposit_balance + wallet.views_earnings_balance} < {amount_to_deduct}")
+                raise ValidationError({"balance": "Insufficient main balance."})
+        else:
+            if wallet.deposit_balance < amount_to_deduct:
+                logger.warning(f"Insufficient deposit balance for user {user.username}: {wallet.deposit_balance} < {amount_to_deduct}")
+                raise ValidationError({"balance": "Insufficient deposit balance."})
+
+        return data
+
+    @transaction.atomic
+    def create(self, validated_data):
+        user = self.context['request'].user
+        items_data = validated_data.pop('items')
+        coupon = validated_data.get('coupon')
+        payment_method = validated_data.pop('payment_method')
+        installment_months = validated_data.pop('installment_months', None)
+        total = validated_data['total']
+        discounted_total = validated_data['discounted_total']
+        address = validated_data.pop('address')
+        phone = validated_data.pop('phone')
+        delivery_fee = validated_data.pop('delivery_fee')
+
+        wallet = Wallet.objects.get(user=user)
+        amount_to_deduct = discounted_total if payment_method == 'FULL' else discounted_total * Decimal('0.4')
+
+        # Determine balance_type based on user type
+        if user.is_marketer:
+            # For marketers, prioritize views_earnings_balance, then deposit_balance
+            from_earnings = min(amount_to_deduct, wallet.views_earnings_balance)
+            from_deposit = amount_to_deduct - from_earnings
+            wallet.views_earnings_balance -= from_earnings
+            wallet.deposit_balance -= from_deposit
+            # Set balance_type based on which balance is used
+            balance_type = (
+                'views_earnings_balance' if from_earnings > 0 and from_deposit == 0
+                else 'deposit_balance' if from_deposit > 0 and from_earnings == 0
+                else 'mixed_balance'
+            )
+        else:
+            wallet.deposit_balance -= amount_to_deduct
+            balance_type = 'deposit_balance'
+
+        wallet.save()
+
+        order = Order.objects.create(
+            user=user,
+            total=total,
+            discounted_total=discounted_total,
+            coupon=coupon,
+            payment_method=payment_method,
+            status='PENDING',
+            address=address,
+            phone=phone,
+            delivery_fee=delivery_fee
+        )
+
+        for item_data in items_data:
+            OrderItem.objects.create(
+                order=order,
+                product=item_data['product'],
+                quantity=item_data['quantity'],
+                price_at_purchase=item_data['product'].price
+            )
+
+        if payment_method == 'INSTALLMENT':
+            initial_deposit = discounted_total * Decimal('0.4')
+            remaining_balance = discounted_total - initial_deposit
+            installment_order = InstallmentOrder.objects.create(
+                order=order,
+                initial_deposit=initial_deposit,
+                remaining_balance=remaining_balance,
+                months=installment_months
+            )
+            installment_order.installment_status = 'ONGOING'
+            installment_order.save()
+
+            Transaction.objects.create(
+                user=user,
+                amount=-initial_deposit,
+                transaction_type='INSTALLMENT_PAYMENT',
+                description=f"40% deposit for Order {order.id}",
+                balance_type=balance_type
+            )
+        else:
+            Transaction.objects.create(
+                user=user,
+                amount=-amount_to_deduct,
+                transaction_type='PURCHASE',
+                description=f"Full payment for Order {order.id}",
+                balance_type=balance_type
+            )
+
+        # Clear the cart after successful order
+        cart = Cart.objects.filter(user=user).first()
+        if cart:
+            cart.items.all().delete()
+
+        return order
 
 class LipaRegistrationSerializer(serializers.ModelSerializer):
+    id_front = serializers.FileField(required=True)
+    id_back = serializers.FileField(required=True)
+    passport_photo = serializers.FileField(required=True)
+
     class Meta:
         model = LipaProgramRegistration
-        fields = ['id', 'user', 'full_name', 'date_of_birth', 'address', 'status', 'created_at', 'updated_at', 'id_front', 'id_back', 'passport_photo']
-        read_only_fields = ['id', 'user', 'status', 'created_at', 'updated_at']
+        fields = ['id', 'full_name', 'date_of_birth', 'address', 'id_front', 'id_back', 'passport_photo', 'status', 'created_at', 'updated_at']
 
     def validate(self, data):
         for field in ['id_front', 'id_back', 'passport_photo']:
             file = data.get(field)
             if file:
-                if file.size > 5 * 1024 * 1024:  # 5MB limit
-                    raise serializers.ValidationError({field: "File size must be less than 5MB."})
-                if file.content_type not in ['image/jpeg', 'image/png', 'application/pdf']:
-                    raise serializers.ValidationError({field: "File must be JPEG, PNG, or PDF."})
+                if file.size > 5 * 1024 * 1024:
+                    raise serializers.ValidationError(f"{field} must not exceed 5MB.")
+                if not file.name.lower().endswith(('.png', '.jpg', '.jpeg', '.pdf')):
+                    raise serializers.ValidationError(f"{field} must be a PNG, JPG, or PDF file.")
         return data
 
     def create(self, validated_data):
         user = self.context['request'].user
-        if LipaProgramRegistration.objects.filter(user=user).exists():
-            raise serializers.ValidationError("You are already registered for Lipa Mdogo Mdogo.")
-        registration = LipaProgramRegistration.objects.create(user=user, **validated_data)
-        send_mail(
-            'Lipa Mdogo Mdogo Registration Received',
-            'Your documents are under review. We\'ll notify you soon.',
-            'from@example.com',
-            [user.email],
-            fail_silently=True,
-        )
-        return registration
+        existing_registration = LipaProgramRegistration.objects.filter(user=user).first()
+        if existing_registration:
+            raise ValidationError("A Lipa Mdogo Mdogo registration already exists for this user.")
+        validated_data['user'] = user
+        return super().create(validated_data)
 
-class InstallmentOrderSerializer(serializers.ModelSerializer):
-    remaining_amount = serializers.DecimalField(source='remaining_balance', max_digits=10, decimal_places=2, read_only=True)
-    status = serializers.CharField(source='installment_status', read_only=True)
-    next_payment_date = serializers.DateTimeField(source='due_date', read_only=True)
-
-    class Meta:
-        model = InstallmentOrder
-        fields = ['id', 'order', 'months', 'total_amount', 'initial_deposit', 'remaining_amount', 'monthly_payment', 'status', 'created_at', 'next_payment_date']
-        read_only_fields = ['id', 'order', 'total_amount', 'initial_deposit', 'remaining_amount', 'monthly_payment', 'status', 'created_at', 'next_payment_date']
-
-class InstallmentPaymentSerializer(serializers.Serializer):
-    installment_order_id = serializers.IntegerField()
-    amount = serializers.DecimalField(max_digits=10, decimal_places=2)
-
-    def validate(self, data):
-        try:
-            installment_order = InstallmentOrder.objects.get(id=data['installment_order_id'], order__user=self.context['request'].user)
-        except InstallmentOrder.DoesNotExist:
-            raise serializers.ValidationError("Installment order not found.")
-        
-        if data['amount'] <= 0:
-            raise serializers.ValidationError("Payment amount must be positive.")
-        if data['amount'] > float(installment_order.remaining_balance):
-            raise serializers.ValidationError("Payment amount exceeds remaining balance.")
-        
-        return data
-
-    def create(self, validated_data):
-        installment_order = InstallmentOrder.objects.get(id=validated_data['installment_order_id'])
-        payment = InstallmentPayment.objects.create(
-            installment_order=installment_order,
-            amount=validated_data['amount']
-        )
-        # Create Transaction for payment
-        Transaction.objects.create(
-            user=payment.installment_order.order.user,
-            amount=validated_data['amount'],
-            transaction_type='INSTALLMENT_PAYMENT',
-            description=f'Installment payment for Order {payment.installment_order.order.id}',
-        )
-        return payment
-
-class OrderSerializer(serializers.ModelSerializer):
-    items = OrderItemSerializer(many=True, read_only=True)
-    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
-    payment_method = serializers.ChoiceField(choices=[('FULL', 'Full Payment'), ('INSTALLMENT', 'Installment (Lipa Mdogo Mdogo)')], default='FULL')
-    coupon_code = serializers.CharField(required=False, allow_blank=True)
-    installment_order = InstallmentOrderSerializer(source='installment', read_only=True, allow_null=True)
-    months = serializers.IntegerField(required=False, default=3)
-
-    class Meta:
-        model = Order
-        fields = ['id', 'user', 'address', 'phone', 'delivery_fee', 'total', 'discounted_total', 'status', 'payment_method', 'coupon_code', 'ordered_at', 'items', 'installment_order', 'months']
-
-    def validate(self, data):
-        request = self.context['request']
-        user = request.user
-        cart = Cart.objects.get(user=user)
-
-        # Empty cart check
-        if not cart.items.exists():
-            raise serializers.ValidationError("Cannot create order with an empty cart")
-
-        # Validate installment eligibility
-        if data.get('payment_method') == 'INSTALLMENT':
-            if not LipaProgramRegistration.objects.filter(user=user, status='APPROVED').exists():
-                raise serializers.ValidationError("You must be approved for Lipa Mdogo Mdogo to use installments.")
-            for item in cart.items.all():
-                if not item.product.supports_installments:
-                    raise serializers.ValidationError(f"Product {item.product.name} does not support installments.")
-
-        # Calculate total (pre-discount)
-        temp_total = data.get('delivery_fee', Decimal('225.00'))
-        for item in cart.items.all():
-            temp_total += item.product.price * item.quantity
-        data['total'] = temp_total
-
-        # Apply coupon
-        coupon_code = data.pop('coupon_code', None)
-        data['coupon'] = None
-        if coupon_code:
-            try:
-                coupon = Coupon.objects.get(code=coupon_code.strip(), is_active=True)
-                if coupon.valid_until and coupon.valid_until < timezone.now():
-                    raise serializers.ValidationError("Coupon has expired.")
-                data['coupon'] = coupon
-                temp_total = coupon.apply_to(temp_total)
-            except Coupon.DoesNotExist:
-                raise serializers.ValidationError("Invalid coupon code.")
-
-        # Check wallet balance
-        wallet = Wallet.objects.get(user=user)
-        amount_to_deduct = temp_total
-        if data.get('payment_method') == 'INSTALLMENT':
-            amount_to_deduct = temp_total * Decimal('0.4')  # 40% deposit
-        if user.is_marketer:
-            if wallet.main_balance < amount_to_deduct:
-                raise serializers.ValidationError("Insufficient main balance for order.")
-        else:
-            if wallet.deposit_balance < amount_to_deduct:
-                raise serializers.ValidationError("Insufficient deposit balance for order.")
-        data['discounted_total'] = temp_total
-        return data
-
-    def create(self, validated_data):
-        user = self.context['request'].user
-        cart = Cart.objects.get(user=user)
-        months = validated_data.pop('months', 3)  # Extract months
-
-        with transaction.atomic():
-            # Create order without installment_months
-            order = Order.objects.create(**validated_data)
-            
-            # Create OrderItems from cart
-            for cart_item in cart.items.all():
-                OrderItem.objects.create(
-                    order=order,
-                    product=cart_item.product,
-                    quantity=cart_item.quantity,
-                    price_at_purchase=cart_item.product.price
-                )
-            
-            # Clear cart after success
-            cart.items.all().delete()
-            
-            # Trigger save with installment_months for installment logic
-            order.save(installment_months=months)
-            
-            logger.info(f"Order {order.id} created successfully for user {user.username}")
-            return order
+    def update(self, instance, validated_data):
+        if instance.status == 'APPROVED':
+            raise ValidationError("Cannot update an approved Lipa Mdogo Mdogo registration.")
+        return super().update(instance, validated_data)

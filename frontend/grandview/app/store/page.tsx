@@ -29,14 +29,26 @@ export default function StorePage() {
 
   useEffect(() => {
     fetchProducts()
-    fetchCategories()
     fetchCartCount()
-  }, [])
+  }, []) // Removed fetchCategories
 
   const fetchProducts = async () => {
     try {
       const productsData = await ApiService.getAllProducts()
       setProducts(productsData)
+
+      // Compute categories from products
+      const categoryMap = new Map<number, Category>()
+      productsData.forEach((product) => {
+        const cat = product.category
+        if (!categoryMap.has(cat.id)) {
+          categoryMap.set(cat.id, { id: cat.id, name: cat.name, count: 1 })
+        } else {
+          const existing = categoryMap.get(cat.id)!
+          categoryMap.set(cat.id, { ...existing, count: (existing.count || 0) + 1 })
+        }
+      })
+      setCategories(Array.from(categoryMap.values()))
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load products")
     } finally {
@@ -44,14 +56,7 @@ export default function StorePage() {
     }
   }
 
-  const fetchCategories = async () => {
-    try {
-      const categoriesData = await ApiService.getCategories()
-      setCategories(categoriesData)
-    } catch (error) {
-      console.error("Failed to load categories:", error)
-    }
-  }
+  // Removed fetchCategories function
 
   const fetchCartCount = async () => {
     try {

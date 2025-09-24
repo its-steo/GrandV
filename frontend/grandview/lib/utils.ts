@@ -5,14 +5,19 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatCurrency(amount: string | number, currency = "KSH"): string {
-  const numAmount = typeof amount === "string" ? Number.parseFloat(amount) : amount
-  if (isNaN(numAmount)) return `${currency} 0.00`
+export function formatCurrency(
+  amount: string | number | null | undefined,
+  currency: string = "KSh"
+): string {
+  if (amount == null) return `${currency} 0.00`;  // Handle null or undefined
+
+  const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
+  if (isNaN(numAmount)) return `${currency} 0.00`;
 
   return `${currency} ${numAmount.toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })}`
+  })}`;
 }
 
 export function formatNumber(value: string | number): string {
@@ -35,5 +40,6 @@ export function getImageUrl(imagePath: string | null | undefined): string {
   }
 
   // Prepend the backend URL for relative paths (this remains unchanged)
-  return `http://grandview-shop.onrender.com${pathStr}`
+  //return `https://grandview-shop.onrender.com${pathStr}`
+  return `http://localhost:8000${pathStr}`
 }

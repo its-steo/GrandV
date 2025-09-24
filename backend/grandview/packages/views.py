@@ -19,10 +19,13 @@ class PackagePurchaseView(APIView):
     def post(self, request):
         serializer = PurchaseCreateSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
-            purchase = serializer.save()
-            return Response({'message': 'Package purchased successfully', 'purchase_id': purchase.id}, status=status.HTTP_201_CREATED)
+            result = serializer.save()  # result is a dictionary with 'message' and 'purchase_id'
+            return Response(
+                {'message': result['message'], 'purchase_id': result['purchase_id']},
+                status=status.HTTP_201_CREATED
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+    
 class UserPurchasesView(APIView):
     permission_classes = [IsAuthenticated]
 
