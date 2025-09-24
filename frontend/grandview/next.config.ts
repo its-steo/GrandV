@@ -8,15 +8,25 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: false,
   },
+  //images: {
+  //  remotePatterns: [
+  //    { protocol: 'http', hostname: 'localhost', port: '8000', pathname: '/**' },
+  //    { protocol: 'http', hostname: '127.0.0.1', port: '8000', pathname: '/**' },
+  //    { protocol: 'https', hostname: 'grandview-shop.onrender.com', port: '8000', pathname: '/**' },
+  //  ],
+  //  deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+  //  imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+  //  formats: ['image/webp', 'image/avif'],
+  //},
   images: {
     remotePatterns: [
-      { protocol: 'http', hostname: 'localhost', port: '8000', pathname: '/**' },
-      { protocol: 'http', hostname: '127.0.0.1', port: '8000', pathname: '/**' },
-      { protocol: 'https', hostname: 'grandview-shop.onrender.com', port: '8000', pathname: '/**' },
+      {
+        protocol: 'https',
+        hostname: 'grandview-shop.onrender.com',
+        port: '',
+        pathname: '/media/**',  // Optional: Restrict to your media path for better security
+      },
     ],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    formats: ['image/webp', 'image/avif'],
   },
 };
 
