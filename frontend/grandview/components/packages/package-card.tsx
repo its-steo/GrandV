@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Check, Star, Clock, DollarSign, Loader2 } from "lucide-react"
+import { Check, Star, Clock, DollarSign, Loader2, Crown, Zap } from "lucide-react"
 import { ApiService } from "@/lib/api"
 import { toast } from "sonner"
 import { formatCurrency } from "@/lib/utils"
@@ -50,16 +50,16 @@ export function PackageCard({
           setPackageFeatures(pkg.features)
         } else {
           const basicFeatures = [
-            "Access to advertisements",
-            "Instant earnings",
-            "24/7 support",
-            `KSH ${pkg.rate_per_view} per view rate`,
+            "Access to premium advertisements",
+            "Instant earnings processing",
+            "24/7 priority support",
+            `${formatCurrency(pkg.rate_per_view)} per view guaranteed`,
           ]
 
           if (pkg.rate_per_view === 100) {
-            basicFeatures.push("Priority ad access")
+            basicFeatures.push("Priority ad queue access", "Enhanced earning opportunities")
           } else if (pkg.rate_per_view === 120) {
-            basicFeatures.push("Priority ad access", "Exclusive high-rate ads", "VIP support")
+            basicFeatures.push("VIP ad access", "Exclusive high-rate campaigns", "Dedicated account manager")
           }
 
           setPackageFeatures(basicFeatures)
@@ -86,7 +86,7 @@ export function PackageCard({
 
     if (availableBalance < packagePrice) {
       toast.error(
-        `You need ${formatCurrency(packagePrice)} but only have ${formatCurrency(availableBalance)} available`,
+        `Insufficient balance. You need ${formatCurrency(packagePrice)} but only have ${formatCurrency(availableBalance)} available`,
       )
       return
     }
@@ -96,7 +96,6 @@ export function PackageCard({
       await ApiService.purchasePackage(pkg.id)
 
       toast.success(`Successfully purchased ${pkg.name} package`)
-
       onPurchaseSuccess()
     } catch (error) {
       console.error("Purchase error:", error)
@@ -106,108 +105,143 @@ export function PackageCard({
     }
   }
 
-  const getRateColor = (rate: number) => {
+  const getPackageTheme = (rate: number) => {
     switch (rate) {
       case 90:
-        return "from-blue-500 to-blue-600"
+        return {
+          gradient: "from-blue-500 to-blue-600",
+          badge: "from-blue-500 to-blue-600",
+          border: "border-blue-200",
+          bg: "from-blue-50 to-blue-100",
+          icon: Zap,
+          tier: "Starter",
+        }
       case 100:
-        return "from-green-500 to-green-600"
+        return {
+          gradient: "from-chart-1 to-chart-2",
+          badge: "from-chart-1 to-chart-2",
+          border: "border-chart-1/30",
+          bg: "from-chart-1/10 to-chart-2/10",
+          icon: Star,
+          tier: "Popular",
+        }
       case 120:
-        return "from-purple-500 to-purple-600"
+        return {
+          gradient: "from-primary to-accent",
+          badge: "from-primary to-accent",
+          border: "border-primary/30",
+          bg: "from-primary/10 to-accent/10",
+          icon: Crown,
+          tier: "Premium",
+        }
       default:
-        return "from-gray-500 to-gray-600"
+        return {
+          gradient: "from-muted to-muted-foreground",
+          badge: "from-muted to-muted-foreground",
+          border: "border-border",
+          bg: "from-muted/10 to-muted/20",
+          icon: Zap,
+          tier: "Basic",
+        }
     }
   }
 
+  const theme = getPackageTheme(pkg.rate_per_view)
+ // const IconComponent = theme.icon
   const isPopular = pkg.rate_per_view === 100
   const isPremium = pkg.rate_per_view === 120
 
   return (
     <Card
-      className={`glass-card border-white/20 relative w-full max-w-md mx-auto ${isActive ? "ring-2 ring-primary" : ""} ${isPremium ? "border-purple-300" : ""}`}
+      className={`professional-card relative overflow-hidden hover:scale-[1.02] hover:shadow-xl transition-all duration-300 ${
+        isActive ? "ring-2 ring-primary shadow-xl" : ""
+      } ${isPremium ? "border-primary/30" : ""}`}
     >
       {isPopular && (
-        <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-green-500 to-green-600 text-white text-xs sm:text-sm px-2 sm:px-3 py-1">
-          <Star className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+        <Badge
+          className={`absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r ${theme.badge} text-white px-4 py-1 shadow-lg z-10`}
+        >
+          <Star className="h-4 w-4 mr-1" />
           Most Popular
         </Badge>
       )}
 
       {isPremium && (
-        <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-purple-500 to-purple-600 text-white text-xs sm:text-sm px-2 sm:px-3 py-1">
-          <Star className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+        <Badge
+          className={`absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r ${theme.badge} text-white px-4 py-1 shadow-lg z-10`}
+        >
+          <Crown className="h-4 w-4 mr-1" />
           Premium
         </Badge>
       )}
 
       {isActive && (
-        <Badge className="absolute -top-2 right-2 sm:right-4 bg-gradient-to-r from-primary to-secondary text-white text-xs sm:text-sm px-2 sm:px-3 py-1">
+        <Badge className="absolute -top-3 right-4 bg-gradient-to-r from-primary to-accent text-white px-4 py-1 shadow-lg z-10">
           Active
         </Badge>
       )}
 
-      <div className="relative w-full h-32 sm:h-40">
+      <div className="relative w-full h-48 overflow-hidden">
+        <div className={`absolute inset-0 bg-gradient-to-br ${theme.bg} opacity-90`} />
         <Image
-          src={pkg.image.startsWith('http') ? pkg.image : `http://localhost:8000${pkg.image}`}
+          src={pkg.image.startsWith("http") ? pkg.image : `http://localhost:8000${pkg.image}`}
           alt={pkg.name}
           fill
           className="object-cover"
-          sizes="(max-width: 640px) 90vw, 284px"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
       </div>
 
-      <CardHeader className="text-center pb-2 sm:pb-4">
-        <CardTitle className="text-lg sm:text-xl md:text-2xl mb-1 sm:mb-2">{pkg.name}</CardTitle>
-        <div
-          className={`text-2xl sm:text-3xl font-bold bg-gradient-to-r ${getRateColor(pkg.rate_per_view)} bg-clip-text text-transparent`}
-        >
-          {formatCurrency(pkg.price)}
+      <CardHeader className="text-center pb-4 space-y-4">
+        <div className="space-y-2">
+          <CardTitle className="text-2xl font-bold">{pkg.name}</CardTitle>
+          <div className={`text-4xl font-bold bg-gradient-to-r ${theme.gradient} bg-clip-text text-transparent`}>
+            {formatCurrency(pkg.price)}
+          </div>
+          <p className="text-muted-foreground text-balance">{pkg.description}</p>
         </div>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">{pkg.description}</p>
       </CardHeader>
 
-      <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6">
-        {/* Rate Highlight */}
-        <div
-          className={`p-3 sm:p-4 rounded-lg bg-gradient-to-r ${getRateColor(pkg.rate_per_view)} text-white text-center`}
-        >
-          <div className="flex items-center justify-center gap-2 mb-1">
-            <DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />
-            <span className="text-base sm:text-lg font-bold"> {formatCurrency(pkg.rate_per_view)} per view</span>
+      <CardContent className="space-y-6 px-6 pb-6">
+        <div className={`p-4 rounded-xl bg-gradient-to-r ${theme.gradient} text-white text-center shadow-lg`}>
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <DollarSign className="h-5 w-5" />
+            <span className="text-xl font-bold">{formatCurrency(pkg.rate_per_view)} per view</span>
           </div>
-          <p className="text-xs sm:text-sm opacity-90">Earn more with each ad you watch</p>
+          <p className="text-sm opacity-90">Guaranteed earning rate</p>
         </div>
 
-        {/* Validity */}
-        <div className="flex items-center justify-center gap-2 text-muted-foreground">
-          <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
-          <span className="text-xs sm:text-sm">Valid for {pkg.validity_days} days</span>
+        <div className="flex items-center justify-center gap-2 text-muted-foreground bg-muted/20 rounded-lg p-3">
+          <Clock className="h-4 w-4" />
+          <span className="font-medium">Valid for {pkg.validity_days} days</span>
         </div>
 
-        {/* Features */}
-        <div className="space-y-2">
+        <div className="space-y-3">
+          <h4 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Whats Included</h4>
           {packageFeatures.map((feature, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <Check className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
-              <span className="text-xs sm:text-sm">{feature}</span>
+            <div key={index} className="flex items-start gap-3">
+              <div className="feature-check mt-0.5">
+                <Check className="h-3 w-3" />
+              </div>
+              <span className="text-sm leading-relaxed">{feature}</span>
             </div>
           ))}
         </div>
 
-        {/* Purchase Button */}
         <Button
           onClick={handlePurchase}
           disabled={isPurchasing || isActive}
-          className={`w-full text-xs sm:text-sm ${
+          className={`w-full h-12 text-base font-semibold transition-all duration-300 ${
             isActive
-              ? "bg-gray-400 cursor-not-allowed"
-              : `bg-gradient-to-r ${getRateColor(pkg.rate_per_view)} hover:opacity-90`
-          } transition-all duration-300 py-2 sm:py-3`}
+              ? "bg-muted text-muted-foreground cursor-not-allowed"
+              : `professional-button bg-gradient-to-r ${theme.gradient} hover:opacity-90`
+          }`}
         >
           {isPurchasing ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Processing...
+              Processing Purchase...
             </>
           ) : isActive ? (
             "Currently Active"
@@ -216,16 +250,19 @@ export function PackageCard({
           )}
         </Button>
 
-        {/* Balance Info */}
         {walletBalance && !isActive && (
-          <div className="text-xs sm:text-sm text-muted-foreground text-center">
-            Available:{" "}
-            {formatCurrency(
-              isMarketer
-                ? Number.parseFloat(walletBalance.deposit_balance) +
-                    Number.parseFloat(walletBalance.views_earnings_balance)
-                : Number.parseFloat(walletBalance.deposit_balance),
-            )}
+          <div className="text-center p-3 bg-muted/20 rounded-lg">
+            <p className="text-sm text-muted-foreground">
+              Available Balance:{" "}
+              <span className="font-semibold text-foreground">
+                {formatCurrency(
+                  isMarketer
+                    ? Number.parseFloat(walletBalance.deposit_balance) +
+                        Number.parseFloat(walletBalance.views_earnings_balance)
+                    : Number.parseFloat(walletBalance.deposit_balance),
+                )}
+              </span>
+            </p>
           </div>
         )}
       </CardContent>

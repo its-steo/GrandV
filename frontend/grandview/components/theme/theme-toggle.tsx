@@ -1,9 +1,9 @@
-'use client'
+"use client"
 
-import * as React from 'react'
-import { useTheme } from 'next-themes'
-import { SunIcon, MoonIcon, ComputerDesktopIcon } from '@heroicons/react/24/outline'
-import { motion } from 'framer-motion'
+import * as React from "react"
+import { useTheme } from "next-themes"
+import { SunIcon, MoonIcon, ComputerDesktopIcon } from "@heroicons/react/24/outline"
+import { motion } from "framer-motion"
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
@@ -18,9 +18,9 @@ export function ThemeToggle() {
   }
 
   const themes = [
-    { name: 'light', icon: SunIcon, label: 'Light' },
-    { name: 'dark', icon: MoonIcon, label: 'Dark' },
-    { name: 'system', icon: ComputerDesktopIcon, label: 'System' },
+    { name: "light", icon: SunIcon, label: "Light" },
+    { name: "dark", icon: MoonIcon, label: "Dark" },
+    { name: "system", icon: ComputerDesktopIcon, label: "System" },
   ]
 
   return (
@@ -31,9 +31,10 @@ export function ThemeToggle() {
           onClick={() => setTheme(name)}
           className={`
             relative p-2 rounded-full transition-all duration-200
-            ${theme === name 
-              ? 'bg-white dark:bg-gray-700 text-accent-600 dark:text-accent-400 shadow-sm' 
-              : 'text-gray-600 dark:text-gray-400 hover:text-accent-600 dark:hover:text-accent-400'
+            ${
+              theme === name
+                ? "bg-white dark:bg-gray-700 text-accent-600 dark:text-accent-400 shadow-sm"
+                : "text-gray-600 dark:text-gray-400 hover:text-accent-600 dark:hover:text-accent-400"
             }
           `}
           whileHover={{ scale: 1.05 }}
@@ -46,7 +47,7 @@ export function ThemeToggle() {
             <motion.div
               className="absolute inset-0 bg-white dark:bg-gray-700 rounded-full -z-10"
               layoutId="theme-indicator"
-              transition={{ type: 'spring', bounce: 0.25, duration: 0.5 }}
+              transition={{ type: "spring", bounce: 0.25, duration: 0.5 }}
             />
           )}
         </motion.button>
@@ -69,7 +70,7 @@ export function ThemeToggleDropdown() {
     return null
   }
 
-  const currentTheme = theme === 'light' ? SunIcon : theme === 'dark' ? MoonIcon : ComputerDesktopIcon
+  const currentTheme = theme === "light" ? SunIcon : theme === "dark" ? MoonIcon : ComputerDesktopIcon
   const CurrentIcon = currentTheme
 
   return (
@@ -86,10 +87,7 @@ export function ThemeToggleDropdown() {
 
       {isOpen && (
         <>
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setIsOpen(false)}
-          />
+          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: -10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -99,11 +97,13 @@ export function ThemeToggleDropdown() {
           >
             <button
               onClick={() => {
-                setTheme('light')
+                setTheme("light")
                 setIsOpen(false)
               }}
               className={`w-full px-4 py-2 text-left flex items-center space-x-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
-                theme === 'light' ? 'text-accent-600 dark:text-accent-400 bg-accent-50 dark:bg-accent-900/20' : 'text-gray-700 dark:text-gray-300'
+                theme === "light"
+                  ? "text-accent-600 dark:text-accent-400 bg-accent-50 dark:bg-accent-900/20"
+                  : "text-gray-700 dark:text-gray-300"
               }`}
             >
               <SunIcon className="w-4 h-4" />
@@ -111,11 +111,13 @@ export function ThemeToggleDropdown() {
             </button>
             <button
               onClick={() => {
-                setTheme('dark')
+                setTheme("dark")
                 setIsOpen(false)
               }}
               className={`w-full px-4 py-2 text-left flex items-center space-x-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
-                theme === 'dark' ? 'text-accent-600 dark:text-accent-400 bg-accent-50 dark:bg-accent-900/20' : 'text-gray-700 dark:text-gray-300'
+                theme === "dark"
+                  ? "text-accent-600 dark:text-accent-400 bg-accent-50 dark:bg-accent-900/20"
+                  : "text-gray-700 dark:text-gray-300"
               }`}
             >
               <MoonIcon className="w-4 h-4" />
@@ -123,11 +125,13 @@ export function ThemeToggleDropdown() {
             </button>
             <button
               onClick={() => {
-                setTheme('system')
+                setTheme("system")
                 setIsOpen(false)
               }}
               className={`w-full px-4 py-2 text-left flex items-center space-x-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
-                theme === 'system' ? 'text-accent-600 dark:text-accent-400 bg-accent-50 dark:bg-accent-900/20' : 'text-gray-700 dark:text-gray-300'
+                theme === "system"
+                  ? "text-accent-600 dark:text-accent-400 bg-accent-50 dark:bg-accent-900/20"
+                  : "text-gray-700 dark:text-gray-300"
               }`}
             >
               <ComputerDesktopIcon className="w-4 h-4" />
@@ -136,6 +140,6 @@ export function ThemeToggleDropdown() {
           </motion.div>
         </>
       )}
-    </div>
-  )
+    </div>
+  )
 }

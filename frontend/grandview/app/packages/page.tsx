@@ -9,8 +9,9 @@ import { ApiService, type WalletBalance, type PackageType, type UserPackage } fr
 import { formatCurrency } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { toast } from "sonner"
-import { Loader2, TrendingUp, Clock } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Loader2, TrendingUp, Clock, Wallet, Star, Shield, Zap } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 
 export default function PackagesPage() {
   const [packages, setPackages] = useState<PackageType[]>([])
@@ -30,7 +31,7 @@ export default function PackagesPage() {
         ApiService.getCurrentUserPackage(),
         ApiService.getWalletBalance(),
       ])
-  
+
       setPackages(packagesRes.packages || [])
       setUserPackage(userPackageRes)
       setWalletBalance(walletData)
@@ -47,11 +48,14 @@ export default function PackagesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 flex flex-col">
+      <div className="min-h-screen premium-gradient flex flex-col">
         <Sidebar />
-        <div className="flex-1 p-4 sm:p-6">
+        <div className="flex-1 p-6 lg:ml-64">
           <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-primary" />
+            <div className="text-center space-y-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+              <p className="text-muted-foreground">Loading packages...</p>
+            </div>
           </div>
         </div>
       </div>
@@ -59,26 +63,30 @@ export default function PackagesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 flex flex-col">
+    <div className="min-h-screen premium-gradient flex flex-col">
       <Sidebar />
-      <div className="flex-1 p-4 sm:p-6 lg:ml-64">
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                Packages
+      <div className="flex-1 p-6 lg:ml-64">
+        <div className="max-w-7xl mx-auto space-y-8">
+          <div className="text-center space-y-6 py-8">
+            <div className="space-y-4">
+              <Badge className="professional-badge">
+                <Star className="h-4 w-4 mr-2" />
+                Premium Advertising Platform
+              </Badge>
+              <h1 className="text-4xl md:text-5xl font-bold text-balance">
+                Choose Your <span className="pricing-highlight">Earning Package</span>
               </h1>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                Choose a package to start earning from advertisements
+              <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-balance">
+                Select the perfect package to maximize your earnings from premium advertisements
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-              <Card className="glass-card border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 w-full sm:w-auto">
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex items-center gap-2 text-green-700">
-                    <TrendingUp className="h-4 w-4" />
-                    <span className="text-sm font-medium">
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+              <Card className="stats-card">
+                <CardContent className="p-6 text-center">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <Wallet className="h-5 w-5 text-chart-1" />
+                    <span className="text-2xl font-bold text-chart-1">
                       {formatCurrency(
                         walletBalance
                           ? (
@@ -89,53 +97,49 @@ export default function PackagesPage() {
                       )}
                     </span>
                   </div>
-                  <p className="text-xs text-green-600">Available Balance</p>
+                  <p className="text-sm text-muted-foreground font-medium">Available Balance</p>
                 </CardContent>
               </Card>
+
               {userPackage && (
-                <Card className="glass-card border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 w-full sm:w-auto">
-                  <CardContent className="p-3 sm:p-4">
-                    <div className="flex items-center gap-2 text-blue-700">
-                      <Clock className="h-4 w-4" />
-                      <span className="text-sm font-medium">{userPackage.days_remaining} days</span>
+                <Card className="stats-card">
+                  <CardContent className="p-6 text-center">
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <Clock className="h-5 w-5 text-primary" />
+                      <span className="text-2xl font-bold text-primary">{userPackage.days_remaining}</span>
                     </div>
-                    <p className="text-xs text-blue-600">Package Expires</p>
+                    <p className="text-sm text-muted-foreground font-medium">Days Remaining</p>
                   </CardContent>
                 </Card>
               )}
+
+              <Card className="stats-card">
+                <CardContent className="p-6 text-center">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <TrendingUp className="h-5 w-5 text-accent" />
+                    <span className="text-2xl font-bold text-accent">
+                      {userPackage ? formatCurrency(userPackage.rate_per_view) : "0"}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground font-medium">Current Rate/View</p>
+                </CardContent>
+              </Card>
             </div>
           </div>
 
-          {/* Current Package Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-            <Card className="glass-card border-purple-200 bg-gradient-to-r from-purple-50 to-violet-50 md:col-span-2">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-purple-700 text-lg sm:text-xl">
-                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
-                  Your Earnings Rate
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 text-center">
-                <div className="inline-flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 rounded-full bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 font-semibold">
-                  <span className="text-xl sm:text-2xl">
-                    {userPackage ? formatCurrency(userPackage.rate_per_view) : "No Package"}
-                  </span>
-                  <span className="text-base sm:text-lg">/view</span>
-                </div>
-                <p className="text-xs sm:text-sm text-muted-foreground">
-                  {userPackage ? "Days remaining" : "No active package"}
-                </p>
-              </CardContent>
-            </Card>
+          {userPackage && (
+            <div className="max-w-2xl mx-auto">
+              <CurrentPackage package={userPackage} />
+            </div>
+          )}
 
-            {/* Current Package */}
-            <CurrentPackage package={userPackage} />
-          </div>
+          <div className="space-y-6">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold mb-2">Available Packages</h2>
+              <p className="text-muted-foreground">Choose the package that fits your earning goals</p>
+            </div>
 
-          {/* Available Packages */}
-          <div className="space-y-4">
-            <h2 className="text-lg sm:text-xl font-semibold">Available Packages</h2>
-            <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
               {packages.map((pkg) => (
                 <PackageCard
                   key={pkg.id}
@@ -157,25 +161,71 @@ export default function PackagesPage() {
             </div>
           </div>
 
-          {/* Package Comparison */}
-          <PackageComparison />
+          <div className="max-w-5xl mx-auto">
+            <PackageComparison />
+          </div>
 
-          {/* Info Card */}
-          <Card className="glass-card border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-            <CardContent className="p-4 sm:p-6">
-              <h3 className="font-semibold text-blue-800 text-base sm:text-lg mb-2">How Packages Work</h3>
-              <ul className="text-sm text-blue-700 space-y-1">
-                <li>• Each package gives you access to advertisements for a specific duration</li>
-                <li>• Higher-tier packages offer better rates per view (KSH 90, KSH 100, or KSH 120)</li>
-                <li>• You can only have one active package at a time</li>
-                <li>
-                  •{" "}
-                  {user?.is_marketer
-                    ? "As a marketer, you can use both deposit and earnings balance"
-                    : "You can only use your deposit balance for purchases"}
-                </li>
-                <li>• Packages automatically expire after the validity period</li>
-              </ul>
+          <Card className="professional-card max-w-4xl mx-auto">
+            <CardContent className="p-8">
+              <div className="text-center mb-6">
+                <Shield className="h-12 w-12 text-primary mx-auto mb-4" />
+                <h3 className="text-2xl font-bold mb-2">How Our Platform Works</h3>
+                <p className="text-muted-foreground">Everything you need to know about earning with our packages</p>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="feature-check">
+                      <Zap className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-1">Instant Activation</h4>
+                      <p className="text-sm text-muted-foreground">Your package activates immediately after purchase</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="feature-check">
+                      <TrendingUp className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-1">Higher Tier Benefits</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Premium packages offer better rates and exclusive ads
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="feature-check">
+                      <Shield className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-1">Secure Payments</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {user?.is_marketer
+                          ? "Use both deposit and earnings balance for purchases"
+                          : "Secure transactions using your deposit balance"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="feature-check">
+                      <Clock className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-1">Flexible Duration</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Packages automatically renew or you can upgrade anytime
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>

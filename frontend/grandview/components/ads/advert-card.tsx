@@ -75,70 +75,90 @@ export function AdvertCard({ advert, onSubmissionSuccess }: AdvertCardProps) {
   }
 
   return (
-    <Card className="glass-card border-white/20 hover:border-primary/30 transition-colors">
+    <Card className="neon-card hover:scale-105 transition-all duration-300 group">
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <CardTitle className="text-lg leading-tight">{advert.title}</CardTitle>
-          <Badge className={`${getRateBadgeColor(advert.rate_category)} text-white`}>
+        <div className="flex items-start justify-between gap-2">
+          <CardTitle className="text-base sm:text-lg leading-tight group-hover:text-primary transition-colors text-balance">
+            {advert.title}
+          </CardTitle>
+          <Badge
+            className={`${getRateBadgeColor(advert.rate_category)} text-white shadow-lg text-xs sm:text-sm whitespace-nowrap`}
+          >
             KSH {advert.rate_category}/view
           </Badge>
         </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Calendar className="h-4 w-4" />
+        <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+          <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
           {new Date(advert.upload_date).toLocaleDateString()}
         </div>
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <div className="aspect-video bg-muted rounded-lg overflow-hidden">
+        <div className="aspect-video bg-gradient-to-br from-muted/50 to-muted rounded-lg overflow-hidden relative group">
           {imageError ? (
-            <div className="flex items-center justify-center h-full text-muted-foreground">
-              <ImageIcon className="h-8 w-8" />
-              <span className="ml-2 text-sm">Preview not available</span>
+            <div className="flex items-center justify-center h-full text-muted-foreground bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
+              <div className="text-center">
+                <ImageIcon className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-2 opacity-50" />
+                <span className="text-xs sm:text-sm">Preview not available</span>
+              </div>
             </div>
           ) : (
-            <img
-              src={previewUrl || "/placeholder.svg"}
-              alt={advert.title}
-              className="w-full h-full object-cover"
-              onError={handleImageError}
-            />
+            <>
+              <img
+                src={previewUrl || "/placeholder.svg"}
+                alt={advert.title}
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                onError={handleImageError}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            </>
           )}
         </div>
 
-        <div className={`p-4 rounded-lg bg-gradient-to-r ${getRateColor(advert.rate_category)} text-white`}>
-          <div className="flex items-center gap-2 mb-2">
-            <DollarSign className="h-5 w-5" />
-            <span className="font-semibold">Earning Potential</span>
+        <div
+          className={`p-3 sm:p-4 rounded-xl bg-gradient-to-r ${getRateColor(advert.rate_category)} text-white relative overflow-hidden`}
+        >
+          <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-2">
+              <DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="font-bold text-base sm:text-lg">Earning Potential</span>
+            </div>
+            <p className="text-xs sm:text-sm opacity-90">Earn KSH {advert.rate_category} per view</p>
           </div>
-          <p className="text-sm opacity-90">Earn KSH {advert.rate_category} per view</p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-3">
           <Button
             onClick={handleDownload}
             disabled={isDownloading || !advert.can_submit}
-            className="flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+            className="flex-1 neon-button-primary text-white font-semibold text-sm sm:text-base"
           >
-            <Download className="h-4 w-4 mr-2" />
+            <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
             {isDownloading ? "Downloading..." : "Download"}
           </Button>
 
           {advert.has_submitted ? (
-            <Badge variant="secondary" className="px-4 py-2">
-              Submitted
+            <Badge
+              variant="secondary"
+              className="px-3 sm:px-4 py-2 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 text-xs sm:text-sm justify-center"
+            >
+              ✓ Submitted
             </Badge>
           ) : advert.can_submit ? (
             <Button
               onClick={onSubmissionSuccess}
               variant="outline"
-              className="bg-secondary/10 border-secondary text-secondary hover:bg-secondary hover:text-white transition-colors"
+              className="bg-gradient-to-r from-secondary/10 to-accent/10 border-secondary/50 text-secondary hover:bg-gradient-to-r hover:from-secondary hover:to-accent hover:text-white transition-all duration-300 shadow-lg text-sm sm:text-base"
             >
-              <Eye className="h-4 w-4 mr-2" />
+              <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
               Submit Views
             </Button>
           ) : (
-            <Badge variant="destructive" className="px-4 py-2">
+            <Badge
+              variant="destructive"
+              className="px-3 sm:px-4 py-2 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 text-xs sm:text-sm justify-center"
+            >
               Package Required
             </Badge>
           )}

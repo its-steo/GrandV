@@ -1,3 +1,4 @@
+// components/lipa/installment-order-card.tsx
 "use client"
 
 import { useState } from "react"
@@ -10,60 +11,108 @@ import type { InstallmentOrder } from "@/lib/api"
 import { formatCurrency } from "@/lib/utils"
 import { InstallmentPaymentModal } from "./installment-payment-modal"
 
+
 interface InstallmentOrderCardProps {
   order: InstallmentOrder
   onPaymentSuccess: () => void
 }
 
 export function InstallmentOrderCard({ order, onPaymentSuccess }: InstallmentOrderCardProps) {
-  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+
+  // Validate order fields
+  const isValidOrder = (
+    order.initial_deposit &&
+    !isNaN(Number.parseFloat(order.initial_deposit)) &&
+    order.remaining_amount &&
+    !isNaN(Number.parseFloat(order.remaining_amount)) &&
+    order.monthly_payment &&
+    !isNaN(Number.parseFloat(order.monthly_payment)) &&
+    order.next_payment_date &&
+    !isNaN(Date.parse(order.next_payment_date)) &&
+    order.payments && Array.isArray(order.payments)
+  );
+
+  if (!isValidOrder) {
+    console.warn("Invalid installment order data:", order);
+    return (
+      <Card className="glass-card border-white/10">
+        <CardContent className="p-3 sm:p-4 md:p-6">
+          <p className="text-red-600 text-sm">Error: Invalid order data</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Compute total_amount from available fields
+  const paymentsSum = order.payments.reduce((sum, p) => sum + Number.parseFloat(p.amount || '0'), 0);
+  const totalAmount = Number.parseFloat(order.initial_deposit) + Number.parseFloat(order.remaining_amount) + paymentsSum;
+
+  // Normalize fields
+  const normalizedStatus = order.status?.toUpperCase() || "ACTIVE";
+  const displayStatus = {
+    PENDING: "Pending",
+    ONGOING: "Active",
+    ACTIVE: "Active",
+    PAID: "Completed",
+    OVERDUE: "Overdue",
+  }[normalizedStatus] || "Unknown";
+  const monthlyPayment = order.monthly_payment;
+  const remainingAmount = order.remaining_amount;
+  const nextPaymentDate = order.next_payment_date;
 
   const getStatusIcon = (status: string) => {
-    switch (status.toUpperCase()) {
-      case "PAID":
-        return <CheckCircle className="h-4 w-4 text-green-500" />
+    switch (status) {
+      case "PENDING":
+        return <Clock className="h-4 w-4 text-yellow-500" />;
+      case "ONGOING":
       case "ACTIVE":
-        return <Clock className="h-4 w-4 text-blue-500" />
+        return <Clock className="h-4 w-4 text-blue-500" />;
+      case "PAID":
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
       case "OVERDUE":
-        return <AlertTriangle className="h-4 w-4 text-red-500" />
+        return <AlertTriangle className="h-4 w-4 text-red-500" />;
       default:
-        return <CreditCard className="h-4 w-4 text-gray-500" />
+        return <CreditCard className="h-4 w-4 text-gray-500" />;
     }
-  }
+  };
 
   const getStatusColor = (status: string) => {
-    switch (status.toUpperCase()) {
-      case "PAID":
-        return "bg-green-500"
+    switch (status) {
+      case "PENDING":
+        return "bg-yellow-500";
+      case "ONGOING":
       case "ACTIVE":
-        return "bg-blue-500"
+        return "bg-blue-500";
+      case "PAID":
+        return "bg-green-500";
       case "OVERDUE":
-        return "bg-red-500"
+        return "bg-red-500";
       default:
-        return "bg-gray-500"
+        return "bg-gray-500";
     }
-  }
+  };
 
   const calculateProgress = () => {
-    const totalAmount = Number.parseFloat(order.total_amount)
-    const remainingAmount = Number.parseFloat(order.remaining_amount)
-    const paidAmount = totalAmount - remainingAmount
-    return (paidAmount / totalAmount) * 100
-  }
+    const remaining = Number.parseFloat(order.remaining_amount);
+    const paidAmount = totalAmount - remaining;
+    return (paidAmount / totalAmount) * 100;
+  };
 
   const calculateDaysUntilDue = () => {
-    const dueDate = new Date(order.next_payment_date)
-    const today = new Date()
-    const diffTime = dueDate.getTime() - today.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return diffDays
-  }
+    if (!order.next_payment_date) return 30; // Default to 30 days if missing
+    const dueDate = new Date(order.next_payment_date);
+    if (isNaN(dueDate.getTime())) return 30; // Fallback if invalid
+    const today = new Date();
+    const diffTime = dueDate.getTime() - today.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
 
-  const progress = calculateProgress()
-  const daysUntilDue = calculateDaysUntilDue()
-  const isOverdue = daysUntilDue < 0
-  const isDueSoon = daysUntilDue <= 7 && daysUntilDue >= 0
-  const canMakePayment = order.status.toUpperCase() === "ACTIVE" || order.status.toUpperCase() === "OVERDUE"
+  const progress = calculateProgress();
+  const daysUntilDue = calculateDaysUntilDue();
+  const isOverdue = daysUntilDue < 0;
+  const isDueSoon = daysUntilDue <= 7 && daysUntilDue >= 0;
+  const canMakePayment = normalizedStatus === "ACTIVE" || normalizedStatus === "ONGOING" || normalizedStatus === "OVERDUE";
 
   return (
     <>
@@ -73,47 +122,37 @@ export function InstallmentOrderCard({ order, onPaymentSuccess }: InstallmentOrd
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4">
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="flex items-center gap-2">
-                {getStatusIcon(order.status)}
+                {getStatusIcon(normalizedStatus)}
                 <span className="font-semibold text-sm sm:text-base">Order #{order.order}</span>
               </div>
-              <Badge className={`${getStatusColor(order.status)} text-white text-xs`}>
-                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+              <Badge className={`${getStatusColor(normalizedStatus)} text-white text-xs`}>
+                {displayStatus}
               </Badge>
-            </div>
-            <div className="text-left sm:text-right">
-              <p className="text-xs sm:text-sm text-muted-foreground">Created</p>
-              <p className="font-medium text-sm sm:text-base">{new Date(order.created_at).toLocaleDateString()}</p>
             </div>
           </div>
 
           {/* Progress Bar */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs sm:text-sm font-medium">Payment Progress</span>
-              <span className="text-xs sm:text-sm text-muted-foreground">{progress.toFixed(1)}% Complete</span>
-            </div>
+          <div className="space-y-2 mb-4">
             <Progress value={progress} className="h-2" />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Progress: {progress.toFixed(1)}%</span>
+              <span>Total: {formatCurrency(totalAmount.toString())}</span>
+            </div>
           </div>
 
-          {/* Payment Details Grid */}
-          <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4">
+          {/* Order Details */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 text-xs sm:text-sm mb-4">
             <div className="space-y-1">
-              <span className="text-xs sm:text-sm text-muted-foreground">Total Amount</span>
-              <p className="font-semibold text-primary text-sm sm:text-base">{formatCurrency(order.total_amount)}</p>
+              <span className="text-muted-foreground">Remaining Balance</span>
+              <p className="font-semibold">{formatCurrency(remainingAmount)}</p>
             </div>
             <div className="space-y-1">
-              <span className="text-xs sm:text-sm text-muted-foreground">Remaining</span>
-              <p className="font-semibold text-orange-600 text-sm sm:text-base">
-                {formatCurrency(order.remaining_amount)}
-              </p>
+              <span className="text-muted-foreground">Monthly Payment</span>
+              <p className="font-semibold">{formatCurrency(monthlyPayment)}</p>
             </div>
             <div className="space-y-1">
-              <span className="text-xs sm:text-sm text-muted-foreground">Monthly Payment</span>
-              <p className="font-semibold text-sm sm:text-base">{formatCurrency(order.monthly_payment)}</p>
-            </div>
-            <div className="space-y-1">
-              <span className="text-xs sm:text-sm text-muted-foreground">Plan Duration</span>
-              <p className="font-semibold text-sm sm:text-base">{order.months} months</p>
+              <span className="text-muted-foreground">Plan Duration</span>
+              <p className="font-semibold">{order.months} months</p>
             </div>
           </div>
 
@@ -148,14 +187,14 @@ export function InstallmentOrderCard({ order, onPaymentSuccess }: InstallmentOrd
                       {isOverdue ? "Payment Overdue" : isDueSoon ? "Payment Due Soon" : "Next Payment"}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(order.next_payment_date).toLocaleDateString()}
+                      {new Date(nextPaymentDate).toLocaleDateString()}
                       {isOverdue && ` (${Math.abs(daysUntilDue)} days overdue)`}
                       {isDueSoon && !isOverdue && ` (${daysUntilDue} days)`}
                     </p>
                   </div>
                 </div>
                 <div className="text-left sm:text-right">
-                  <p className="font-semibold text-sm sm:text-base">{formatCurrency(order.monthly_payment)}</p>
+                  <p className="font-semibold text-sm sm:text-base">{formatCurrency(monthlyPayment)}</p>
                   {isOverdue && (
                     <Badge variant="destructive" className="text-xs mt-1">
                       <AlertTriangle className="h-3 w-3 mr-1" />
@@ -172,9 +211,9 @@ export function InstallmentOrderCard({ order, onPaymentSuccess }: InstallmentOrd
             <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
               <TrendingUp className="h-4 w-4 flex-shrink-0" />
               <span className="break-words">
-                {order.status.toUpperCase() === "PAID"
+                {normalizedStatus === "PAID"
                   ? "Installment plan completed"
-                  : `${formatCurrency(Number.parseFloat(order.total_amount) - Number.parseFloat(order.remaining_amount))} paid so far`}
+                  : `${formatCurrency((totalAmount - Number.parseFloat(remainingAmount)).toString())} paid so far`}
               </span>
             </div>
 
@@ -207,5 +246,5 @@ export function InstallmentOrderCard({ order, onPaymentSuccess }: InstallmentOrd
         />
       )}
     </>
-  )
+  );
 }

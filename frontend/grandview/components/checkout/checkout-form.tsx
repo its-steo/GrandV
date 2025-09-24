@@ -78,79 +78,81 @@ export function CheckoutForm({ cartItems, totalAmount, onCheckoutComplete, onClo
   }
 
   const applyCoupon = async () => {
-    if (!couponCode.trim()) return
+  if (!couponCode.trim()) return;
 
-    try {
-      toast.success("Coupon applied successfully!")
-      setAppliedCoupon({ code: couponCode, discount: 10 })
-    } catch (error) {
-      toast.error("Invalid coupon code")
-    }
+  try {
+    const response = await ApiService.validateCoupon(couponCode);
+    const discount = response.discount_type === 'PERCENT' 
+      ? response.discount_value 
+      : (response.discount_value / totalAmount) * 100;  // Convert fixed to percent for frontend
+    setAppliedCoupon({ code: couponCode, discount });
+    toast.success("Coupon applied successfully!");
+  } catch (error) {
+    toast.error("Invalid coupon code");
+  }
+};
+
+const calculateInstallmentDetails = () => {
+  const depositPercentage = 0.4 // Match backend
+  const depositAmount = totalAmount * depositPercentage
+  const remainingAmount = totalAmount - depositAmount
+  const monthlyPayment = remainingAmount / installmentMonths
+
+  return {
+    depositAmount,
+    remainingAmount,
+    monthlyPayment,
+  }
+}
+
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault()
+
+  if (!formData.address.trim() || !formData.phone.trim()) {
+    toast.error("Please fill in all required fields")
+    return
   }
 
-  const calculateInstallmentDetails = () => {
-    const depositPercentage = 0.4
-    const depositAmount = totalAmount * depositPercentage
-    const remainingAmount = totalAmount - depositAmount
-    const monthlyPayment = remainingAmount / installmentMonths
-
-    return {
-      depositAmount,
-      remainingAmount,
-      monthlyPayment,
-    }
+  if (paymentType === "installment" && (!lipaRegistration || lipaRegistration.status !== "APPROVED")) {
+    toast.error("You need to be approved for Lipa Mdogo Mdogo to use installment payments")
+    return
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  try {
+    setIsSubmitting(true)
 
-    if (!formData.address.trim() || !formData.phone.trim()) {
-      toast.error("Please fill in all required fields")
-      return
-    }
+    const checkoutData = {
+      address: formData.address,
+      phone: formData.phone,
+      delivery_fee: formData.delivery_fee,
+      payment_type: paymentType, // "full" or "installment"
+      ...(paymentType === "installment" && { months: installmentMonths }),
+      ...(appliedCoupon && { coupon_code: appliedCoupon.code }),
+    };
 
-    if (paymentType === "installment" && (!lipaRegistration || lipaRegistration.status !== "APPROVED")) {
-      toast.error("You need to be approved for Lipa Mdogo Mdogo to use installment payments")
-      return
-    }
+    console.log("Submitting checkout data:", checkoutData) // Keep for debugging
 
-    try {
-      setIsSubmitting(true)
+    await ApiService.checkout(checkoutData)
 
-      // Use correct keys as expected by ApiService.checkout
-      const checkoutData = {
-        address: formData.address,
-        phone: formData.phone,
-        delivery_fee: formData.delivery_fee,
-        payment_type: paymentType, // "full" or "installment"
-        ...(paymentType === "installment" && { months: installmentMonths }),
-        ...(appliedCoupon && { coupon_code: appliedCoupon.code }),
-      }
+    toast.success(
+      paymentType === "installment"
+        ? `Order placed! Deposit of ${formatCurrency(calculateInstallmentDetails().depositAmount)} required.`
+        : "Order placed successfully!",
+    )
 
-      console.log("Submitting checkout data:", checkoutData) // Add logging for debugging
-
-      await ApiService.checkout(checkoutData)
-
-      toast.success(
-        paymentType === "installment"
-          ? `Order placed! Deposit of ${formatCurrency(calculateInstallmentDetails().depositAmount)} required.`
-          : "Order placed successfully!",
-      )
-
-      onCheckoutComplete()
-    } catch (error) {
-      console.error("Checkout error:", error) // Add logging for debugging
-      toast.error(error instanceof Error ? error.message : "Failed to place order")
-    } finally {
-      setIsSubmitting(false)
-    }
+    onCheckoutComplete()
+  } catch (error) {
+    console.error("Checkout error:", error)
+    toast.error(error instanceof Error ? error.message : "Failed to place order")
+  } finally {
+    setIsSubmitting(false)
   }
-
+}
   const discountAmount = appliedCoupon ? (totalAmount * appliedCoupon.discount) / 100 : 0
   const finalTotal = totalAmount - discountAmount + formData.delivery_fee
   const installmentDetails = calculateInstallmentDetails()
 
-  const supportsInstallment = cartItems.some((item) => item.product.supports_installments !== false)
+  const supportsInstallment = cartItems.every(item => item.product.supports_installments !== false)
 
   return (
     <div className="w-full max-w-[95vw] sm:max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto p-2 sm:p-3 md:p-4 lg:p-6 space-y-3 sm:space-y-4 md:space-y-6 lg:space-y-8">

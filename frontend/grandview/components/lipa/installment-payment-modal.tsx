@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -22,58 +21,78 @@ interface InstallmentPaymentModalProps {
 }
 
 export function InstallmentPaymentModal({ order, onClose, onPaymentSuccess }: InstallmentPaymentModalProps) {
-  const [paymentAmount, setPaymentAmount] = useState(order.monthly_payment)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [paymentType, setPaymentType] = useState<"monthly" | "partial" | "full">("monthly")
+  // Validate and provide fallback for monthly_payment and remaining_amount
+  const monthlyPayment = order.monthly_payment && !isNaN(Number.parseFloat(order.monthly_payment)) 
+    ? order.monthly_payment 
+    : "0";
+  const remainingAmount = order.remaining_amount && !isNaN(Number.parseFloat(order.remaining_amount)) 
+    ? order.remaining_amount 
+    : "0";
+
+  const [paymentAmount, setPaymentAmount] = useState(monthlyPayment);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentType, setPaymentType] = useState<"monthly" | "partial" | "full">("monthly");
+
+  // Normalize status for display
+  const normalizedStatus = order.status || "ACTIVE";
+  const displayStatus = {
+    ACTIVE: "Active",
+    PAID: "Completed",
+    OVERDUE: "Overdue",
+  }[normalizedStatus] || "Unknown";
 
   const handlePaymentTypeChange = (type: "monthly" | "partial" | "full") => {
-    setPaymentType(type)
+    setPaymentType(type);
     switch (type) {
       case "monthly":
-        setPaymentAmount(order.monthly_payment)
-        break
+        setPaymentAmount(monthlyPayment);
+        break;
       case "full":
-        setPaymentAmount(order.remaining_amount)
-        break
+        setPaymentAmount(remainingAmount);
+        break;
       case "partial":
-        setPaymentAmount("")
-        break
+        setPaymentAmount("");
+        break;
     }
-  }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
-    const amount = Number.parseFloat(paymentAmount)
+    const amount = Number.parseFloat(paymentAmount);
     if (!amount || amount <= 0) {
-      toast.error("Please enter a valid payment amount")
-      return
+      toast.error("Please enter a valid payment amount");
+      return;
     }
 
-    if (amount > Number.parseFloat(order.remaining_amount)) {
-      toast.error(`Payment cannot exceed remaining balance of ${formatCurrency(order.remaining_amount)}`)
-      return
+    if (amount > Number.parseFloat(remainingAmount)) {
+      toast.error(`Payment cannot exceed remaining balance of ${formatCurrency(remainingAmount)}`);
+      return;
+    }
+    if (amount > parseFloat(remainingAmount)) {
+      toast.error(`Payment cannot exceed remaining balance of ${formatCurrency(remainingAmount)}`);
+      return;
     }
 
     try {
-      setIsSubmitting(true)
+      setIsSubmitting(true);
       await ApiService.makeInstallmentPayment({
         installment_order_id: order.id,
         amount: amount,
-      })
+      });
 
-      toast.success(`Payment of ${formatCurrency(amount)} successful!`)
-      onPaymentSuccess()
-      onClose()
+      toast.success(`Payment of ${formatCurrency(amount)} successful!`);
+      onPaymentSuccess();
+      onClose();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Payment failed")
+      toast.error(error instanceof Error ? error.message : "Payment failed");
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
-  const remainingAfterPayment = Number.parseFloat(order.remaining_amount) - Number.parseFloat(paymentAmount || "0")
-  const isFullPayment = remainingAfterPayment <= 0
+  const remainingAfterPayment = Number.parseFloat(remainingAmount) - Number.parseFloat(paymentAmount || "0");
+  const isFullPayment = remainingAfterPayment <= 0;
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -95,26 +114,30 @@ export function InstallmentPaymentModal({ order, onClose, onPaymentSuccess }: In
                   <p className="text-xs sm:text-sm text-muted-foreground">{order.months} months plan</p>
                 </div>
                 <Badge className="bg-blue-500 text-white text-xs w-fit">
-                  {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                  {displayStatus}
                 </Badge>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
                 <div className="space-y-1">
                   <span className="text-muted-foreground">Total Amount:</span>
-                  <p className="font-semibold">{formatCurrency(order.total_amount)}</p>
+                  <p className="font-semibold">{formatCurrency(order.total_amount || "0")}</p>
                 </div>
                 <div className="space-y-1">
                   <span className="text-muted-foreground">Remaining Balance:</span>
-                  <p className="font-semibold text-orange-600">{formatCurrency(order.remaining_amount)}</p>
+                  <p className="font-semibold text-orange-600">{formatCurrency(remainingAmount)}</p>
                 </div>
                 <div className="space-y-1">
                   <span className="text-muted-foreground">Monthly Payment:</span>
-                  <p className="font-semibold">{formatCurrency(order.monthly_payment)}</p>
+                  <p className="font-semibold">{formatCurrency(monthlyPayment)}</p>
                 </div>
                 <div className="space-y-1">
                   <span className="text-muted-foreground">Next Due Date:</span>
-                  <p className="font-semibold">{new Date(order.next_payment_date).toLocaleDateString()}</p>
+                  <p className="font-semibold">
+                    {order.next_payment_date 
+                      ? new Date(order.next_payment_date).toLocaleDateString() 
+                      : "N/A"}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -143,7 +166,7 @@ export function InstallmentPaymentModal({ order, onClose, onPaymentSuccess }: In
                       </div>
                     </div>
                     <span className="font-semibold text-primary text-sm sm:text-base ml-7 sm:ml-0">
-                      {formatCurrency(order.monthly_payment)}
+                      {formatCurrency(monthlyPayment)}
                     </span>
                   </div>
                 </CardContent>
@@ -194,7 +217,7 @@ export function InstallmentPaymentModal({ order, onClose, onPaymentSuccess }: In
                     </div>
                     <div className="text-left sm:text-right ml-7 sm:ml-0">
                       <span className="font-semibold text-green-600 text-sm sm:text-base">
-                        {formatCurrency(order.remaining_amount)}
+                        {formatCurrency(remainingAmount)}
                       </span>
                       <Badge className="ml-2 bg-green-500 text-white text-xs">
                         <CheckCircle className="h-3 w-3 mr-1" />
@@ -224,13 +247,13 @@ export function InstallmentPaymentModal({ order, onClose, onPaymentSuccess }: In
                   className="pl-10 glass border-white/20 text-sm sm:text-base"
                   min="0"
                   step="0.01"
-                  max={order.remaining_amount}
+                  max={remainingAmount}
                   required
                   disabled={paymentType !== "partial"}
                 />
               </div>
               {paymentType === "partial" && (
-                <p className="text-xs text-muted-foreground">Maximum: {formatCurrency(order.remaining_amount)}</p>
+                <p className="text-xs text-muted-foreground">Maximum: {formatCurrency(remainingAmount)}</p>
               )}
             </div>
 
@@ -248,7 +271,7 @@ export function InstallmentPaymentModal({ order, onClose, onPaymentSuccess }: In
                     </div>
                     <div className="flex justify-between">
                       <span>Current Balance:</span>
-                      <span>{formatCurrency(order.remaining_amount)}</span>
+                      <span>{formatCurrency(remainingAmount)}</span>
                     </div>
                     <Separator />
                     <div className="flex justify-between font-semibold">
@@ -302,5 +325,5 @@ export function InstallmentPaymentModal({ order, onClose, onPaymentSuccess }: In
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
