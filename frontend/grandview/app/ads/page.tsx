@@ -71,10 +71,13 @@ function AdsPage() {
     fetchAdverts()
   }, [fetchAdverts])
 
-  const handleSubmissionSuccess = useCallback((advertId: number) => {
-    setSelectedAdvert(null)
-    fetchAdverts()
-  }, [fetchAdverts])
+  const handleSubmissionSuccess = useCallback(
+    (advertId: number) => {
+      setSelectedAdvert(null)
+      fetchAdverts()
+    },
+    [fetchAdverts],
+  )
 
   const availableAdverts = adverts.filter((ad) => ad.can_submit && !ad.has_submitted)
   const submittedAdverts = adverts.filter((ad) => ad.has_submitted)

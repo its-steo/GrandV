@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect, useCallback } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -42,34 +44,37 @@ export function SubmissionModal({
     }
   }, [previewUrl])
 
-  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      if (!file.type.startsWith("image/")) {
-        toast.error("Invalid File", {
-          description: "Please select an image file (JPG, PNG, etc.)",
-        })
-        return
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (file) {
+        if (!file.type.startsWith("image/")) {
+          toast.error("Invalid File", {
+            description: "Please select an image file (JPG, PNG, etc.)",
+          })
+          return
+        }
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error("File Too Large", {
+            description: "Screenshot must be under 5MB",
+          })
+          return
+        }
+        setFormData((prev) => ({ ...prev, screenshot: file }))
+        if (previewUrl) {
+          URL.revokeObjectURL(previewUrl)
+        }
+        setPreviewUrl(URL.createObjectURL(file))
       }
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("File Too Large", {
-          description: "Screenshot must be under 5MB",
-        })
-        return
-      }
-      setFormData((prev) => ({ ...prev, screenshot: file }))
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl)
-      }
-      setPreviewUrl(URL.createObjectURL(file))
-    }
-  }, [previewUrl])
+    },
+    [previewUrl],
+  )
 
   const debouncedSetViewsCount = useCallback(
     debounce((value: number) => {
       setFormData((prev) => ({ ...prev, views_count: value }))
     }, 300),
-    []
+    [],
   )
 
   const handleViewsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,13 +113,15 @@ export function SubmissionModal({
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : "Please try again."
         toast.error("Submission Failed", {
-          description: message.includes("email") ? "Submission saved, but email notification failed. Contact support." : message,
+          description: message.includes("email")
+            ? "Submission saved, but email notification failed. Contact support."
+            : message,
         })
       } finally {
         setIsSubmitting(false)
       }
     },
-    [advertId, formData, ratePerView, onSuccess, onClose]
+    [advertId, formData, ratePerView, onSuccess, onClose],
   )
 
   return (

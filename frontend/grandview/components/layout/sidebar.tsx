@@ -6,9 +6,9 @@ import { usePathname } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import {
   Home,
-  Play,
   Package,
   Wallet,
   ShoppingBag,
@@ -16,24 +16,33 @@ import {
   LogOut,
   Menu,
   X,
-  Building2,
+  MessageSquare,
   CreditCard,
   ShoppingCart,
   MessageCircle,
+  Users,
+  BarChart3,
+  Megaphone,
+  TrendingUp,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: Home },
-  { name: "View Ads", href: "/ads", icon: Play },
-  { name: "Packages", href: "/packages", icon: Package },
-  { name: "Wallet", href: "/wallet", icon: Wallet },
-  { name: "Store", href: "/store", icon: ShoppingBag },
-  { name: "Support", href: "/support", icon: MessageCircle },
+  { name: "Dashboard", href: "/dashboard", icon: Home, description: "Overview & Analytics" },
+  { name: "Campaigns", href: "/ads", icon: Megaphone, description: "WhatsApp Ad Campaigns", badge: "New" },
+  { name: "Audiences", href: "/audiences", icon: Users, description: "Target Groups" },
+  { name: "Analytics", href: "/analytics", icon: BarChart3, description: "Performance Metrics" },
+  { name: "Wallet", href: "/wallet", icon: Wallet, description: "Payments & Billing" },
+  { name: "Packages", href: "/packages", icon: Package, description: "Subscription Plans" },
+  { name: "Store", href: "/store", icon: ShoppingBag, description: "Marketing Tools" },
+  { name: "Support", href: "/support", icon: MessageCircle, description: "Help & Assistance" },
+]
+
+const quickActions = [
   { name: "Profile", href: "/profile", icon: User },
-  { name: "Lipa Mdogo Mdogo", href: "/lipa", icon: CreditCard },
   { name: "Orders", href: "/orders", icon: ShoppingCart },
+  { name: "Lipa Mdogo", href: "/lipa", icon: CreditCard },
 ]
 
 export function Sidebar() {
@@ -48,92 +57,175 @@ export function Sidebar() {
       <Button
         variant="ghost"
         size="icon"
-        className="fixed top-4 left-4 z-[60] md:hidden neon-card neon-glow-cyan bg-gradient-to-r from-cyan-500/20 to-purple-500/20 backdrop-blur-sm border border-cyan-500/30 hover:from-cyan-500/30 hover:to-purple-500/30"
+        className="fixed top-4 left-4 z-[60] md:hidden bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300"
         onClick={() => setIsOpen(!isOpen)}
       >
-        {isOpen ? <X className="h-5 w-5 text-cyan-300" /> : <Menu className="h-5 w-5 text-cyan-300" />}
+        {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </Button>
 
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-[55] w-64 transform transition-transform duration-300 ease-in-out md:translate-x-0",
+          "fixed inset-y-0 left-0 z-[55] w-72 transform transition-transform duration-300 ease-in-out md:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex h-full flex-col bg-gradient-to-b from-slate-50/95 via-purple-50/30 to-slate-50/95 dark:from-slate-900/95 dark:via-purple-900/20 dark:to-slate-900/95 backdrop-blur-xl border-r border-purple-200/50 dark:border-white/10 shadow-xl">
-          {/* Logo */}
-          <div className="flex items-center gap-3 p-6 border-b border-purple-200/50 dark:border-white/10">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-purple-600 shadow-lg animate-pulse">
-              <Building2 className="h-6 w-6 text-white" />
+        <div className="flex h-full flex-col bg-gradient-to-b from-white via-slate-50/50 to-white dark:from-slate-900 dark:via-slate-800/50 dark:to-slate-900 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 shadow-2xl">
+          {/* Logo & Company Info */}
+          <div className="p-6 border-b border-slate-200/50 dark:border-slate-700/50">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 via-blue-600 to-purple-600 shadow-lg">
+                <MessageSquare className="h-7 w-7 text-white" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xl font-bold bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  GrandView
+                </span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">WhatsApp Marketing</span>
+              </div>
             </div>
-            <div className="flex flex-col">
-              <span className="text-xl font-bold bg-gradient-to-r from-cyan-600 to-purple-600 bg-clip-text text-transparent">
-                GrandView
-              </span>
-              <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">Business Platform</span>
+
+            {/* Company tagline */}
+            <div className="p-3 rounded-lg bg-gradient-to-r from-green-50 via-blue-50 to-purple-50 dark:from-green-900/20 dark:via-blue-900/20 dark:to-purple-900/20 border border-green-200/50 dark:border-green-700/30">
+              <p className="text-xs text-slate-600 dark:text-slate-300 font-medium text-center">
+                🚀 Reach millions through WhatsApp
+              </p>
             </div>
           </div>
 
           {/* User info */}
-          <div className="p-4 border-b border-purple-200/30 dark:border-white/10">
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-cyan-100/80 to-purple-100/80 dark:from-cyan-900/20 dark:to-purple-900/20 border border-cyan-200/50 dark:border-cyan-500/30 shadow-sm">
-              <Avatar className="h-11 w-11 ring-2 ring-cyan-400/50 shadow-lg">
-                <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-purple-600 text-white font-semibold">
+          <div className="p-4 border-b border-slate-200/30 dark:border-slate-700/30">
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100/50 dark:from-slate-800 dark:to-slate-700/50 border border-slate-200/50 dark:border-slate-600/50 shadow-sm">
+              <Avatar className="h-11 w-11 ring-2 ring-blue-400/30 shadow-md">
+                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold text-sm">
                   {user?.username?.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">{user?.username}</p>
-                <div className="text-xs text-purple-600 dark:text-purple-400 truncate flex items-center gap-1">
+                <div className="flex items-center gap-2">
                   <div
                     className={cn(
-                      "w-2 h-2 rounded-full animate-pulse",
-                      user?.is_marketer ? "bg-green-500" : "bg-cyan-500",
+                      "w-2 h-2 rounded-full",
+                      user?.is_marketer ? "bg-green-500 animate-pulse" : "bg-blue-500 animate-pulse",
                     )}
                   />
-                  {user?.is_marketer ? "Marketer" : "Member"}
+                  <span className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                    {user?.is_marketer ? "Pro Marketer" : "Member"}
+                  </span>
+                  {user?.is_marketer && (
+                    <Badge
+                      variant="secondary"
+                      className="text-xs px-1.5 py-0.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                    >
+                      PRO
+                    </Badge>
+                  )}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-1">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group",
-                    isActive
-                      ? "bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-cyan-700 dark:text-cyan-300 border border-cyan-400/30 shadow-md neon-glow-cyan"
-                      : "text-slate-600 dark:text-slate-300 hover:text-cyan-700 dark:hover:text-cyan-300 hover:bg-gradient-to-r hover:from-cyan-100/50 hover:to-purple-100/50 dark:hover:from-cyan-900/20 dark:hover:to-purple-900/20 hover:border-cyan-300/30 dark:hover:border-cyan-500/30 border border-transparent",
-                  )}
-                  onClick={() => setIsOpen(false)}
-                >
-                  <item.icon
+          {/* Main Navigation */}
+          <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+            <div className="mb-4">
+              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+                Marketing Hub
+              </h3>
+              {navigation.map((item) => {
+                const isActive = pathname === item.href
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
                     className={cn(
-                      "h-5 w-5 transition-colors duration-200",
+                      "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group relative",
                       isActive
-                        ? "text-cyan-600 dark:text-cyan-400"
-                        : "text-slate-500 dark:text-slate-400 group-hover:text-cyan-600 dark:group-hover:text-cyan-400",
+                        ? "bg-gradient-to-r from-blue-500/10 to-purple-500/10 text-blue-700 dark:text-blue-300 border border-blue-200/50 dark:border-blue-700/50 shadow-sm"
+                        : "text-slate-600 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-gradient-to-r hover:from-slate-50 hover:to-blue-50/50 dark:hover:from-slate-800 dark:hover:to-blue-900/20 hover:border-blue-200/30 dark:hover:border-blue-700/30 border border-transparent",
                     )}
-                  />
-                  <span className="font-medium">{item.name}</span>
-                  {isActive && <div className="ml-auto w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />}
-                </Link>
-              )
-            })}
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <item.icon
+                      className={cn(
+                        "h-5 w-5 transition-colors duration-200 flex-shrink-0",
+                        isActive
+                          ? "text-blue-600 dark:text-blue-400"
+                          : "text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400",
+                      )}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium truncate">{item.name}</span>
+                        {item.badge && (
+                          <Badge
+                            variant="secondary"
+                            className="text-xs px-1.5 py-0.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                          >
+                            {item.badge}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{item.description}</p>
+                    </div>
+                    {isActive && <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse flex-shrink-0" />}
+                  </Link>
+                )
+              })}
+            </div>
+
+            {/* Quick Actions */}
+            <div className="pt-4 border-t border-slate-200/30 dark:border-slate-700/30">
+              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+                Quick Actions
+              </h3>
+              {quickActions.map((item) => {
+                const isActive = pathname === item.href
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group",
+                      isActive
+                        ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white"
+                        : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50",
+                    )}
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <item.icon className="h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">{item.name}</span>
+                  </Link>
+                )
+              })}
+            </div>
           </nav>
 
+          {/* Performance Stats */}
+          <div className="p-4 border-t border-slate-200/30 dark:border-slate-700/30">
+            <div className="p-3 rounded-lg bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border border-green-200/50 dark:border-green-700/30">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <span className="text-xs font-semibold text-green-700 dark:text-green-300">This Month</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <p className="text-slate-500 dark:text-slate-400">Campaigns</p>
+                  <p className="font-semibold text-slate-700 dark:text-slate-300">12</p>
+                </div>
+                <div>
+                  <p className="text-slate-500 dark:text-slate-400">Reach</p>
+                  <p className="font-semibold text-slate-700 dark:text-slate-300">2.4K</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Logout */}
-          <div className="p-4 border-t border-purple-200/30 dark:border-white/10">
+          <div className="p-4 border-t border-slate-200/30 dark:border-slate-700/30">
             <Button
               variant="ghost"
-              className="w-full justify-start gap-3 text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-300/30 dark:hover:border-red-500/20 border border-transparent rounded-xl py-3 font-medium transition-all duration-200"
+              className="w-full justify-start gap-3 text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl py-3 font-medium transition-all duration-200"
               onClick={() => {
                 logout()
                 router.push("/auth")

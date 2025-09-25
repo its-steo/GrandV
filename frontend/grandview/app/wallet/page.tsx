@@ -8,9 +8,9 @@ import { DepositForm } from "@/components/wallet/deposit-form"
 import { WithdrawalForm } from "@/components/wallet/withdrawal-form"
 import { TransactionHistory } from "@/components/wallet/transaction-history"
 import { ApiService, type WalletBalance } from "@/lib/api"
-import { formatCurrency } from "@/lib/utils"
+//import { formatCurrency } from "@/lib/utils"
 import { toast } from "sonner"
-import { Loader2, TrendingUp } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { useAuth } from "@/hooks/use-auth"
 
@@ -86,15 +86,7 @@ export default function WalletPage() {
               </h1>
               <p className="text-muted-foreground">Manage your balances and transactions</p>
             </div>
-            <div className="flex items-center gap-4">
-              <Card className="glass-card border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 p-4">
-                <div className="flex items-center gap-2 text-green-700">
-                  <TrendingUp className="h-4 w-4" />
-                  <span className="text-sm font-medium">{formatCurrency(totalBalance)}</span>
-                </div>
-                <p className="text-xs text-green-600">Total Balance</p>
-              </Card>
-            </div>
+            
           </div>
 
           {/* Balance Cards */}
