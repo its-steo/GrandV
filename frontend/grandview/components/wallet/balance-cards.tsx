@@ -29,11 +29,11 @@ export function BalanceCards({ walletBalance }: BalanceCardsProps) {
       description: "Earned from viewing ads",
     },
     {
-      title: "Referral Earnings",
+      title: "Agent Earnings",
       value: walletBalance?.referral_balance || "0.00",
       icon: Users,
       gradient: "from-purple-500 to-purple-600",
-      description: "Earned from referrals",
+      description: "Earned from advertisements",
     },
   ]
 
@@ -57,7 +57,7 @@ export function BalanceCards({ walletBalance }: BalanceCardsProps) {
         </CardHeader>
         <CardContent className="text-center">
           <div className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-           {formatCurrency(totalBalance)}
+            {formatCurrency(totalBalance)}
           </div>
           <p className="text-muted-foreground mt-2">Available across all balances</p>
         </CardContent>

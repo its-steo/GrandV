@@ -79,7 +79,7 @@ export function FeaturedProducts() {
                 ? product.installment_plans.reduce((best, current) =>
                     Number.parseFloat(current.monthly_payment) < Number.parseFloat(best.monthly_payment)
                       ? current
-                      : best
+                      : best,
                   )
                 : null
 

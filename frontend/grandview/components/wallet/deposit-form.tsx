@@ -92,24 +92,34 @@ export function DepositForm({ onSuccess }: DepositFormProps) {
   }
 
   return (
-    <Card className="glass-card border-white/20">
+    <Card className="glass-bright border-white/30 scale-on-hover neon-glow-cyan">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Plus className="h-5 w-5 text-blue-500" />
-          Deposit Funds
+        <CardTitle className="flex items-center gap-2 text-xl">
+          <Plus className="h-6 w-6 text-blue-400 neon-glow-cyan" />
+          <span className="neon-text">Deposit Funds</span>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <Tabs value={depositMethod} onValueChange={(value) => setDepositMethod(value as "stk" | "manual")} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2 glass">
-            <TabsTrigger value="stk">M-Pesa STK Push</TabsTrigger>
-            <TabsTrigger value="manual">Manual Deposit</TabsTrigger>
+        <Tabs
+          value={depositMethod}
+          onValueChange={(value) => setDepositMethod(value as "stk" | "manual")}
+          className="space-y-4"
+        >
+          <TabsList className="grid w-full grid-cols-2 glass-bright border border-white/20">
+            <TabsTrigger value="stk" className="neon-button-primary">
+              M-Pesa STK Push
+            </TabsTrigger>
+            <TabsTrigger value="manual" className="neon-button-primary">
+              Manual Deposit
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="stk" className="space-y-4">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="amount">Amount (KSH)</Label>
+                <Label htmlFor="amount" className="text-foreground font-medium">
+                  Amount (KSH)
+                </Label>
                 <Input
                   id="amount"
                   type="number"
@@ -118,26 +128,28 @@ export function DepositForm({ onSuccess }: DepositFormProps) {
                   placeholder="Enter amount to deposit"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="glass border-white/20"
+                  className="input-neon text-lg"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone-number">Phone Number</Label>
+                <Label htmlFor="phone-number" className="text-foreground font-medium">
+                  Phone Number
+                </Label>
                 <Input
                   id="phone-number"
                   type="text"
                   placeholder="e.g., 254712345678"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
-                  className="glass border-white/20"
+                  className="input-neon text-lg"
                   required
                 />
                 <p className="text-xs text-muted-foreground">Enter phone number for M-Pesa STK Push</p>
               </div>
-              <div className="space-y-2">
-                <Label>Quick Amounts</Label>
-                <div className="grid grid-cols-4 gap-2">
+              <div className="space-y-3">
+                <Label className="text-foreground font-medium">Quick Amounts</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                   {quickAmounts.map((quickAmount) => (
                     <Button
                       key={quickAmount}
@@ -145,7 +157,7 @@ export function DepositForm({ onSuccess }: DepositFormProps) {
                       variant="outline"
                       size="sm"
                       onClick={() => setAmount(quickAmount.toString())}
-                      className="bg-transparent border-white/20 hover:bg-blue-500/10"
+                      className="neon-button-primary text-xs sm:text-sm font-medium py-2 px-2 sm:px-3"
                     >
                       {formatCurrency(quickAmount)}
                     </Button>
@@ -154,17 +166,17 @@ export function DepositForm({ onSuccess }: DepositFormProps) {
               </div>
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                className="w-full neon-button-primary text-lg py-6 font-semibold"
                 disabled={isDepositing}
               >
                 {isDepositing ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                     Processing...
                   </>
                 ) : (
                   <>
-                    <Smartphone className="h-4 w-4 mr-2" />
+                    <Smartphone className="h-5 w-5 mr-2" />
                     Deposit via STK Push
                   </>
                 )}
@@ -173,42 +185,49 @@ export function DepositForm({ onSuccess }: DepositFormProps) {
           </TabsContent>
 
           <TabsContent value="manual" className="space-y-4">
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-700">
-                Pay to <strong>Paybill 516600</strong>, Account <strong>938628</strong>, then enter the M-Pesa transaction code below.
+            <div className="p-4 glass border border-blue-400/30 rounded-lg neon-glow-cyan">
+              <p className="text-sm text-blue-200 font-medium">
+                Pay to <strong className="text-blue-100">Paybill 516600</strong>, Account{" "}
+                <strong className="text-blue-100">938628</strong>, then enter the M-Pesa transaction code below.
               </p>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="amount">Amount (KSH)</Label>
+                <Label htmlFor="manual-amount" className="text-foreground font-medium">
+                  Amount (KSH)
+                </Label>
                 <Input
-                  id="amount"
+                  id="manual-amount"
                   type="number"
                   step="0.01"
                   min="1"
                   placeholder="Enter amount deposited"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="glass border-white/20"
+                  className="input-neon text-lg"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="mpesa-code">M-Pesa Transaction Code</Label>
+                <Label htmlFor="mpesa-code" className="text-foreground font-medium">
+                  M-Pesa Transaction Code
+                </Label>
                 <Input
                   id="mpesa-code"
                   type="text"
                   placeholder="e.g., ABC123DEF4"
                   value={mpesaCode}
                   onChange={(e) => setMpesaCode(e.target.value)}
-                  className="glass border-white/20"
+                  className="input-neon text-lg"
                   required
                 />
-                <p className="text-xs text-muted-foreground">Enter the 10-character M-Pesa code from your confirmation SMS</p>
+                <p className="text-xs text-muted-foreground">
+                  Enter the 10-character M-Pesa code from your confirmation SMS
+                </p>
               </div>
-              <div className="space-y-2">
-                <Label>Quick Amounts</Label>
-                <div className="grid grid-cols-4 gap-2">
+              <div className="space-y-3">
+                <Label className="text-foreground font-medium">Quick Amounts</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                   {quickAmounts.map((quickAmount) => (
                     <Button
                       key={quickAmount}
@@ -216,7 +235,7 @@ export function DepositForm({ onSuccess }: DepositFormProps) {
                       variant="outline"
                       size="sm"
                       onClick={() => setAmount(quickAmount.toString())}
-                      className="bg-transparent border-white/20 hover:bg-blue-500/10"
+                      className="neon-button-primary text-xs sm:text-sm font-medium py-2 px-2 sm:px-3"
                     >
                       {formatCurrency(quickAmount)}
                     </Button>
@@ -225,17 +244,17 @@ export function DepositForm({ onSuccess }: DepositFormProps) {
               </div>
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                className="w-full neon-button-primary text-lg py-6 font-semibold"
                 disabled={isDepositing}
               >
                 {isDepositing ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                     Processing...
                   </>
                 ) : (
                   <>
-                    <CreditCard className="h-4 w-4 mr-2" />
+                    <CreditCard className="h-5 w-5 mr-2" />
                     Submit Manual Deposit
                   </>
                 )}
@@ -243,9 +262,11 @@ export function DepositForm({ onSuccess }: DepositFormProps) {
             </form>
           </TabsContent>
         </Tabs>
-        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-blue-700">
-            ℹ️ STK Push deposits are instant; manual deposits require admin approval. You will receive an email once approved.
+
+        <div className="mt-6 p-4 glass border border-blue-400/30 rounded-lg neon-glow-cyan">
+          <p className="text-sm text-blue-200">
+            ℹ️ STK Push deposits are instant; manual deposits require admin approval. You will receive an email once
+            approved.
           </p>
         </div>
       </CardContent>

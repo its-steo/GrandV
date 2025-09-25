@@ -93,16 +93,16 @@ export function TransactionHistory() {
 
   if (loading) {
     return (
-      <Card className="glass-card border-white/20">
+      <Card className="glass-bright border-white/30 neon-glow">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <History className="h-5 w-5 text-gray-500" />
-            Transaction History
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <History className="h-6 w-6 text-gray-400 neon-glow" />
+            <span className="neon-text">Transaction History</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="animate-pulse space-y-3">
+        <CardContent className="space-y-4">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-12 bg-muted rounded"></div>
+            <div key={i} className="h-16 glass rounded-lg animate-pulse"></div>
           ))}
         </CardContent>
       </Card>
@@ -110,41 +110,44 @@ export function TransactionHistory() {
   }
 
   return (
-    <Card className="glass-card border-white/20">
+    <Card className="glass-bright border-white/30 scale-on-hover neon-glow">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <History className="h-5 w-5 text-gray-500" />
-          Transaction History
+        <CardTitle className="flex items-center gap-2 text-xl">
+          <History className="h-6 w-6 text-gray-400 neon-glow" />
+          <span className="neon-text">Transaction History</span>
         </CardTitle>
       </CardHeader>
       <CardContent>
         {transactions.length === 0 ? (
-          <div className="text-center py-8">
-            <History className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Transactions Yet</h3>
-            <p className="text-muted-foreground">Your transaction history will appear here.</p>
+          <div className="text-center py-12">
+            <History className="h-16 w-16 text-muted-foreground mx-auto mb-4 neon-glow" />
+            <h3 className="text-xl font-semibold mb-2 neon-text">No Transactions Yet</h3>
+            <p className="text-muted-foreground text-lg">Your transaction history will appear here.</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {transactions.map((transaction) => (
+          <div className="space-y-4">
+            {transactions.map((transaction, index) => (
               <div
                 key={transaction.id}
-                className="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                className="flex items-center gap-4 p-4 rounded-lg glass border border-white/10 hover:border-white/20 transition-all duration-300 scale-on-hover"
+                style={{ animationDelay: `${index * 0.1}s` }}
               >
-                <div className="flex-shrink-0">{getTransactionIcon(transaction.transaction_type)}</div>
+                <div className="flex-shrink-0 p-2 rounded-lg glass">
+                  {getTransactionIcon(transaction.transaction_type)}
+                </div>
 
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{transaction.description}</p>
+                  <p className="text-sm font-medium truncate text-foreground">{transaction.description}</p>
                   <p className="text-xs text-muted-foreground">
                     {new Date(transaction.created_at).toLocaleDateString()} at{" "}
                     {new Date(transaction.created_at).toLocaleTimeString()}
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   {getStatusBadge(transaction.status)}
                   <span
-                    className={`text-sm font-semibold ${getTransactionColor(transaction.transaction_type, transaction.amount)}`}
+                    className={`text-lg font-bold ${getTransactionColor(transaction.transaction_type, transaction.amount)} neon-text`}
                   >
                     {transaction.amount.startsWith("-") ? "" : "+"}{" "}
                     {formatCurrency(Math.abs(Number.parseFloat(transaction.amount)))}
@@ -158,3 +161,5 @@ export function TransactionHistory() {
     </Card>
   )
 }
+
+export default TransactionHistory
