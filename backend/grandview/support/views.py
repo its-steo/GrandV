@@ -1,4 +1,4 @@
-from django.utils import timezone  # FIXED: Correct import for timezone
+from django.utils import timezone
 import boto3
 from django.conf import settings
 from rest_framework.views import APIView
@@ -7,15 +7,15 @@ from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.pagination import PageNumberPagination
-from .models import SupportMessage, SupportComment, SupportLike, SupportMute, SupportBlock
-from .serializers import SupportMessageSerializer, SupportCommentSerializer, SupportLikeSerializer, SupportMuteSerializer, SupportBlockSerializer, UserProfileSerializer
+from .models import SupportMessage, SupportComment, SupportLike, SupportMute, SupportBlock, PrivateMessage
+from .serializers import SupportMessageSerializer, SupportCommentSerializer, SupportLikeSerializer, SupportMuteSerializer, SupportBlockSerializer, UserProfileSerializer, PrivateMessageSerializer
 from accounts.models import CustomUser
 from django.shortcuts import get_object_or_404
+from django.db.models import Q
 import logging
 
 logger = logging.getLogger(__name__)
 
-# Define pagination class at the top to avoid NameError
 class StandardResultsSetPagination(PageNumberPagination):
     page_size = 20
     page_size_query_param = 'page_size'
@@ -26,10 +26,14 @@ class SupportMessageListView(APIView):
     pagination_class = StandardResultsSetPagination
 
     def get(self, request):
-        messages = SupportMessage.objects.filter(is_private=False).order_by('-is_pinned', '-created_at')
+        messages = SupportMessage.objects.filter(is_private=False).order_by('created_at')  # Ascending for newest at bottom
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(messages, request)
         serializer = SupportMessageSerializer(page, many=True, context={'request': request})
+        # Update last_support_view for authenticated users
+        if request.user.is_authenticated:
+            request.user.last_support_view = timezone.now()
+            request.user.save()
         return paginator.get_paginated_response(serializer.data)
 
     def post(self, request):
@@ -82,7 +86,7 @@ class SupportCommentView(APIView):
     pagination_class = StandardResultsSetPagination
 
     def get(self, request, message_id):
-        comments = SupportComment.objects.filter(message_id=message_id, message__is_private=False)
+        comments = SupportComment.objects.filter(message_id=message_id, message__is_private=False).order_by('created_at')
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(comments, request)
         serializer = SupportCommentSerializer(page, many=True, context={'request': request})
@@ -151,3 +155,56 @@ class UserProfileView(APIView):
         user = get_object_or_404(CustomUser, id=user_id)
         serializer = UserProfileSerializer(user)
         return Response(serializer.data)
+
+class AdminListView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        admins = CustomUser.objects.filter(Q(is_staff=True) | Q(is_manager=True))
+        serializer = UserProfileSerializer(admins, many=True)
+        return Response(serializer.data)
+
+class PrivateMessageListView(APIView):
+    permission_classes = [IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
+    parser_classes = [MultiPartParser, FormParser]  # Add this to support image uploads via FormData
+
+    def get(self, request, receiver_id=None):
+        if receiver_id:
+            messages = PrivateMessage.objects.filter(
+                (Q(sender=request.user, receiver_id=receiver_id) | Q(sender_id=receiver_id, receiver=request.user))
+            ).order_by('created_at')
+            paginator = self.pagination_class()
+            page = paginator.paginate_queryset(messages, request)
+            serializer = PrivateMessageSerializer(page, many=True)
+            # Mark messages as read
+            unread_messages = messages.filter(receiver=request.user, read_at__isnull=True)
+            for msg in unread_messages:
+                msg.read_at = timezone.now()
+                msg.save()
+            return paginator.get_paginated_response(serializer.data)
+        else:
+            sent = PrivateMessage.objects.filter(sender=request.user).values('receiver__id', 'receiver__username').distinct()
+            received = PrivateMessage.objects.filter(receiver=request.user).values('sender__id', 'sender__username').distinct()
+            conversations = set()
+            for s in sent:
+                conversations.add((s['receiver__id'], s['receiver__username']))
+            for r in received:
+                conversations.add((r['sender__id'], r['sender__username']))
+            # Calculate unread counts per conversation
+            convos_with_unread = []
+            for cid, username in conversations:
+                unread_count = PrivateMessage.objects.filter(
+                    receiver=request.user, sender_id=cid, read_at__isnull=True
+                ).count()
+                convos_with_unread.append({'id': cid, 'username': username, 'unread_count': unread_count})
+            return Response(convos_with_unread)
+
+    def post(self, request):
+        serializer = PrivateMessageSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save(sender=request.user)
+            logger.info(f"Private message sent by {request.user.username} to {serializer.validated_data['receiver'].username}")
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        logger.error(f"Private message creation failed for user {request.user.username}: {serializer.errors}")
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

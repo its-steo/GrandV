@@ -33,13 +33,25 @@ function getAuthHeaders(excludeContentType = false) {
 }
 
 // Interfaces
+
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  phone_number: string;
+  referral_code: string;
+  is_manager: boolean;
+  is_staff: boolean;
+  last_support_view?: string; // Add this
+}
+
 export interface Product {
   id: number
   name: string
   description: string
   price: string
   main_image: string
-  sub_images: { id: number; image: string }[]
+  sub_images: { id: number; image: { file: string } }[]
   category: {
     id: number
     name: string
@@ -47,13 +59,21 @@ export interface Product {
   }
   is_featured: boolean
   specifications?: string
-  installment_available: boolean
+  supports_installments: boolean // Changed from installment_available to match component usage
+  installment_available: boolean // Kept for backward compatibility
   installment_plans: Array<{
     months: number
     monthly_payment: string
     deposit_required: string
     total_amount: string
   }>
+  available_coupons?: Array<{
+    id: number
+    code: string
+    discount_type: 'PERCENT' | 'FIXED'
+    discount_value: number
+  }> // Added to support coupon badge and discount calculations
+  discounted_price?: string // Added to support discounted price display
 }
 
 export interface WalletBalance {
@@ -180,6 +200,13 @@ export interface SubmissionResponse {
   }
 }
 
+export interface Submission {
+  id: number
+  advert_title: string
+  views_count: number
+  earnings: string
+  submission_date: string
+}
 export interface PackageType {
   id: number
   name: string
@@ -244,6 +271,7 @@ export interface Order {
   updated_at: string
   items: OrderItem[]
   installment_order?: InstallmentOrder
+  rating?: number
 }
 
 export interface OrderItem {
@@ -265,23 +293,46 @@ interface CartResponse {
   item?: CartItem
 }
 
-interface AdvertSubmissionResponse {
-  success: boolean
-  submission_id: number
-  earnings: string
-  message?: string
-}
-
-interface OrderTrackingResponse {
-  order_id: number
-  status: string
+interface TrackingInfo {
   tracking_number?: string
   estimated_delivery?: string
-  updates: Array<{
-    status: string
-    timestamp: string
+  estimated_minutes?: number
+  delivery_guy?: {
+    name: string
+    vehicle_type: string
+  }
+  history?: Array<{
     description: string
+    timestamp: string
   }>
+  status?: string
+  preparation_steps?: string[]
+}
+
+// Add PrivateMessage interface
+export interface PrivateMessage {
+  id: number
+  sender: {
+    id: number
+    username: string
+    email: string
+    phone_number?: string
+    referral_code?: string
+    is_manager?: boolean
+    is_staff?: boolean
+  }
+  receiver: {
+    id: number
+    username: string
+    email: string
+    phone_number?: string
+    referral_code?: string
+  }
+  content: string
+  image: string | null
+  created_at: string
+  is_read: boolean
+  read_at: string | null  
 }
 
 // Interfaces
@@ -775,7 +826,7 @@ export class ApiService {
     }
   }
 
-  static async trackOrder(orderId: number): Promise<OrderTrackingResponse> {
+  static async trackOrder(orderId: number): Promise<TrackingInfo> {
     const response = await fetch(`${API_BASE_URL}/dashboard/orders/${orderId}/track/`, {
       headers: getAuthHeaders(),
     })
@@ -784,7 +835,7 @@ export class ApiService {
       throw new Error("Failed to fetch tracking info")
     }
 
-    return (await safeParseJSON(response)) as OrderTrackingResponse
+    return safeParseJSON(response) as Promise<TrackingInfo>
   }
 
   // Wallet endpoints
@@ -1011,17 +1062,11 @@ export class ApiService {
     })
 
     if (!response.ok) {
-      throw new Error("Failed to fetch adverts")
+      const error = await safeParseJSON(response)
+      throw new Error((error as { message?: string }).message || "Failed to fetch adverts")
     }
 
-    const responseData = (await safeParseJSON(response)) as {
-      adverts?: Advert[]
-      user_package?: UserPackage
-    }
-    return {
-      adverts: Array.isArray(responseData.adverts) ? responseData.adverts : (responseData as unknown as Advert[]),
-      user_package: responseData.user_package || null,
-    }
+    return safeParseJSON(response) as Promise<{ adverts: Advert[]; user_package: UserPackage | null }>
   }
 
   static async downloadAdvert(advertId: number): Promise<Blob> {
@@ -1030,13 +1075,14 @@ export class ApiService {
     })
 
     if (!response.ok) {
-      throw new Error("Failed to download advert file")
+      const error = await safeParseJSON(response)
+      throw new Error((error as { message?: string }).message || "Failed to download advert")
     }
 
     return response.blob()
   }
 
-  static async submitAdvert(advertId: number, viewsCount: number, screenshot: File): Promise<AdvertSubmissionResponse> {
+  static async submitAdvert(advertId: number, viewsCount: number, screenshot: File): Promise<Submission> {
     const formData = new FormData()
     formData.append("advert_id", advertId.toString())
     formData.append("views_count", viewsCount.toString())
@@ -1044,22 +1090,29 @@ export class ApiService {
 
     const response = await fetch(`${API_BASE_URL}/adverts/submit/`, {
       method: "POST",
-      headers: getAuthHeaders(true),
+      headers: getAuthHeaders(true),  // Exclude Content-Type
       body: formData,
     })
 
     if (!response.ok) {
-      const errorText = await response.text()
-      let error
-      try {
-        error = JSON.parse(errorText)
-      } catch {
-        error = { error: errorText }
-      }
-      throw new Error(error.error || "Failed to submit advert")
+      const error = await safeParseJSON(response)
+      throw new Error(JSON.stringify(error) || "Failed to submit advert")
     }
 
-    return (await safeParseJSON(response)) as AdvertSubmissionResponse
+    return safeParseJSON(response) as Promise<Submission>
+  }
+
+  static async getSubmissions(): Promise<{ submissions: Submission[]; total_earnings: number }> {
+    const response = await fetch(`${API_BASE_URL}/submissions/`, {
+      headers: getAuthHeaders(),
+    })
+
+    if (!response.ok) {
+      const error = await safeParseJSON(response)
+      throw new Error((error as { message?: string }).message || "Failed to fetch submission history")
+    }
+
+    return safeParseJSON(response) as Promise<{ submissions: Submission[]; total_earnings: number }>
   }
 
   static async getCartCount(): Promise<number> {
@@ -1330,6 +1383,96 @@ export class ApiService {
       throw new Error((error as { message?: string }).message || "Failed to block user")
     }
   }
+static async getAdmins() {
+  return this.get('/support/admins/');
 }
 
+// Generic GET method for internal use
+static async get<T = unknown>(endpoint: string): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await safeParseJSON(response);
+    throw new Error((error as { message?: string }).message || `Failed to fetch ${endpoint}`);
+  }
+
+  return safeParseJSON(response) as Promise<T>;
+}
+
+static async getPrivateConversations() {
+  return this.get('/support/private-messages/');
+}
+
+static async getPrivateMessages(receiverId: number, page: number = 1) {
+  return this.get(`/support/private-messages/${receiverId}/?page=${page}`);
+}
+
+static async sendPrivateMessage(data: { receiver: number; content: string; image?: File }) {
+  const url = `${API_BASE_URL}/support/private-messages/`;
+  const formData = new FormData();
+  formData.append("receiver", data.receiver.toString());
+  formData.append("content", data.content);
+  if (data.image) {
+    formData.append("image", data.image);
+  }
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: getAuthHeaders(true).Authorization,  // Exclude Content-Type for FormData
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await safeParseJSON(response);
+    throw new Error((error as { message?: string }).message || "Failed to send private message");
+  }
+
+  return safeParseJSON(response) as Promise<PrivateMessage>;
+}
+
+// Generic POST method for internal use
+static async post<T = unknown>(endpoint: string, data: unknown): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await safeParseJSON(response);
+    throw new Error((error as { message?: string }).message || `Failed to post to ${endpoint}`);
+  }
+
+  return safeParseJSON(response) as Promise<T>;
+}
+static async confirmDelivery(orderId: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/dashboard/orders/${orderId}/confirm-delivery/`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await safeParseJSON(response);
+      throw new Error((error as { message?: string }).message || 'Failed to confirm delivery');
+    }
+  }
+
+  static async submitRating(orderId: number, rating: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/dashboard/orders/${orderId}/rate/`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ rating }),
+    });
+
+    if (!response.ok) {
+      const error = await safeParseJSON(response);
+      throw new Error((error as { message?: string }).message || 'Failed to submit rating');
+    }
+  }
+
+}
 export default ApiService

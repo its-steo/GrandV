@@ -4,7 +4,8 @@ from .views import (
     CartView, AddToCartView, UpdateCartView, RemoveFromCartView,
     CheckoutView, OrderListView, InstallmentOrderListView,
     InstallmentPaymentView, LipaRegisterView, LipaPresignedUploadView,
-    LipaRegistrationView, TrackOrderView, CouponValidateView
+    LipaRegistrationView, TrackOrderView, CouponValidateView,
+    ConfirmDeliveryView, SubmitRatingView
 )
 
 urlpatterns = [
@@ -23,5 +24,7 @@ urlpatterns = [
     path('dashboard/lipa/registration/', LipaRegistrationView.as_view(), name='lipa_registration'),
     path('dashboard/lipa/presign/', LipaPresignedUploadView.as_view(), name='lipa_presign'),
     path('dashboard/orders/<int:order_id>/track/', TrackOrderView.as_view(), name='track_order'),
+    path('dashboard/orders/<int:order_id>/confirm/', ConfirmDeliveryView.as_view(), name='confirm_delivery'),
+    path('dashboard/orders/<int:order_id>/rate/', SubmitRatingView.as_view(), name='submit_rating'),
     path('dashboard/coupon/validate/', CouponValidateView.as_view(), name='coupon_validate'),
 ]

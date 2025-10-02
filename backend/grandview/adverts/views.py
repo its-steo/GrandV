@@ -19,6 +19,7 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.template.exceptions import TemplateDoesNotExist  # Added: To handle template not found specifically
+from django.db.models import Sum  # Added for aggregate
 
 logger = logging.getLogger(__name__)
 
@@ -92,16 +93,16 @@ class SubmissionView(APIView):
 
             advert = get_object_or_404(Advert, pk=advert_id)
 
+            # Check if user has active package with matching rate
             active_purchases = Purchase.objects.filter(
                 user=request.user,
+                package__rate_per_view=advert.rate_category,
                 expiry_date__gt=timezone.now()
             )
             if not active_purchases.exists():
-                return Response({"error": "No active package found"}, status=status.HTTP_403_FORBIDDEN)
-            active_purchase = active_purchases.first()
-            if active_purchase.package.rate_per_view != advert.rate_category:
-                return Response({"error": "Your package rate does not match this advert's rate category"}, status=status.HTTP_403_FORBIDDEN)
+                return Response({"error": "No active package for this rate category"}, status=status.HTTP_400_BAD_REQUEST)
 
+            # Check if already submitted today
             today = timezone.now().date()
             if Submission.objects.filter(
                 user=request.user,
@@ -185,3 +186,15 @@ class SubmissionView(APIView):
         except Exception as e:
             logger.error(f"Unexpected error in submission: {str(e)}")
             return Response({"error": "An unexpected error occurred. Please try again."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class SubmissionHistoryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        submissions = Submission.objects.filter(user=request.user).order_by('-submission_date')
+        serializer = SubmissionSerializer(submissions, many=True)
+        total_earnings = submissions.aggregate(total=Sum('earnings'))['total'] or Decimal('0.00')
+        return Response({
+            'submissions': serializer.data,
+            'total_earnings': float(total_earnings)  # Convert to float for JSON
+        })

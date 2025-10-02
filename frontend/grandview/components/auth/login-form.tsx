@@ -1,15 +1,15 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, LogIn, Zap, Eye } from "lucide-react"
+import { Loader2, LogIn,TrendingUp, Users, Shield } from "lucide-react"
 import { toast } from "sonner"
+import { motion } from "framer-motion"
 
 interface LoginFormProps {
   onToggleMode: () => void
@@ -26,12 +26,12 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
     e.preventDefault()
     try {
       await login(formData)
-      toast.success("Login Successful", {
-        description: "Welcome back! Redirecting to dashboard...",
+      toast.success("Welcome back!", {
+        description: "Successfully signed in to your account",
       })
     } catch (error) {
-      toast.error("Login Failed", {
-        description: error instanceof Error ? error.message : "Invalid credentials",
+      toast.error("Sign in failed", {
+        description: error instanceof Error ? error.message : "Please check your credentials",
       })
     }
   }
@@ -44,44 +44,37 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
   }
 
   return (
-    <div className="relative">
-      {/* Floating particles background */}
-      <div className="particles">
-        {[...Array(20)].map((_, i) => (
-          <div
-            key={i}
-            className="particle"
-            style={{
-              left: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 6}s`,
-              animationDuration: `${6 + Math.random() * 4}s`,
-            }}
-          />
-        ))}
-      </div>
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+      <Card className="bg-gray-800/90 backdrop-blur-xl border-gray-700 shadow-2xl hover:shadow-3xl transition-all duration-300">
+        <CardHeader className="text-center pb-6">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+            className="flex items-center justify-center mb-2"
+          >
+            <img src="/images/grandvlogo.png" alt="Grandview Logo" className="w-60 h-auto" />
+          </motion.div>
 
-      <Card className="glass-card w-full max-w-md relative overflow-hidden">
-        {/* Animated border glow */}
-        <div className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-accent opacity-20 blur-xl animate-pulse" />
-
-        <CardHeader className="text-center relative z-10">
-          <div className="flex items-center justify-center mb-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center neon-glow">
-              <Zap className="h-8 w-8 text-black" />
-            </div>
-          </div>
-          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent neon-text">
-            Welcome Back
-          </CardTitle>
-          <CardDescription className="text-muted-foreground text-lg">
-            Sign in to your account and start earning with <span className="text-primary font-semibold">GrandView</span>
-          </CardDescription>
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+            <CardTitle className="text-3xl font-bold text-white mb-2">
+              Welcome to Grandview
+            </CardTitle>
+            <CardDescription className="text-gray-300 text-base">
+              Sign in to your <span className="font-semibold text-cyan-300">Grandview account</span>
+            </CardDescription>
+          </motion.div>
         </CardHeader>
 
-        <CardContent className="relative z-10">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="username" className="text-foreground font-medium">
+        <CardContent className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 }}
+              className="space-y-2"
+            >
+              <Label htmlFor="username" className="text-gray-200 font-medium">
                 Username
               </Label>
               <Input
@@ -92,12 +85,17 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
                 value={formData.username}
                 onChange={handleChange}
                 required
-                className="input-neon h-12 text-lg"
+                className="h-12 border-gray-600 focus:border-cyan-400 focus:ring-cyan-400/20 bg-gray-700/50 text-white placeholder-gray-400"
               />
-            </div>
+            </motion.div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-foreground font-medium">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.5 }}
+              className="space-y-2"
+            >
+              <Label htmlFor="password" className="text-gray-200 font-medium">
                 Password
               </Label>
               <Input
@@ -108,54 +106,71 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
                 value={formData.password}
                 onChange={handleChange}
                 required
-                className="input-neon h-12 text-lg"
+                className="h-12 border-gray-600 focus:border-cyan-400 focus:ring-cyan-400/20 bg-gray-700/50 text-white placeholder-gray-400"
               />
-            </div>
+            </motion.div>
 
-            <Button
-              type="submit"
-              className="w-full h-12 text-lg font-semibold btn-neon bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-black transition-all duration-300"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Signing In...
-                </>
-              ) : (
-                <>
-                  <LogIn className="mr-2 h-5 w-5" />
-                  Sign In
-                </>
-              )}
-            </Button>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+              <Button
+                type="submit"
+                className="w-full h-12 text-base font-semibold bg-gradient-to-r from-cyan-400 to-blue-600 hover:from-cyan-500 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Signing In...
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="mr-2 h-5 w-5" />
+                    Sign In
+                  </>
+                )}
+              </Button>
+            </motion.div>
           </form>
 
-          <div className="mt-8 text-center">
-            <p className="text-muted-foreground">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.7 }}
+            className="text-center pt-4"
+          >
+            <p className="text-gray-300">
               Dont have an account?{" "}
               <button
                 onClick={onToggleMode}
-                className="text-primary hover:text-secondary font-semibold transition-colors duration-300 neon-text"
+                className="text-cyan-300 hover:text-cyan-400 font-semibold transition-colors"
               >
-                Sign up here
+                Create account
               </button>
             </p>
-          </div>
+          </motion.div>
 
-          {/* Feature highlights */}
-          <div className="mt-8 grid grid-cols-2 gap-4">
-            <div className="text-center p-3 rounded-lg bg-gradient-to-r from-primary/10 to-transparent border border-primary/20">
-              <Eye className="h-6 w-6 text-primary mx-auto mb-2" />
-              <p className="text-xs text-muted-foreground">Earn by viewing ads</p>
-            </div>
-            <div className="text-center p-3 rounded-lg bg-gradient-to-r from-secondary/10 to-transparent border border-secondary/20">
-              <Zap className="h-6 w-6 text-secondary mx-auto mb-2" />
-              <p className="text-xs text-muted-foreground">Instant withdrawals</p>
-            </div>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8 }}
+            className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-700"
+          >
+            {[
+              { icon: TrendingUp, text: "Advanced Analytics", color: "text-cyan-300" },
+              { icon: Users, text: "Team Management", color: "text-blue-300" },
+              { icon: Shield, text: "Secure Platform", color: "text-white" },
+            ].map((feature, index) => (
+              <motion.div
+                key={index}
+                whileHover={{ scale: 1.02 }}
+                className="text-center p-3 rounded-lg bg-gray-700/50 border border-gray-600 hover:border-cyan-300/50 transition-all"
+              >
+                <feature.icon className={`h-5 w-5 ${feature.color} mx-auto mb-2`} />
+                <p className="text-xs text-gray-300 font-medium">{feature.text}</p>
+              </motion.div>
+            ))}
+          </motion.div>
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   )
 }

@@ -7,14 +7,18 @@ import { SubmissionModal } from "@/components/ads/submission-modal"
 import { PackageStatus } from "@/components/ads/package-status"
 import { ApiService, type Advert, type UserPackage } from "@/lib/api"
 import { toast } from "sonner"
-import { Loader2, Play, TrendingUp } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
+import { Loader2, Play, TrendingUp, DollarSign, Eye, Calendar } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
+import { motion } from "framer-motion"
 
 // Error Boundary Component
 import { ErrorBoundary } from "react-error-boundary"
+
+// Use Submission type from API
+import type { Submission } from "@/lib/api"
 
 const ErrorFallback = ({ error }: { error: Error }) => (
   <Card className="glass-bright text-center py-12">
@@ -44,11 +48,18 @@ const AdvertSkeleton = () => (
   </Card>
 )
 
+// Function to format currency with commas
+const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KSH' }).format(amount)
+}
+
 function AdsPage() {
   const [adverts, setAdverts] = useState<Advert[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedAdvert, setSelectedAdvert] = useState<Advert | null>(null)
   const [userPackage, setUserPackage] = useState<UserPackage | null>(null)
+  const [submissions, setSubmissions] = useState<Submission[]>([])
+  const [totalEarnings, setTotalEarnings] = useState<number>(0)
 
   const fetchAdverts = useCallback(async () => {
     try {
@@ -67,108 +78,134 @@ function AdsPage() {
     }
   }, [])
 
+  const fetchHistory = useCallback(async () => {
+    try {
+      const data = await ApiService.getSubmissions()
+      setSubmissions(data.submissions || [])
+      setTotalEarnings(data.total_earnings || 0)
+    } catch (error) {
+      toast.error("Failed to load submission history", {
+        description: error instanceof Error ? error.message : "Please try again later.",
+      })
+      setSubmissions([])
+    }
+  }, [])
+
   useEffect(() => {
     fetchAdverts()
-  }, [fetchAdverts])
+    fetchHistory()
+  }, [fetchAdverts, fetchHistory])
 
-  const handleSubmissionSuccess = useCallback(
-    (advertId: number) => {
-      setSelectedAdvert(null)
-      fetchAdverts()
-    },
-    [fetchAdverts],
-  )
+  const handleSubmissionSuccess = useCallback(() => {
+    fetchAdverts()
+    fetchHistory()
+    setSelectedAdvert(null)
+  }, [fetchAdverts, fetchHistory])
 
   const availableAdverts = adverts.filter((ad) => ad.can_submit && !ad.has_submitted)
   const submittedAdverts = adverts.filter((ad) => ad.has_submitted)
 
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
         <Sidebar />
         <div className="md:ml-64 p-4 sm:p-6" role="main" aria-label="Advertisements page">
+          {/* Header Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="mb-6 sm:mb-8"
+          >
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <motion.div
+                  initial={{ scale: 0.8 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2, type: "spring" }}
+                  className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 shadow-lg flex items-center justify-center"
+                >
+                  <Eye className="h-6 w-6 text-white" />
+                </motion.div>
+                <div>
+                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">
+                    Advertisements
+                  </h1>
+                  <p className="text-gray-300 text-sm sm:text-base md:text-lg mt-1 font-semibold">
+                    Advertise on WhatsApp, submit Views, and earn Rewards
+                  </p>
+                </div>
+              </div>
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <Button asChild className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white">
+                  <Link href="/dashboard">
+                    <TrendingUp className="h-4 w-4 mr-2" />
+                    Back to Dashboard
+                  </Link>
+                </Button>
+              </motion.div>
+            </div>
+          </motion.div>
+
+          {userPackage && (
+            <PackageStatus
+              hasActivePackage={!!userPackage}
+              packageName={userPackage?.name}
+              packageRate={userPackage?.rate_per_view}
+              expiryDate={userPackage?.expiry_date}
+            />
+          )}
+
+          <Card className="bg-white/10 border-white/20 backdrop-blur-md mb-6 shadow-[0_0_10px_rgba(34,197,94,0.3)]">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-green-400">
+                <DollarSign className="h-6 w-6" />
+                Total Ad Earnings
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold text-green-400">{formatCurrency(totalEarnings)}</p>
+            </CardContent>
+          </Card>
+
           {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="text-center space-y-4">
-                <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-                <p className="text-muted-foreground">Loading advertisements...</p>
+            <div className="space-y-4">
+              <div className="flex items-center justify-center h-64">
+                <div className="text-center space-y-4">
+                  <Loader2 className="h-8 w-8 animate-spin text-blue-400 mx-auto" />
+                  <p className="text-gray-300">Loading advertisements...</p>
+                </div>
+              </div>
+              <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                <AdvertSkeleton />
+                <AdvertSkeleton />
+                <AdvertSkeleton />
               </div>
             </div>
           ) : (
-            <div className="space-y-4 sm:space-y-6">
-              {/* Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-                    Advertisements
-                  </h1>
-                  <p className="text-base sm:text-lg text-muted-foreground mt-2">
-                    View ads and earn money based on your package
-                  </p>
-                </div>
-                {userPackage && (
-                  <Card className="neon-card p-3 sm:p-4">
-                    <div className="flex items-center gap-2 text-primary font-bold">
-                      <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
-                      <span className="text-base sm:text-lg">KSH {userPackage.rate_per_view}</span>
-                    </div>
-                    <p className="text-xs sm:text-sm text-muted-foreground">Per View</p>
-                  </Card>
-                )}
-              </div>
-
-              {/* Package Status */}
-              <PackageStatus
-                hasActivePackage={!!userPackage}
-                packageRate={userPackage?.rate_per_view}
-                packageName={userPackage?.name}
-                expiryDate={userPackage?.expiry_date}
-              />
-
-              {!userPackage && (
-                <Card className="glass-bright text-center py-12 sm:py-16">
-                  <CardContent>
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-full blur-3xl"></div>
-                      <Play className="relative h-12 w-12 sm:h-16 sm:w-16 text-primary mx-auto mb-4 sm:mb-6" />
-                    </div>
-                    <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                      Get Started with Ads
-                    </h3>
-                    <p className="text-muted-foreground mb-4 sm:mb-6 text-base sm:text-lg">
-                      Purchase a package to unlock advertisements and start earning.
-                    </p>
-                    <Link href="/packages">
-                      <Button className="neon-button-primary text-white px-6 sm:px-8 py-2 sm:py-3 text-base sm:text-lg">
-                        Choose Package
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              )}
-
-              {userPackage && availableAdverts.length > 0 && (
+            <div className="space-y-8 sm:space-y-12">
+              {availableAdverts.length > 0 && (
                 <div className="space-y-4 sm:space-y-6">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
+                    <h2 className="text-xl sm:text-2xl font-bold text-green-400">
                       Available Advertisements
                     </h2>
-                    <Badge className="neon-badge-green text-white px-3 py-1 w-fit">
+                    <Badge className="bg-green-500/20 text-green-400 border-green-500/50 px-3 py-1 w-fit">
                       {availableAdverts.length} Available
                     </Badge>
                   </div>
                   <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                    {loading
-                      ? Array(6)
-                          .fill(0)
-                          .map((_, i) => <AdvertSkeleton key={i} />)
-                      : availableAdverts.map((advert) => (
-                          <AdvertCard
-                            key={advert.id}
-                            advert={advert}
-                            onSubmissionSuccess={() => setSelectedAdvert(advert)}
-                          />
-                        ))}
+                    {availableAdverts.map((advert) => (
+                      <AdvertCard
+                        key={advert.id}
+                        advert={advert}
+                        onSubmissionSuccess={() => setSelectedAdvert(advert)}
+                      />
+                    ))}
                   </div>
                 </div>
               )}
@@ -176,10 +213,10 @@ function AdsPage() {
               {submittedAdverts.length > 0 && (
                 <div className="space-y-4 sm:space-y-6">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">
+                    <h2 className="text-xl sm:text-2xl font-bold text-blue-400">
                       Completed Today
                     </h2>
-                    <Badge className="neon-badge-blue text-white px-3 py-1 w-fit">
+                    <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/50 px-3 py-1 w-fit">
                       {submittedAdverts.length} Completed
                     </Badge>
                   </div>
@@ -191,17 +228,60 @@ function AdsPage() {
                 </div>
               )}
 
+              <div className="space-y-4 sm:space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <h2 className="text-xl sm:text-2xl font-bold text-purple-400">
+                    Submission History
+                  </h2>
+                  <Badge className="bg-blue-500/20 text-purple-400 border-purple-500/50 px-3 py-1 w-fit">
+                    {submissions.length} Submissions
+                  </Badge>
+                </div>
+                {submissions.length === 0 ? (
+                  <Card className="bg-white/10 border-white/20 backdrop-blur-md text-center py-12">
+                    <CardContent>
+                      <p className="text-gray-300 text-lg">No submissions yet. Start advertising ads to earn!</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                    {submissions.map((sub) => (
+                      <Card key={sub.id} className="bg-white/10 border-white/20 backdrop-blur-md hover:shadow-[0_0_10px_rgba(255,255,255,0.1)] transition-shadow duration-300">
+                        <CardHeader>
+                          <CardTitle className="text-lg font-bold text-white">{sub.advert_title}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          <p className="flex items-center gap-2 text-gray-300">
+                            <Eye className="h-4 w-4 text-blue-400" />
+                            Views: <span className="font-semibold">{sub.views_count}</span>
+                          </p>
+                          <p className="flex items-center gap-2 text-gray-300">
+                            <DollarSign className="h-4 w-4 text-green-400" />
+                            Earnings: <span className="font-semibold">{formatCurrency(parseFloat(sub.earnings))}</span>
+                          </p>
+                          <p className="flex items-center gap-2 text-gray-300">
+                            <Calendar className="h-4 w-4 text-purple-400" />
+                            Date: <span className="font-semibold">{new Date(sub.submission_date).toLocaleDateString()}</span>
+                          </p>
+                          <Badge variant="default" className="mt-2 bg-green-500/20 text-green-400 border-green-500/50">Submitted</Badge>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {userPackage && availableAdverts.length === 0 && submittedAdverts.length === 0 && (
-                <Card className="glass-bright text-center py-12 sm:py-16">
+                <Card className="bg-white/10 border-white/20 backdrop-blur-md text-center py-12 sm:py-16">
                   <CardContent>
                     <div className="relative">
                       <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-yellow-500/20 rounded-full blur-3xl"></div>
                       <Play className="relative h-12 w-12 sm:h-16 sm:w-16 text-orange-500 mx-auto mb-4 sm:mb-6" />
                     </div>
-                    <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-orange-500 to-yellow-500 bg-clip-text text-transparent">
+                    <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-orange-400">
                       No Advertisements Available
                     </h3>
-                    <p className="text-muted-foreground text-base sm:text-lg">
+                    <p className="text-gray-300 text-base sm:text-lg">
                       Check back later for new advertisements to view and earn from.
                     </p>
                   </CardContent>
@@ -217,7 +297,7 @@ function AdsPage() {
               advertId={selectedAdvert.id}
               advertTitle={selectedAdvert.title}
               ratePerView={selectedAdvert.rate_category}
-              onSuccess={() => handleSubmissionSuccess(selectedAdvert.id)}
+              onSuccess={handleSubmissionSuccess}
             />
           )}
         </div>

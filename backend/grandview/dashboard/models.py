@@ -70,6 +70,7 @@ class Coupon(models.Model):
     discount_type = models.CharField(max_length=20, choices=[('PERCENT', 'Percent'), ('FIXED', 'Fixed')])
     discount_value = models.DecimalField(max_digits=10, decimal_places=2)
     is_active = models.BooleanField(default=True)
+    applicable_products = models.ManyToManyField(Product, blank=True, related_name='coupons')
 
     def __str__(self):
         return self.code
@@ -88,9 +89,10 @@ class Order(models.Model):
         ('DELIVERED', 'Delivered'),
         ('CANCELLED', 'Cancelled'),
     ], default='PENDING')
-    address = models.TextField()  # Added address field
+    address = models.TextField()
     phone = models.CharField(max_length=20)
     delivery_fee = models.DecimalField(max_digits=10, decimal_places=2)
+    rating = models.PositiveIntegerField(null=True, blank=True, choices=[(i, i) for i in range(1, 6)])
 
     def __str__(self):
         return f"Order {self.id} by {self.user.username}"

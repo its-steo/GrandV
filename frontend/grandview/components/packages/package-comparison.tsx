@@ -43,20 +43,20 @@ export function PackageComparison() {
 
   if (loading) {
     return (
-      <Card className="professional-card">
+      <Card className="bg-blue-600 border-0">
         <CardHeader>
-          <CardTitle className="text-center text-2xl font-bold">Package Comparison</CardTitle>
-          <p className="text-center text-muted-foreground">Compare features across all packages</p>
+          <CardTitle className="text-center text-xl sm:text-2xl font-extrabold text-white">Package Comparison</CardTitle>
+          <p className="text-center text-white/80 text-sm sm:text-base">Compare features across all packages</p>
         </CardHeader>
         <CardContent>
           <div className="animate-pulse space-y-4">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="flex justify-between items-center py-3">
-                <div className="w-48 h-4 bg-muted rounded" />
-                <div className="flex gap-12">
-                  <div className="w-6 h-6 bg-muted rounded" />
-                  <div className="w-6 h-6 bg-muted rounded" />
-                  <div className="w-6 h-6 bg-muted rounded" />
+                <div className="w-48 h-4 bg-white/20 rounded" />
+                <div className="flex gap-8 sm:gap-12">
+                  <div className="w-6 h-6 bg-white/20 rounded-full" />
+                  <div className="w-6 h-6 bg-white/20 rounded-full" />
+                  <div className="w-6 h-6 bg-white/20 rounded-full" />
                 </div>
               </div>
             ))}
@@ -67,46 +67,46 @@ export function PackageComparison() {
   }
 
   return (
-    <Card className="professional-card">
+    <Card className="bg-blue-600 border-0">
       <CardHeader className="text-center space-y-4">
-        <CardTitle className="text-3xl font-bold">Package Comparison</CardTitle>
-        <p className="text-muted-foreground text-lg">Compare features across all packages to find your perfect fit</p>
+        <CardTitle className="text-2xl sm:text-3xl font-extrabold text-white drop-shadow-md">Package Comparison</CardTitle>
+        <p className="text-white/80 text-base sm:text-lg">Compare features across all packages to find your perfect fit</p>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b-2 border-border">
-                <th className="text-left py-6 px-6 font-semibold text-lg">Features</th>
-                <th className="text-center py-6 px-6 min-w-[140px]">
+              <tr className="border-b-2 border-white/30">
+                <th className="text-left py-4 sm:py-6 px-4 sm:px-6 font-semibold text-base sm:text-lg text-white">Features</th>
+                <th className="text-center py-4 sm:py-6 px-4 sm:px-6 min-w-[120px] sm:min-w-[140px]">
                   <div className="space-y-2">
-                    <div className="text-blue-600 font-bold text-lg">Starter</div>
-                    <div className="text-sm text-muted-foreground">KSH 90/view</div>
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-                      <Star className="h-4 w-4 text-blue-600" />
+                    <div className="text-white font-extrabold text-base sm:text-lg">Starter</div>
+                    <div className="text-sm text-white/80">KSH 90/view</div>
+                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center mx-auto">
+                      <Star className="h-4 w-4 text-white" />
                     </div>
                   </div>
                 </th>
-                <th className="text-center py-6 px-6 min-w-[140px] relative">
+                <th className="text-center py-4 sm:py-6 px-4 sm:px-6 min-w-[120px] sm:min-w-[140px] relative">
                   <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
-                    <span className="bg-gradient-to-r from-chart-1 to-chart-2 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                    <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
                       POPULAR
                     </span>
                   </div>
                   <div className="space-y-2 mt-4">
-                    <div className="text-chart-1 font-bold text-lg">Standard</div>
-                    <div className="text-sm text-muted-foreground">KSH 100/view</div>
-                    <div className="w-8 h-8 bg-chart-1/20 rounded-full flex items-center justify-center mx-auto">
-                      <Star className="h-4 w-4 text-chart-1" />
+                    <div className="text-white font-extrabold text-base sm:text-lg">Standard</div>
+                    <div className="text-sm text-white/80">KSH 100/view</div>
+                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center mx-auto">
+                      <Star className="h-4 w-4 text-white" />
                     </div>
                   </div>
                 </th>
-                <th className="text-center py-6 px-6 min-w-[140px]">
+                <th className="text-center py-4 sm:py-6 px-4 sm:px-6 min-w-[120px] sm:min-w-[140px]">
                   <div className="space-y-2">
-                    <div className="text-primary font-bold text-lg">Premium</div>
-                    <div className="text-sm text-muted-foreground">KSH 120/view</div>
-                    <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center mx-auto">
-                      <Star className="h-4 w-4 text-primary" />
+                    <div className="text-white font-extrabold text-base sm:text-lg">Premium</div>
+                    <div className="text-sm text-white/80">KSH 120/view</div>
+                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center mx-auto">
+                      <Star className="h-4 w-4 text-white" />
                     </div>
                   </div>
                 </th>
@@ -114,38 +114,38 @@ export function PackageComparison() {
             </thead>
             <tbody>
               {features.map((feature, index) => (
-                <tr key={index} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                  <td className="py-4 px-6 font-medium">{feature.name}</td>
-                  <td className="py-4 px-6 text-center">
+                <tr key={index} className="border-b border-white/20 hover:bg-white/10 transition-colors">
+                  <td className="py-3 sm:py-4 px-4 sm:px-6 font-medium text-white text-sm sm:text-base">{feature.name}</td>
+                  <td className="py-3 sm:py-4 px-4 sm:px-6 text-center">
                     {feature.basic ? (
-                      <div className="w-6 h-6 bg-chart-1/20 rounded-full flex items-center justify-center mx-auto">
-                        <Check className="h-4 w-4 text-chart-1" />
+                      <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center mx-auto">
+                        <Check className="h-4 w-4 text-white" />
                       </div>
                     ) : (
-                      <div className="w-6 h-6 bg-muted/20 rounded-full flex items-center justify-center mx-auto">
-                        <X className="h-4 w-4 text-muted-foreground" />
+                      <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center mx-auto">
+                        <X className="h-4 w-4 text-white/60" />
                       </div>
                     )}
                   </td>
-                  <td className="py-4 px-6 text-center">
+                  <td className="py-3 sm:py-4 px-4 sm:px-6 text-center">
                     {feature.standard ? (
-                      <div className="w-6 h-6 bg-chart-1/20 rounded-full flex items-center justify-center mx-auto">
-                        <Check className="h-4 w-4 text-chart-1" />
+                      <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center mx-auto">
+                        <Check className="h-4 w-4 text-white" />
                       </div>
                     ) : (
-                      <div className="w-6 h-6 bg-muted/20 rounded-full flex items-center justify-center mx-auto">
-                        <X className="h-4 w-4 text-muted-foreground" />
+                      <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center mx-auto">
+                        <X className="h-4 w-4 text-white/60" />
                       </div>
                     )}
                   </td>
-                  <td className="py-4 px-6 text-center">
+                  <td className="py-3 sm:py-4 px-4 sm:px-6 text-center">
                     {feature.premium ? (
-                      <div className="w-6 h-6 bg-chart-1/20 rounded-full flex items-center justify-center mx-auto">
-                        <Check className="h-4 w-4 text-chart-1" />
+                      <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center mx-auto">
+                        <Check className="h-4 w-4 text-white" />
                       </div>
                     ) : (
-                      <div className="w-6 h-6 bg-muted/20 rounded-full flex items-center justify-center mx-auto">
-                        <X className="h-4 w-4 text-muted-foreground" />
+                      <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center mx-auto">
+                        <X className="h-4 w-4 text-white/60" />
                       </div>
                     )}
                   </td>

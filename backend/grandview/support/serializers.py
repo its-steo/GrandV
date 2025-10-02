@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import SupportMessage, SupportComment, SupportLike, SupportMute, SupportBlock
+from .models import SupportMessage, SupportComment, SupportLike, SupportMute, SupportBlock, PrivateMessage
 from accounts.models import CustomUser
 from django.utils import timezone
 from datetime import timedelta
@@ -8,16 +8,18 @@ import re
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ['id', 'username', 'email', 'phone_number', 'referral_code']
+        fields = ['id', 'username', 'email', 'phone_number', 'referral_code', 'is_manager', 'is_staff']
 
 class SupportMessageSerializer(serializers.ModelSerializer):
     user = UserProfileSerializer(read_only=True)
     like_count = serializers.SerializerMethodField()
     is_liked = serializers.SerializerMethodField()
+    comment_count = serializers.SerializerMethodField()
+    unread_comment_count = serializers.SerializerMethodField()
 
     class Meta:
         model = SupportMessage
-        fields = ['id', 'user', 'content', 'image', 'created_at', 'is_private', 'is_pinned', 'like_count', 'is_liked']
+        fields = ['id', 'user', 'content', 'image', 'created_at', 'is_private', 'is_pinned', 'like_count', 'is_liked', 'comment_count', 'unread_comment_count']
 
     def get_like_count(self, obj):
         return obj.likes.count()
@@ -27,6 +29,17 @@ class SupportMessageSerializer(serializers.ModelSerializer):
         if request and request.user.is_authenticated:
             return obj.likes.filter(user=request.user).exists()
         return False
+
+    def get_comment_count(self, obj):
+        return obj.comments.count()
+
+    def get_unread_comment_count(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            # Assume comments are unread if created after the user's last view
+            last_viewed = request.user.last_support_view or timezone.now() - timedelta(days=30)
+            return obj.comments.filter(created_at__gt=last_viewed).count()
+        return 0
 
     def validate(self, data):
         user = self.context['request'].user
@@ -44,7 +57,7 @@ class SupportCommentSerializer(serializers.ModelSerializer):
     parent_comment = serializers.PrimaryKeyRelatedField(
         queryset=SupportComment.objects.all(),
         allow_null=True,
-        required=False  # NEW: Make parent_comment optional in input data
+        required=False
     )
     mentioned_users = serializers.SerializerMethodField()
 
@@ -68,12 +81,10 @@ class SupportCommentSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("You are muted and cannot post comments.")
         if SupportBlock.objects.filter(user=user).exists():
             raise serializers.ValidationError("You are blocked and cannot post comments.")
-        # Validate parent_comment belongs to the same message
         parent_comment = data.get('parent_comment')
-        if parent_comment:  # Only validate if parent_comment is provided
+        if parent_comment:
             if parent_comment.message != message:
                 raise serializers.ValidationError("Parent comment must belong to the same message.")
-        # Validate mentioned users exist
         mentions = re.findall(r'@(\w+)', data['content'])
         for mention in mentions:
             if not CustomUser.objects.filter(username=mention).exists():
@@ -121,4 +132,28 @@ class SupportBlockSerializer(serializers.ModelSerializer):
         if not self.context['request'].user.is_staff:
             raise serializers.ValidationError("Only admins can block users.")
         data['blocked_by'] = self.context['request'].user
+        return data
+
+class PrivateMessageSerializer(serializers.ModelSerializer):
+    sender = UserProfileSerializer(read_only=True)
+    receiver = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all())
+
+    class Meta:
+        model = PrivateMessage
+        fields = ['id', 'sender', 'receiver', 'content', 'image', 'created_at', 'read_at']
+
+    def validate(self, data):
+        user = self.context['request'].user
+        active_mute = SupportMute.objects.filter(user=user, expires_at__gt=timezone.now()).exists()
+        if active_mute:
+            raise serializers.ValidationError("You are muted and cannot send messages.")
+        if SupportBlock.objects.filter(user=user).exists():
+            raise serializers.ValidationError("You are blocked and cannot send messages.")
+        receiver = data.get('receiver')
+        if not receiver:
+            raise serializers.ValidationError({"receiver": "Receiver is required."})
+        if receiver == user:
+            raise serializers.ValidationError({"receiver": "You cannot send a message to yourself."})
+        if not CustomUser.objects.filter(id=receiver.id).exists():
+            raise serializers.ValidationError({"receiver": f"User with ID {receiver.id} does not exist."})
         return data

@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Download, Eye, DollarSign, Calendar, ImageIcon } from "lucide-react"
+import { Download, Eye, DollarSign, Calendar, ImageIcon, Sparkles } from "lucide-react"
 import { ApiService, type Advert } from "@/lib/api"
 import { toast } from "sonner"
 
@@ -17,7 +17,7 @@ export function AdvertCard({ advert, onSubmissionSuccess }: AdvertCardProps) {
   const [isDownloading, setIsDownloading] = useState(false)
   const [imageError, setImageError] = useState(false)
 
-  const previewUrl = advert.file // Fixed: Use advert.file directly (full URL)
+  const previewUrl = advert.file
 
   const handleDownload = async () => {
     try {
@@ -32,8 +32,8 @@ export function AdvertCard({ advert, onSubmissionSuccess }: AdvertCardProps) {
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
-      toast.success("Download Started", {
-        description: "Advert file is being downloaded",
+      toast.success("🎉 Download Started!", {
+        description: "Your ad file is ready to view",
       })
     } catch (error) {
       toast.error("Download Failed", {
@@ -48,58 +48,60 @@ export function AdvertCard({ advert, onSubmissionSuccess }: AdvertCardProps) {
     setImageError(true)
   }
 
-  const getRateColor = (rate: number) => {
+  const getRateGradient = (rate: number) => {
     switch (rate) {
       case 90:
-        return "from-blue-500 to-blue-600"
+        return "from-primary to-accent"
       case 100:
-        return "from-green-500 to-green-600"
+        return "from-success to-accent"
       case 120:
-        return "from-purple-500 to-purple-600"
+        return "from-secondary to-warning"
       default:
-        return "from-gray-500 to-gray-600"
+        return "from-muted-foreground to-muted"
     }
   }
 
-  const getRateBadgeColor = (rate: number) => {
+  const getRateBadgeGradient = (rate: number) => {
     switch (rate) {
       case 90:
-        return "bg-blue-500"
+        return "bg-gradient-to-r from-primary to-accent"
       case 100:
-        return "bg-green-500"
+        return "bg-gradient-to-r from-success to-accent"
       case 120:
-        return "bg-purple-500"
+        return "bg-gradient-to-r from-secondary to-warning"
       default:
-        return "bg-gray-500"
+        return "bg-gradient-to-r from-muted-foreground to-muted"
     }
   }
 
   return (
-    <Card className="neon-card hover:scale-105 transition-all duration-300 group">
+    <Card className="bright-card hover:scale-105 hover:neon-glow transition-all duration-300 group overflow-hidden">
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-base sm:text-lg leading-tight group-hover:text-primary transition-colors text-balance">
+        <div className="flex items-start justify-between gap-3">
+          <CardTitle className="text-lg sm:text-xl leading-tight group-hover:gradient-text transition-all duration-300 text-balance font-bold">
             {advert.title}
           </CardTitle>
           <Badge
-            className={`${getRateBadgeColor(advert.rate_category)} text-white shadow-lg text-xs sm:text-sm whitespace-nowrap`}
+            className={`${getRateBadgeGradient(advert.rate_category)} text-white shadow-lg text-sm font-bold whitespace-nowrap px-3 py-1 neon-glow`}
           >
-            KSH {advert.rate_category}/view
+            💰 KSH {advert.rate_category}
           </Badge>
         </div>
-        <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
-          <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Calendar className="h-4 w-4" />
           {new Date(advert.upload_date).toLocaleDateString()}
         </div>
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <div className="aspect-video bg-gradient-to-br from-muted/50 to-muted rounded-lg overflow-hidden relative group">
+        <div className="aspect-video bg-gradient-to-br from-muted/30 to-muted/60 rounded-xl overflow-hidden relative group/image">
           {imageError ? (
-            <div className="flex items-center justify-center h-full text-muted-foreground bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
+            <div className="flex items-center justify-center h-full text-muted-foreground bg-gradient-to-br from-primary/10 to-secondary/10">
               <div className="text-center">
-                <ImageIcon className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-2 opacity-50" />
-                <span className="text-xs sm:text-sm">Preview not available</span>
+                <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center">
+                  <ImageIcon className="h-6 w-6 text-white" />
+                </div>
+                <span className="text-sm font-medium">Preview Loading...</span>
               </div>
             </div>
           ) : (
@@ -107,24 +109,32 @@ export function AdvertCard({ advert, onSubmissionSuccess }: AdvertCardProps) {
               <img
                 src={previewUrl || "/placeholder.svg"}
                 alt={advert.title}
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                className="w-full h-full object-cover group-hover/image:scale-110 transition-transform duration-500"
                 onError={handleImageError}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300"></div>
+              <div className="absolute top-3 right-3 opacity-0 group-hover/image:opacity-100 transition-opacity duration-300">
+                <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                  <Eye className="w-4 h-4 text-white" />
+                </div>
+              </div>
             </>
           )}
         </div>
 
         <div
-          className={`p-3 sm:p-4 rounded-xl bg-gradient-to-r ${getRateColor(advert.rate_category)} text-white relative overflow-hidden`}
+          className={`p-4 rounded-xl bg-gradient-to-r ${getRateGradient(advert.rate_category)} text-white relative overflow-hidden neon-glow`}
         >
           <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
+          <div className="absolute top-2 right-2">
+            <Sparkles className="h-5 w-5 text-white/70" />
+          </div>
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-2">
-              <DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />
-              <span className="font-bold text-base sm:text-lg">Earning Potential</span>
+              <DollarSign className="h-5 w-5" />
+              <span className="font-bold text-lg">Earning Power!</span>
             </div>
-            <p className="text-xs sm:text-sm opacity-90">Earn KSH {advert.rate_category} per view</p>
+            <p className="text-sm opacity-90 font-medium">💸 Earn KSH {advert.rate_category} per view</p>
           </div>
         </div>
 
@@ -132,34 +142,30 @@ export function AdvertCard({ advert, onSubmissionSuccess }: AdvertCardProps) {
           <Button
             onClick={handleDownload}
             disabled={isDownloading || !advert.can_submit}
-            className="flex-1 neon-button-primary text-white font-semibold text-sm sm:text-base"
+            className="flex-1 btn-bright-primary font-semibold"
           >
-            <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-            {isDownloading ? "Downloading..." : "Download"}
+            <Download className="h-4 w-4 mr-2" />
+            {isDownloading ? "Downloading..." : "📥 Download"}
           </Button>
 
           {advert.has_submitted ? (
             <Badge
               variant="secondary"
-              className="px-3 sm:px-4 py-2 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 text-xs sm:text-sm justify-center"
+              className="px-4 py-3 bg-gradient-to-r from-success to-accent text-white font-semibold text-sm justify-center neon-glow-success"
             >
-              ✓ Submitted
+              ✅ Submitted
             </Badge>
           ) : advert.can_submit ? (
-            <Button
-              onClick={onSubmissionSuccess}
-              variant="outline"
-              className="bg-gradient-to-r from-secondary/10 to-accent/10 border-secondary/50 text-secondary hover:bg-gradient-to-r hover:from-secondary hover:to-accent hover:text-white transition-all duration-300 shadow-lg text-sm sm:text-base"
-            >
-              <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-              Submit Views
+            <Button onClick={onSubmissionSuccess} className="btn-bright-secondary font-semibold">
+              <Eye className="h-4 w-4 mr-2" />
+              👁️ Submit Views
             </Button>
           ) : (
             <Badge
               variant="destructive"
-              className="px-3 sm:px-4 py-2 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 text-xs sm:text-sm justify-center"
+              className="px-4 py-3 bg-gradient-to-r from-destructive to-warning text-white font-semibold text-sm justify-center"
             >
-              Package Required
+              🔒 Package Required
             </Badge>
           )}
         </div>
