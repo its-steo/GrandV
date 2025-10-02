@@ -1,14 +1,15 @@
-import type React from "react"
-import type { Metadata } from "next"
-import { GeistSans } from "geist/font/sans"
-import { GeistMono } from "geist/font/mono"
-import { Analytics } from "@vercel/analytics/next"
-import { ThemeProvider } from "@/components/theme/theme-provider"
-import { TopBar } from "@/components/layout/topbar"
-import "./globals.css"
-import { AuthProvider } from "@/hooks/use-auth"
-import { Toaster } from "sonner"
-import { Suspense } from "react"
+import type { ReactNode } from "react";
+import type { Metadata } from "next";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
+import { Analytics } from "@vercel/analytics/next";
+import { ThemeProvider } from "@/components/theme/theme-provider";
+import { TopBar } from "@/components/layout/topbar";
+import "./globals.css";
+import { AuthProvider } from "@/hooks/use-auth";
+import { Toaster } from "sonner";
+import { Suspense } from "react";
+import Head from "next/head"; // Correct import for App Router
 
 export const metadata: Metadata = {
   title: "Grandview-shop - Professional WhatsApp Advertising Platform",
@@ -16,24 +17,33 @@ export const metadata: Metadata = {
     "Professional advertising platform for WhatsApp marketing campaigns with advanced analytics and user management",
   generator: "v0.app",
   icons: {
-    icon: "/images/grandvlogo.png", // Replace with the path to your logo file (e.g., /logo.png, /logo.ico, or /logo.svg)
+    icon: "/images/grandvlogo.png", // Favicon and potential PWA icon
   },
-}
+};
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <Head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#3d3d3d" /> {/* Fixed hex code */}
+      </Head>
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
           <AuthProvider>
             <Suspense
               fallback={
                 <div className="flex items-center justify-center min-h-screen bg-black">
-                  <img src="/images/grandvlogo.png" alt="Grandview Logo" className="w-48 h-auto" />
+                  <img
+                    src="/images/grandvlogo.png"
+                    alt="Grandview Logo"
+                    className="w-48 h-auto"
+                  />
                 </div>
               }
             >
@@ -47,7 +57,8 @@ export default function RootLayout({
                 duration={3500}
                 toastOptions={{
                   classNames: {
-                    toast: "rounded-xl border border-white/10 bg-white/10 backdrop-blur-md text-white shadow-lg",
+                    toast:
+                      "rounded-xl border border-white/10 bg-white/10 backdrop-blur-md text-white shadow-lg",
                     title: "font-semibold text-sm sm:text-base",
                     description: "text-xs sm:text-sm text-neutral-200",
                     closeButton: "text-white hover:text-red-400",
@@ -70,5 +81,5 @@ export default function RootLayout({
         </ThemeProvider>
       </body>
     </html>
-  )
+  );
 }
