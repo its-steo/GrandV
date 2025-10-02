@@ -11,9 +11,13 @@ import { Toaster } from "sonner"
 import { Suspense } from "react"
 
 export const metadata: Metadata = {
-  title: "GrandView - Shop, Advertise and Earn",
-  description: "Amazing neon dashboard with bright colors and animations",
+  title: "Grandview-shop - Professional WhatsApp Advertising Platform",
+  description:
+    "Professional advertising platform for WhatsApp marketing campaigns with advanced analytics and user management",
   generator: "v0.app",
+  icons: {
+    icon: "/images/grandvlogo.png", // Replace with the path to your logo file (e.g., /logo.png, /logo.ico, or /logo.svg)
+  },
 }
 
 export default function RootLayout({
@@ -26,7 +30,13 @@ export default function RootLayout({
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <AuthProvider>
-            <Suspense fallback={null}>
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center min-h-screen bg-black">
+                  <img src="/images/grandvlogo.png" alt="Grandview Logo" className="w-48 h-auto" />
+                </div>
+              }
+            >
               <TopBar />
               <main className="min-h-[calc(100vh-4rem)]">{children}</main>
               <Toaster

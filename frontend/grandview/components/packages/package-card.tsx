@@ -110,7 +110,7 @@ export function PackageCard({
       case 90:
         return {
           gradient: "from-blue-500 to-blue-600",
-          badge: "from-blue-500 to-blue-600",
+          badge: "bg-blue-500",
           border: "border-blue-200",
           bg: "from-blue-50 to-blue-100",
           icon: Zap,
@@ -118,26 +118,26 @@ export function PackageCard({
         }
       case 100:
         return {
-          gradient: "from-chart-1 to-chart-2",
-          badge: "from-chart-1 to-chart-2",
-          border: "border-chart-1/30",
-          bg: "from-chart-1/10 to-chart-2/10",
+          gradient: "from-green-500 to-green-600",
+          badge: "bg-green-500",
+          border: "border-green-200",
+          bg: "from-green-50 to-green-100",
           icon: Star,
           tier: "Popular",
         }
       case 120:
         return {
-          gradient: "from-primary to-accent",
-          badge: "from-primary to-accent",
-          border: "border-primary/30",
-          bg: "from-primary/10 to-accent/10",
+          gradient: "from-purple-500 to-purple-600",
+          badge: "bg-purple-500",
+          border: "border-purple-200",
+          bg: "from-purple-50 to-purple-100",
           icon: Crown,
           tier: "Premium",
         }
       default:
         return {
           gradient: "from-muted to-muted-foreground",
-          badge: "from-muted to-muted-foreground",
+          badge: "bg-gray-500",
           border: "border-border",
           bg: "from-muted/10 to-muted/20",
           icon: Zap,
@@ -147,41 +147,42 @@ export function PackageCard({
   }
 
   const theme = getPackageTheme(pkg.rate_per_view)
- // const IconComponent = theme.icon
   const isPopular = pkg.rate_per_view === 100
   const isPremium = pkg.rate_per_view === 120
 
   return (
     <Card
-      className={`professional-card relative overflow-hidden hover:scale-[1.02] hover:shadow-xl transition-all duration-300 ${
-        isActive ? "ring-2 ring-primary shadow-xl" : ""
-      } ${isPremium ? "border-primary/30" : ""}`}
+      className={`professional-card relative overflow-hidden hover:scale-[1.02] hover:shadow-xl transition-all duration-300 bg-black ${
+        isActive ? "ring-2 ring-primary" : ""
+      } ${isPremium ? "border-purple-200/30" : ""}`}
     >
       {isPopular && (
         <Badge
-          className={`absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r ${theme.badge} text-white px-4 py-1 shadow-lg z-10`}
+          className={`absolute top-2 left-2 ${theme.badge} text-white px-3 sm:px-4 py-1 text-xs sm:text-sm font-semibold z-10 rounded-md`}
         >
-          <Star className="h-4 w-4 mr-1" />
+          <Star className="h-3 sm:h-4 w-3 sm:w-4 mr-1" />
           Most Popular
         </Badge>
       )}
 
       {isPremium && (
         <Badge
-          className={`absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r ${theme.badge} text-white px-4 py-1 shadow-lg z-10`}
+          className={`absolute top-2 left-2 ${theme.badge} text-white px-3 sm:px-4 py-1 text-xs sm:text-sm font-semibold z-10 rounded-md`}
         >
-          <Crown className="h-4 w-4 mr-1" />
+          <Crown className="h-3 sm:h-4 w-3 sm:w-4 mr-1" />
           Premium
         </Badge>
       )}
 
       {isActive && (
-        <Badge className="absolute -top-3 right-4 bg-gradient-to-r from-primary to-accent text-white px-4 py-1 shadow-lg z-10">
+        <Badge
+          className="absolute top-2 right-2 bg-purple-500 text-white px-3 sm:px-4 py-1 text-xs sm:text-sm font-semibold z-10 rounded-md"
+        >
           Active
         </Badge>
       )}
 
-      <div className="relative w-full h-48 overflow-hidden">
+      <div className="relative w-full h-40 sm:h-48 overflow-hidden">
         <div className={`absolute inset-0 bg-gradient-to-br ${theme.bg} opacity-90`} />
         <Image
           src={pkg.image.startsWith("http") ? pkg.image : `https://grandview-shop.onrender.com${pkg.image}`}
@@ -195,30 +196,30 @@ export function PackageCard({
 
       <CardHeader className="text-center pb-4 space-y-4">
         <div className="space-y-2">
-          <CardTitle className="text-2xl font-bold">{pkg.name}</CardTitle>
-          <div className={`text-4xl font-bold bg-gradient-to-r ${theme.gradient} bg-clip-text text-transparent`}>
+          <CardTitle className="text-xl sm:text-2xl font-bold text-white">{pkg.name}</CardTitle>
+          <div className={`text-3xl sm:text-4xl font-bold bg-gradient-to-r ${theme.gradient} bg-clip-text text-transparent`}>
             {formatCurrency(pkg.price)}
           </div>
-          <p className="text-muted-foreground text-balance">{pkg.description}</p>
+          <p className="text-muted-foreground text-sm sm:text-base text-balance">{pkg.description}</p>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6 px-6 pb-6">
-        <div className={`p-4 rounded-xl bg-gradient-to-r ${theme.gradient} text-white text-center shadow-lg`}>
+      <CardContent className="space-y-6 px-4 sm:px-6 pb-6">
+        <div className={`p-4 rounded-xl bg-gradient-to-r ${theme.gradient} text-white text-center`}>
           <div className="flex items-center justify-center gap-2 mb-2">
             <DollarSign className="h-5 w-5" />
-            <span className="text-xl font-bold">{formatCurrency(pkg.rate_per_view)} per view</span>
+            <span className="text-lg sm:text-xl font-bold">{formatCurrency(pkg.rate_per_view)} per view</span>
           </div>
           <p className="text-sm opacity-90">Guaranteed earning rate</p>
         </div>
 
         <div className="flex items-center justify-center gap-2 text-muted-foreground bg-muted/20 rounded-lg p-3">
           <Clock className="h-4 w-4" />
-          <span className="font-medium">Valid for {pkg.validity_days} days</span>
+          <span className="font-medium text-sm sm:text-base">Valid for {pkg.validity_days} days</span>
         </div>
 
         <div className="space-y-3">
-          <h4 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Whats Included</h4>
+          <h4 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">What is Included</h4>
           {packageFeatures.map((feature, index) => (
             <div key={index} className="flex items-start gap-3">
               <div className="feature-check mt-0.5">

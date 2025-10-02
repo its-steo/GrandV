@@ -48,13 +48,13 @@ export default function PackagesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen premium-gradient flex flex-col">
+      <div className="min-h-screen bg-gray-900 flex flex-col">
         <Sidebar />
-        <div className="flex-1 p-6 lg:ml-64">
+        <div className="flex-1 p-4 sm:p-6 lg:ml-64">
           <div className="flex items-center justify-center h-64">
             <div className="text-center space-y-4">
-              <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-              <p className="text-muted-foreground">Loading packages...</p>
+              <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto" />
+              <p className="text-white/80 text-lg">Loading packages...</p>
             </div>
           </div>
         </div>
@@ -63,30 +63,30 @@ export default function PackagesPage() {
   }
 
   return (
-    <div className="min-h-screen premium-gradient flex flex-col">
+    <div className="min-h-screen bg-gray-900 flex flex-col">
       <Sidebar />
-      <div className="flex-1 p-6 lg:ml-64">
+      <div className="flex-1 p-4 sm:p-6 lg:ml-64">
         <div className="max-w-7xl mx-auto space-y-8">
-          <div className="text-center space-y-6 py-8">
+          <div className="text-center space-y-6 py-6 sm:py-8">
             <div className="space-y-4">
-              <Badge className="professional-badge">
+              <Badge className="bg-blue-600 text-white px-4 py-1 text-sm font-semibold">
                 <Star className="h-4 w-4 mr-2" />
                 Premium Advertising Platform
               </Badge>
-              <h1 className="text-4xl md:text-5xl font-bold text-balance">
-                Choose Your <span className="pricing-highlight">Earning Package</span>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white drop-shadow-md">
+                Choose Your <span className="text-blue-600">Earning Package</span>
               </h1>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-balance">
+              <p className="text-lg sm:text-xl text-white/80 max-w-2xl mx-auto">
                 Select the perfect package to maximize your earnings from premium advertisements
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              <Card className="stats-card">
-                <CardContent className="p-6 text-center">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 max-w-5xl mx-auto">
+              <Card className="bg-blue-600 border-0">
+                <CardContent className="p-4 sm:p-6 text-center">
                   <div className="flex items-center justify-center gap-2 mb-2">
-                    <Wallet className="h-5 w-5 text-chart-1" />
-                    <span className="text-2xl font-bold text-chart-1">
+                    <Wallet className="h-5 w-5 text-white" />
+                    <span className="text-2xl font-bold text-white drop-shadow-md">
                       {formatCurrency(
                         walletBalance
                           ? (
@@ -97,49 +97,49 @@ export default function PackagesPage() {
                       )}
                     </span>
                   </div>
-                  <p className="text-sm text-muted-foreground font-medium">Available Balance</p>
+                  <p className="text-sm text-white/80 font-medium">Available Balance</p>
                 </CardContent>
               </Card>
 
               {userPackage && (
-                <Card className="stats-card">
-                  <CardContent className="p-6 text-center">
+                <Card className="bg-green-500 border-0">
+                  <CardContent className="p-4 sm:p-6 text-center">
                     <div className="flex items-center justify-center gap-2 mb-2">
-                      <Clock className="h-5 w-5 text-primary" />
-                      <span className="text-2xl font-bold text-primary">{userPackage.days_remaining}</span>
+                      <Clock className="h-5 w-5 text-white" />
+                      <span className="text-2xl font-bold text-white drop-shadow-md">{userPackage.days_remaining}</span>
                     </div>
-                    <p className="text-sm text-muted-foreground font-medium">Days Remaining</p>
+                    <p className="text-sm text-white/80 font-medium">Days Remaining</p>
                   </CardContent>
                 </Card>
               )}
 
-              <Card className="stats-card">
-                <CardContent className="p-6 text-center">
+              <Card className="bg-pink-600 border-0">
+                <CardContent className="p-4 sm:p-6 text-center">
                   <div className="flex items-center justify-center gap-2 mb-2">
-                    <TrendingUp className="h-5 w-5 text-accent" />
-                    <span className="text-2xl font-bold text-accent">
+                    <TrendingUp className="h-5 w-5 text-white" />
+                    <span className="text-2xl font-bold text-white drop-shadow-md">
                       {userPackage ? formatCurrency(userPackage.rate_per_view) : "0"}
                     </span>
                   </div>
-                  <p className="text-sm text-muted-foreground font-medium">Current Rate/View</p>
+                  <p className="text-sm text-white/80 font-medium">Current Rate/View</p>
                 </CardContent>
               </Card>
             </div>
           </div>
 
           {userPackage && (
-            <div className="max-w-2xl mx-auto">
+            <div className="max-w-3xl mx-auto">
               <CurrentPackage package={userPackage} />
             </div>
           )}
 
           <div className="space-y-6">
             <div className="text-center">
-              <h2 className="text-3xl font-bold mb-2">Available Packages</h2>
-              <p className="text-muted-foreground">Choose the package that fits your earning goals</p>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-white drop-shadow-md">Available Packages</h2>
+              <p className="text-white/80 text-base sm:text-lg">Choose the package that fits your earning goals</p>
             </div>
 
-            <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
+            <div className="grid gap-6 sm:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
               {packages.map((pkg) => (
                 <PackageCard
                   key={pkg.id}
@@ -165,47 +165,45 @@ export default function PackagesPage() {
             <PackageComparison />
           </div>
 
-          <Card className="professional-card max-w-4xl mx-auto">
-            <CardContent className="p-8">
+          <Card className="bg-orange-500 border-0 max-w-4xl mx-auto">
+            <CardContent className="p-6 sm:p-8">
               <div className="text-center mb-6">
-                <Shield className="h-12 w-12 text-primary mx-auto mb-4" />
-                <h3 className="text-2xl font-bold mb-2">How Our Platform Works</h3>
-                <p className="text-muted-foreground">Everything you need to know about earning with our packages</p>
+                <Shield className="h-10 w-10 text-white mx-auto mb-4" />
+                <h3 className="text-xl sm:text-2xl font-extrabold text-white drop-shadow-md">How Our Platform Works</h3>
+                <p className="text-white/80 text-base sm:text-lg">Everything you need to know about earning with our packages</p>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
-                    <div className="feature-check">
-                      <Zap className="h-4 w-4" />
+                    <div className="bg-white/20 p-2 rounded-full">
+                      <Zap className="h-4 w-4 text-white" />
                     </div>
                     <div>
-                      <h4 className="font-semibold mb-1">Instant Activation</h4>
-                      <p className="text-sm text-muted-foreground">Your package activates immediately after purchase</p>
+                      <h4 className="font-semibold text-white text-base sm:text-lg">Instant Activation</h4>
+                      <p className="text-sm text-white/80">Your package activates immediately after purchase</p>
                     </div>
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <div className="feature-check">
-                      <TrendingUp className="h-4 w-4" />
+                    <div className="bg-white/20 p-2 rounded-full">
+                      <TrendingUp className="h-4 w-4 text-white" />
                     </div>
                     <div>
-                      <h4 className="font-semibold mb-1">Higher Tier Benefits</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Premium packages offer better rates and exclusive ads
-                      </p>
+                      <h4 className="font-semibold text-white text-base sm:text-lg">Higher Tier Benefits</h4>
+                      <p className="text-sm text-white/80">Premium packages offer better rates and exclusive ads</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
-                    <div className="feature-check">
-                      <Shield className="h-4 w-4" />
+                    <div className="bg-white/20 p-2 rounded-full">
+                      <Shield className="h-4 w-4 text-white" />
                     </div>
                     <div>
-                      <h4 className="font-semibold mb-1">Secure Payments</h4>
-                      <p className="text-sm text-muted-foreground">
+                      <h4 className="font-semibold text-white text-base sm:text-lg">Secure Payments</h4>
+                      <p className="text-sm text-white/80">
                         {user?.is_marketer
                           ? "Use both deposit and earnings balance for purchases"
                           : "Secure transactions using your deposit balance"}
@@ -214,14 +212,12 @@ export default function PackagesPage() {
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <div className="feature-check">
-                      <Clock className="h-4 w-4" />
+                    <div className="bg-white/20 p-2 rounded-full">
+                      <Clock className="h-4 w-4 text-white" />
                     </div>
                     <div>
-                      <h4 className="font-semibold mb-1">Flexible Duration</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Packages automatically renew or you can upgrade anytime
-                      </p>
+                      <h4 className="font-semibold text-white text-base sm:text-lg">Flexible Duration</h4>
+                      <p className="text-sm text-white/80">Packages automatically renew or you can upgrade anytime</p>
                     </div>
                   </div>
                 </div>

@@ -30,7 +30,7 @@ export default function StorePage() {
   useEffect(() => {
     fetchProducts()
     fetchCartCount()
-  }, []) // Removed fetchCategories
+  }, [])
 
   const fetchProducts = async () => {
     try {
@@ -55,8 +55,6 @@ export default function StorePage() {
       setLoading(false)
     }
   }
-
-  // Removed fetchCategories function
 
   const fetchCartCount = async () => {
     try {
@@ -85,11 +83,14 @@ export default function StorePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
         <Sidebar />
         <div className="ml-0 lg:ml-64 p-2 sm:p-4 md:p-6">
           <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-primary" />
+            <div className="text-center">
+              <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-blue-600 mx-auto mb-4" />
+              <p className="text-white/80 text-sm sm:text-base">Loading store...</p>
+            </div>
           </div>
         </div>
       </div>
@@ -97,13 +98,13 @@ export default function StorePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       <Sidebar />
       <div className="flex flex-col min-h-screen ml-0 lg:ml-64">
         <header className="p-2 sm:p-4 md:p-6">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
                 Store
               </h1>
               <ShoppingCart cartCount={cartCount} onCartUpdate={handleCartUpdate} />
@@ -118,7 +119,7 @@ export default function StorePage() {
                   variant={viewMode === "grid" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setViewMode("grid")}
-                  className={viewMode === "grid" ? "bg-gradient-to-r from-primary to-secondary" : "glass"}
+                  className={viewMode === "grid" ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white" : "bg-white/10 text-white border-white/20"}
                 >
                   <Grid className="h-4 w-4" />
                 </Button>
@@ -126,27 +127,27 @@ export default function StorePage() {
                   variant={viewMode === "list" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setViewMode("list")}
-                  className={viewMode === "list" ? "bg-gradient-to-r from-primary to-secondary" : "glass"}
+                  className={viewMode === "list" ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white" : "bg-white/10 text-white border-white/20"}
                 >
                   <List className="h-4 w-4" />
                 </Button>
               </div>
             </div>
 
-            <Card className="glass-card border-white/20 mb-4 sm:mb-6">
+            <Card className="bg-white/10 border-white/20 backdrop-blur-md mb-4 sm:mb-6">
               <CardContent className="p-4 sm:p-6">
                 <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center">
                   <div className="relative flex-1 max-w-md w-full">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
                       placeholder="Search products..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 glass border-white/20 h-9 sm:h-10"
+                      className="pl-10 bg-white/10 border-white/20 text-white placeholder-gray-400 h-9 sm:h-10 rounded-lg"
                     />
                   </div>
 
-                  <Button variant="outline" className="glass border-white/20 bg-transparent h-9 sm:h-10">
+                  <Button variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20 h-9 sm:h-10">
                     <Filter className="h-4 w-4 mr-2" />
                     Filters
                   </Button>
@@ -156,7 +157,7 @@ export default function StorePage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
               <div className="lg:col-span-1">
-                <Card className="glass-card border-white/20">
+                <Card className="bg-white/10 border-white/20 backdrop-blur-md">
                   <CardContent className="p-4">
                     <CategoryFilter
                       categories={categories}
@@ -169,11 +170,11 @@ export default function StorePage() {
 
               <div className="lg:col-span-3">
                 {filteredProducts.length === 0 ? (
-                  <Card className="glass-card border-white/20 text-center py-8 sm:py-12">
+                  <Card className="bg-white/10 border-white/20 backdrop-blur-md text-center py-8 sm:py-12">
                     <CardContent>
-                      <ShoppingBag className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-3 sm:mb-4" />
-                      <h3 className="text-base sm:text-lg font-semibold mb-2">No Products Found</h3>
-                      <p className="text-xs sm:text-sm text-muted-foreground">
+                      <ShoppingBag className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+                      <h3 className="text-base sm:text-lg font-semibold mb-2 text-white">No Products Found</h3>
+                      <p className="text-xs sm:text-sm text-gray-400">
                         {searchQuery ? "Try adjusting your search terms" : "No products available in this category"}
                       </p>
                     </CardContent>

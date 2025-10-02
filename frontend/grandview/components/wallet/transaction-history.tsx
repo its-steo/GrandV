@@ -39,70 +39,70 @@ export function TransactionHistory() {
   const getTransactionIcon = (type: string) => {
     switch (type) {
       case "DEPOSIT":
-        return <Plus className="h-4 w-4 text-blue-500" />
+        return <Plus className="h-4 w-4 text-blue-400" />
       case "EARNING":
       case "views_earning":
-        return <Eye className="h-4 w-4 text-green-500" />
+        return <Eye className="h-4 w-4 text-green-400" />
       case "COMMISSION":
       case "referral_commission":
-        return <Users className="h-4 w-4 text-purple-500" />
+        return <Users className="h-4 w-4 text-purple-400" />
       case "WITHDRAW_PENDING":
       case "WITHDRAW_COMPLETED":
       case "withdrawal":
-        return <Minus className="h-4 w-4 text-orange-500" />
+        return <Minus className="h-4 w-4 text-orange-400" />
       case "PURCHASE":
       case "package_purchase":
-        return <ArrowUpRight className="h-4 w-4 text-red-500" />
+        return <ArrowUpRight className="h-4 w-4 text-red-400" />
       default:
-        return <ArrowDownLeft className="h-4 w-4 text-gray-500" />
+        return <ArrowDownLeft className="h-4 w-4 text-gray-300" />
     }
   }
 
   const getStatusBadge = (status?: string) => {
     if (!status) return null
     const statusMap = {
-      PENDING: { variant: "secondary" as const, label: "Pending" },
-      COMPLETED: { variant: "default" as const, label: "Completed" },
-      CANCELLED: { variant: "destructive" as const, label: "Cancelled" },
+      PENDING: { variant: "secondary" as const, label: "Pending", className: "bg-teal-500/20 text-teal-300 border-teal-500/30" },
+      COMPLETED: { variant: "default" as const, label: "Completed", className: "bg-green-500/20 text-green-300 border-green-500/30" },
+      CANCELLED: { variant: "destructive" as const, label: "Cancelled", className: "bg-red-500/20 text-red-300 border-red-500/30" },
     }
     const config = statusMap[status as keyof typeof statusMap]
     if (!config) return null
-    return <Badge variant={config.variant}>{config.label}</Badge>
+    return <Badge variant={config.variant} className={config.className}>{config.label}</Badge>
   }
 
   const getTransactionColor = (type: string, amount: string) => {
     const isNegative = amount.startsWith("-")
     if (isNegative) {
-      return "text-red-600"
+      return "text-red-400"
     }
     switch (type) {
       case "DEPOSIT":
-        return "text-blue-600"
+        return "text-blue-400"
       case "EARNING":
       case "views_earning":
-        return "text-green-600"
+        return "text-green-400"
       case "COMMISSION":
       case "referral_commission":
-        return "text-purple-600"
+        return "text-purple-400"
       case "PURCHASE":
-        return "text-red-600"
+        return "text-red-400"
       default:
-        return "text-gray-600"
+        return "text-gray-300"
     }
   }
 
   if (loading) {
     return (
-      <Card className="glass-bright border-white/30 neon-glow">
+      <Card className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border-white/20 text-white">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
-            <History className="h-6 w-6 text-gray-400 neon-glow" />
-            <span className="neon-text">Transaction History</span>
+            <History className="h-6 w-6 text-white" />
+            <span className="font-bold">Transaction History</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-16 glass rounded-lg animate-pulse"></div>
+            <div key={i} className="h-16 bg-slate-800 rounded-lg animate-pulse"></div>
           ))}
         </CardContent>
       </Card>
@@ -110,44 +110,42 @@ export function TransactionHistory() {
   }
 
   return (
-    <Card className="glass-bright border-white/30 scale-on-hover neon-glow">
+    <Card className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border-white/20 text-white">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl">
-          <History className="h-6 w-6 text-gray-400 neon-glow" />
-          <span className="neon-text">Transaction History</span>
+          <History className="h-6 w-6 text-white" />
+          <span className="font-bold">Transaction History</span>
         </CardTitle>
       </CardHeader>
       <CardContent>
         {transactions.length === 0 ? (
           <div className="text-center py-12">
-            <History className="h-16 w-16 text-muted-foreground mx-auto mb-4 neon-glow" />
-            <h3 className="text-xl font-semibold mb-2 neon-text">No Transactions Yet</h3>
-            <p className="text-muted-foreground text-lg">Your transaction history will appear here.</p>
+            <History className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold mb-2 text-white">No Transactions Yet</h3>
+            <p className="text-gray-300 text-lg">Your transaction history will appear here.</p>
           </div>
         ) : (
           <div className="space-y-4">
             {transactions.map((transaction, index) => (
               <div
                 key={transaction.id}
-                className="flex items-center gap-4 p-4 rounded-lg glass border border-white/10 hover:border-white/20 transition-all duration-300 scale-on-hover"
+                className="flex items-center gap-4 p-4 rounded-lg glass-card border-white/20 hover:border-white/30 transition-all duration-300"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
-                <div className="flex-shrink-0 p-2 rounded-lg glass">
+                <div className="flex-shrink-0 p-2 rounded-lg bg-white/10">
                   {getTransactionIcon(transaction.transaction_type)}
                 </div>
-
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate text-foreground">{transaction.description}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm font-medium truncate text-white">{transaction.description}</p>
+                  <p className="text-xs text-gray-300">
                     {new Date(transaction.created_at).toLocaleDateString()} at{" "}
                     {new Date(transaction.created_at).toLocaleTimeString()}
                   </p>
                 </div>
-
                 <div className="flex items-center gap-3">
                   {getStatusBadge(transaction.status)}
                   <span
-                    className={`text-lg font-bold ${getTransactionColor(transaction.transaction_type, transaction.amount)} neon-text`}
+                    className={`text-lg font-bold ${getTransactionColor(transaction.transaction_type, transaction.amount)}`}
                   >
                     {transaction.amount.startsWith("-") ? "" : "+"}{" "}
                     {formatCurrency(Math.abs(Number.parseFloat(transaction.amount)))}

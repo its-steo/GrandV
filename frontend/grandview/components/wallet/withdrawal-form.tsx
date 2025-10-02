@@ -133,36 +133,36 @@ export function WithdrawalForm({ walletBalance, onSuccess }: WithdrawalFormProps
   }
 
   return (
-    <Card className="glass-bright border-white/30 scale-on-hover neon-glow-pink">
+    <Card className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border-white/20 text-white">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl">
-          <Minus className="h-6 w-6 text-orange-400 neon-glow-pink" />
-          <span className="neon-text">Withdraw Funds</span>
+          <Minus className="h-6 w-6 text-orange-400" />
+          <span className="font-bold">Withdraw Funds</span>
         </CardTitle>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="main" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2 glass-bright border border-white/20">
-            <TabsTrigger value="main" className="neon-button-primary">
+          <TabsList className="grid w-full grid-cols-2 glass-card border-white/20">
+            <TabsTrigger value="main" className="bg-green-500/20 hover:bg-green-500/30 text-white">
               Main Balance
             </TabsTrigger>
-            <TabsTrigger value="referral" className="neon-button-primary">
+            <TabsTrigger value="referral" className="bg-purple-500/20 hover:bg-purple-500/30 text-white">
               Agent Balance
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="main" className="space-y-4">
-            <div className="glass border border-green-400/30 p-4 rounded-lg neon-glow-green">
+            <div className="glass-card border-white/20 p-4 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingDown className="h-5 w-5 text-green-400" />
-                <span className="font-semibold text-green-200 text-lg">Main Balance</span>
+                <span className="font-semibold text-white text-lg">Main Balance</span>
               </div>
-              <p className="text-green-100 font-medium">Available: {formatCurrency(mainBalance)}</p>
+              <p className="text-gray-300 font-medium">Available: {formatCurrency(mainBalance)}</p>
             </div>
 
             <form onSubmit={handleMainWithdrawal} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="main-amount" className="text-foreground font-medium">
+                <Label htmlFor="main-amount" className="text-white font-medium">
                   Amount (KSH)
                 </Label>
                 <Input
@@ -174,13 +174,13 @@ export function WithdrawalForm({ walletBalance, onSuccess }: WithdrawalFormProps
                   placeholder="Enter amount to withdraw"
                   value={mainAmount}
                   onChange={(e) => setMainAmount(e.target.value)}
-                  className="input-neon text-lg"
+                  className="glass-card border-white/20 text-white placeholder:text-gray-300 text-lg"
                   required
                 />
-                <p className="text-xs text-muted-foreground">Minimum withdrawal: KSH 50.00</p>
+                <p className="text-xs text-gray-300">Minimum withdrawal: KSH 50.00</p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="main-mpesa" className="text-foreground font-medium">
+                <Label htmlFor="main-mpesa" className="text-white font-medium">
                   M-Pesa Number
                 </Label>
                 <Input
@@ -189,14 +189,14 @@ export function WithdrawalForm({ walletBalance, onSuccess }: WithdrawalFormProps
                   placeholder="254xxxxxxxxx"
                   value={mainMpesaNumber}
                   onChange={(e) => setMainMpesaNumber(e.target.value)}
-                  className="input-neon text-lg"
+                  className="glass-card border-white/20 text-white placeholder:text-gray-300 text-lg"
                   required
                 />
-                <p className="text-xs text-muted-foreground">Enter your M-Pesa number (254xxxxxxxxx)</p>
+                <p className="text-xs text-gray-300">Enter your M-Pesa number (254xxxxxxxxx)</p>
               </div>
               <Button
                 type="submit"
-                className="w-full neon-button-primary text-lg py-6 font-semibold bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                className="w-full bg-green-500 text-white hover:bg-green-600 text-lg py-6 font-semibold"
                 disabled={isWithdrawingMain || mainBalance < 50}
               >
                 {isWithdrawingMain ? (
@@ -215,17 +215,17 @@ export function WithdrawalForm({ walletBalance, onSuccess }: WithdrawalFormProps
           </TabsContent>
 
           <TabsContent value="referral" className="space-y-4">
-            <div className="glass border border-purple-400/30 p-4 rounded-lg neon-glow-purple">
+            <div className="glass-card border-white/20 p-4 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
                 <Users className="h-5 w-5 text-purple-400" />
-                <span className="font-semibold text-purple-200 text-lg">Agent Balance</span>
+                <span className="font-semibold text-white text-lg">Agent Balance</span>
               </div>
-              <p className="text-purple-100 font-medium">Available: {formatCurrency(referralBalance)}</p>
+              <p className="text-gray-300 font-medium">Available: {formatCurrency(referralBalance)}</p>
             </div>
 
             <form onSubmit={handleReferralWithdrawal} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="referral-amount" className="text-foreground font-medium">
+                <Label htmlFor="referral-amount" className="text-white font-medium">
                   Amount (KSH)
                 </Label>
                 <Input
@@ -237,13 +237,13 @@ export function WithdrawalForm({ walletBalance, onSuccess }: WithdrawalFormProps
                   placeholder="Enter amount to withdraw"
                   value={referralAmount}
                   onChange={(e) => setReferralAmount(e.target.value)}
-                  className="input-neon text-lg"
+                  className="glass-card border-white/20 text-white placeholder:text-gray-300 text-lg"
                   required
                 />
-                <p className="text-xs text-muted-foreground">Minimum withdrawal: KSH 50.00 (5% fee for marketers)</p>
+                <p className="text-xs text-gray-300">Minimum withdrawal: KSH 50.00 (5% fee for marketers)</p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="referral-mpesa" className="text-foreground font-medium">
+                <Label htmlFor="referral-mpesa" className="text-white font-medium">
                   M-Pesa Number
                 </Label>
                 <Input
@@ -252,14 +252,14 @@ export function WithdrawalForm({ walletBalance, onSuccess }: WithdrawalFormProps
                   placeholder="254xxxxxxxxx"
                   value={referralMpesaNumber}
                   onChange={(e) => setReferralMpesaNumber(e.target.value)}
-                  className="input-neon text-lg"
+                  className="glass-card border-white/20 text-white placeholder:text-gray-300 text-lg"
                   required
                 />
-                <p className="text-xs text-muted-foreground">Enter your M-Pesa number (254xxxxxxxxx)</p>
+                <p className="text-xs text-gray-300">Enter your M-Pesa number (254xxxxxxxxx)</p>
               </div>
               <Button
                 type="submit"
-                className="w-full neon-button-primary text-lg py-6 font-semibold bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+                className="w-full bg-purple-500 text-white hover:bg-purple-600 text-lg py-6 font-semibold"
                 disabled={isWithdrawingReferral || referralBalance < 50}
               >
                 {isWithdrawingReferral ? (
@@ -278,8 +278,8 @@ export function WithdrawalForm({ walletBalance, onSuccess }: WithdrawalFormProps
           </TabsContent>
         </Tabs>
 
-        <div className="mt-6 p-4 glass border border-orange-400/30 rounded-lg neon-glow">
-          <p className="text-sm text-orange-200">
+        <div className="mt-6 p-4 glass-card border-white/20">
+          <p className="text-sm text-gray-300">
             ℹ️ All withdrawals require admin approval (1-3 business days). You will receive an email once processed.
           </p>
         </div>

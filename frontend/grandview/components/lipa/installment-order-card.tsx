@@ -1,4 +1,3 @@
-// components/lipa/installment-order-card.tsx
 "use client"
 
 import { useState } from "react"
@@ -11,6 +10,31 @@ import type { InstallmentOrder } from "@/lib/api"
 import { formatCurrency } from "@/lib/utils"
 import { InstallmentPaymentModal } from "./installment-payment-modal"
 
+// Define glassmorphism styles
+const glassmorphismStyles = `
+  .glass-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+  }
+  .glass-card:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  }
+  .dark .glass-card {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  .dark .glass-card:hover {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+  }
+`
 
 interface InstallmentOrderCardProps {
   order: InstallmentOrder
@@ -116,7 +140,8 @@ export function InstallmentOrderCard({ order, onPaymentSuccess }: InstallmentOrd
 
   return (
     <>
-      <Card className="glass-card border-white/10 hover:border-primary/30 transition-all duration-300">
+      <style>{glassmorphismStyles}</style>
+      <Card className="glass-card">
         <CardContent className="p-3 sm:p-4 md:p-6">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4">

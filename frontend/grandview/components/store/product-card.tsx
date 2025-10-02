@@ -1,3 +1,4 @@
+// Updated components/store/product-card.tsx
 "use client"
 
 import type React from "react"
@@ -5,7 +6,7 @@ import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ShoppingCart, Eye, Star, Loader2, Calendar, CreditCard } from "lucide-react"
+import { ShoppingCart, Eye, Star, Loader2, Calendar, CreditCard, Percent } from "lucide-react"
 import { ApiService, type Product } from "@/lib/api"
 import { toast } from "sonner"
 import Link from "next/link"
@@ -37,11 +38,19 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
   }
 
   const bestInstallmentPlan =
-    product.installment_available && product.installment_plans?.length > 0
+    product.supports_installments && product.installment_plans?.length > 0
       ? product.installment_plans.reduce((best, current) =>
           Number.parseFloat(current.monthly_payment) < Number.parseFloat(best.monthly_payment) ? current : best,
         )
       : null
+
+  const hasCoupon = product.available_coupons && product.available_coupons.length > 0
+  const discountedPrice = product.discounted_price && product.discounted_price < product.price ? product.discounted_price : null
+  const discountPercentage = discountedPrice
+    ? Math.round(
+        (Number(product.price) - Number(discountedPrice)) / Number(product.price) * 100
+      )
+    : 0
 
   return (
     <Link href={`/store/product/${product.id}`}>
@@ -63,10 +72,16 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
                 Featured
               </Badge>
             )}
-            {product.installment_available && (
+            {product.supports_installments && (
               <Badge className="absolute top-2 right-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white">
                 <CreditCard className="h-3 w-3 mr-1" />
                 Lipa Mdogo
+              </Badge>
+            )}
+            {hasCoupon && discountPercentage > 0 && (
+              <Badge className="absolute bottom-2 left-2 bg-gradient-to-r from-green-500 to-teal-500 text-white">
+                <Percent className="h-3 w-3 mr-1" />
+                {discountPercentage}% Off
               </Badge>
             )}
             <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -87,7 +102,16 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold text-primary">{formatCurrency(product.price)}</div>
+                <div className="text-2xl font-bold text-primary">
+                  {discountedPrice ? (
+                    <>
+                      <s className="text-lg text-muted-foreground mr-2">{formatCurrency(product.price)}</s>
+                      {formatCurrency(discountedPrice)}
+                    </>
+                  ) : (
+                    formatCurrency(product.price)
+                  )}
+                </div>
                 <Button
                   onClick={handleAddToCart}
                   disabled={isAddingToCart}
