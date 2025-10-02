@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import SupportMessage, SupportComment, SupportLike, SupportMute, SupportBlock
+from .models import SupportMessage, SupportComment, SupportLike, SupportMute, SupportBlock, PrivateMessage
 
 @admin.register(SupportMessage)
 class SupportMessageAdmin(admin.ModelAdmin):
@@ -26,3 +26,8 @@ class SupportMuteAdmin(admin.ModelAdmin):
 class SupportBlockAdmin(admin.ModelAdmin):
     list_display = ('user', 'blocked_by', 'created_at')
     search_fields = ('user__username', 'blocked_by__username')
+
+@admin.register(PrivateMessage)
+class PrivateMessageAdmin(admin.ModelAdmin):
+    list_display = ('sender', 'receiver', 'content', 'created_at')
+    search_fields = ('sender__username', 'receiver__username', 'content')

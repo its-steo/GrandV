@@ -10,6 +10,7 @@ class CustomUser(AbstractUser):
     referral_code = models.CharField(max_length=8, unique=True, editable=False)
     referred_by = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='referrals')
     is_marketer = models.BooleanField(default=False)
+    is_manager = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         if not self.referral_code:

@@ -4,9 +4,11 @@ from packages.models import Package, Purchase
 from django.utils import timezone
 
 class SubmissionSerializer(serializers.ModelSerializer):
+    advert_title = serializers.CharField(source='advert.title')  # Added for history display
+
     class Meta:
         model = Submission
-        fields = ['id', 'user', 'advert', 'views_count', 'screenshot', 'earnings', 'submission_date']
+        fields = ['id', 'user', 'advert', 'advert_title', 'views_count', 'screenshot', 'earnings', 'submission_date']
 
 class AdvertSerializer(serializers.ModelSerializer):
     can_submit = serializers.SerializerMethodField()

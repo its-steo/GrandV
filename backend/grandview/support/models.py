@@ -57,3 +57,20 @@ class SupportBlock(models.Model):
 
     def __str__(self):
         return f"{self.user.username} blocked by {self.blocked_by.username}"
+    
+class PrivateMessage(models.Model):
+    sender = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='sent_privates')
+    receiver = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='received_privates')
+    content = models.TextField(max_length=1000, blank=True)
+    image = models.ImageField(upload_to='private/images/', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    def clean(self):
+        if not self.content and not self.image:
+            raise ValidationError("Message must have content or an image.")
+        if self.image and self.image.size > 5 * 1024 * 1024:
+            raise ValidationError("Image size must not exceed 5MB.")
+
+    def __str__(self):
+        return f"{self.sender.username} to {self.receiver.username}: {self.content[:50]}"

@@ -69,25 +69,36 @@ def send_order_status_update_email(sender, instance, created, **kwargs):
         return  # Confirmation handled in view; no change
 
     try:
-        template_name = 'emails/order_status_update.html'
-        subject = f"Your Order #{instance.id} Status Update: {instance.status.capitalize()} 📦"
+        if instance.status == 'DELIVERED':
+            template_name = 'emails/order_delivered_rating.html'
+            subject = "Your Order Has Been Delivered! Please Rate Our Service 🌟"
+            context = {
+                'user': instance.user,
+                'order_id': instance.id,
+                'ordered_at': instance.ordered_at,
+                'total': instance.discounted_total,
+                'frontend_url': f'http://yourapp.com/orders/{instance.id}/rate'  # Replace with your frontend URL
+            }
+        else:
+            template_name = 'emails/order_status_update.html'
+            subject = f"Your Order #{instance.id} Status Update: {instance.status.capitalize()} 📦"
+            status_descriptions = {
+                'PROCESSING': 'Your order is now being processed. We\'re preparing your items!',
+                'SHIPPED': 'Great news! Your order has been shipped and is on its way.',
+                'DELIVERED': 'Your order has been delivered. Enjoy your purchase!',
+                'CANCELLED': 'Your order has been cancelled. If this was unexpected, please contact support.',
+            }
+            description = status_descriptions.get(instance.status, f'Your order status has changed to {instance.status}.')
+            context = {
+                'user': instance.user,
+                'order_id': instance.id,
+                'status': instance.status,
+                'description': description,
+                'ordered_at': instance.ordered_at,
+                'total': instance.discounted_total,
+            }
 
-        status_descriptions = {
-            'PROCESSING': 'Your order is now being processed. We\'re preparing your items!',
-            'SHIPPED': 'Great news! Your order has been shipped and is on its way.',
-            'DELIVERED': 'Your order has been delivered. Enjoy your purchase!',
-            'CANCELLED': 'Your order has been cancelled. If this was unexpected, please contact support.',
-        }
-        description = status_descriptions.get(instance.status, f'Your order status has changed to {instance.status}.')
-
-        html_message = render_to_string(template_name, {
-            'user': instance.user,
-            'order_id': instance.id,
-            'status': instance.status,
-            'description': description,
-            'ordered_at': instance.ordered_at,
-            'total': instance.discounted_total,
-        })
+        html_message = render_to_string(template_name, context)
         plain_message = strip_tags(html_message)
         from_email = 'yourapp@example.com'  # Replace with your sender email
         to_email = instance.user.email

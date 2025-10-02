@@ -1,3 +1,4 @@
+from datetime import timedelta
 from rest_framework import serializers
 from django.db import transaction
 from django.utils import timezone
@@ -29,6 +30,13 @@ class ProductImageSerializer(serializers.ModelSerializer):
         model = ProductImage
         fields = ['id', 'image']
 
+class CouponSerializer(serializers.ModelSerializer):
+    applicable_products = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+
+    class Meta:
+        model = Coupon
+        fields = ['id', 'code', 'discount_type', 'discount_value', 'is_active', 'applicable_products']
+
 class ProductSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     category_id = serializers.PrimaryKeyRelatedField(
@@ -38,10 +46,25 @@ class ProductSerializer(serializers.ModelSerializer):
     )
     sub_images = ProductImageSerializer(source='productimage_set', many=True, read_only=True)
     main_image = serializers.ImageField(use_url=True)
+    available_coupons = CouponSerializer(source='coupons', many=True, read_only=True)
+    discounted_price = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Product
-        fields = ['id', 'name', 'price', 'main_image', 'sub_images', 'description', 'category', 'category_id', 'is_featured', 'supports_installments']
+        fields = ['id', 'name', 'price', 'main_image', 'sub_images', 'description', 'category', 'category_id', 'is_featured', 'supports_installments', 'available_coupons', 'discounted_price']
+
+    def get_discounted_price(self, obj):
+        coupons = obj.coupons.filter(is_active=True)
+        if not coupons.exists():
+            return obj.price
+        min_price = obj.price
+        for coupon in coupons:
+            if coupon.discount_type == 'PERCENT':
+                d = obj.price * (coupon.discount_value / Decimal('100'))
+            else:
+                d = min(coupon.discount_value, obj.price)
+            min_price = min(min_price, obj.price - d)
+        return min_price
 
 class CartItemSerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
@@ -70,15 +93,69 @@ class CartSerializer(serializers.ModelSerializer):
     def get_total(self, obj):
         return sum(item.quantity * item.product.price for item in obj.items.all())
 
-class CouponSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Coupon
-        fields = ['id', 'code', 'discount_type', 'discount_value', 'is_active']
-
 class InstallmentPaymentSerializer(serializers.ModelSerializer):
+    installment_order_id = serializers.PrimaryKeyRelatedField(queryset=InstallmentOrder.objects.all(), source='installment_order')
+
     class Meta:
         model = InstallmentPayment
-        fields = ['id', 'amount', 'paid_at']
+        fields = ['id', 'amount', 'paid_at', 'installment_order_id']
+        read_only_fields = ['id', 'paid_at']
+
+    def validate(self, data):
+        user = self.context['request'].user
+        installment_order = data['installment_order']
+        if installment_order.order.user != user:
+            raise ValidationError({"installment_order_id": "This installment order does not belong to you."})
+        if installment_order.installment_status in ['PAID', 'PENDING']:
+            raise ValidationError({"installment_order_id": "Cannot make payment on a paid or pending installment."})
+        if data['amount'] > installment_order.remaining_balance:
+            raise ValidationError({"amount": "Payment amount exceeds remaining balance."})
+        return data
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        installment_order = validated_data['installment_order']
+        amount = validated_data['amount']
+
+        # Deduct from wallet
+        wallet = Wallet.objects.get(user=user)
+        if user.is_marketer:
+            # Prioritize views_earnings_balance for marketers
+            from_earnings = min(amount, wallet.views_earnings_balance)
+            from_deposit = amount - from_earnings
+            wallet.views_earnings_balance -= from_earnings
+            wallet.deposit_balance -= from_deposit
+            balance_type = (
+                'views_earnings_balance' if from_earnings > 0 and from_deposit == 0
+                else 'deposit_balance' if from_deposit > 0 and from_earnings == 0
+                else 'mixed_balance'
+            )
+        else:
+            if wallet.deposit_balance < amount:
+                raise ValidationError({"balance": "Insufficient deposit balance."})
+            wallet.deposit_balance -= amount
+            balance_type = 'deposit_balance'
+        wallet.save()
+
+        # Create payment
+        payment = super().create(validated_data)
+
+        # Create transaction
+        transaction = Transaction.objects.create(
+            user=user,
+            amount=-amount,
+            transaction_type='INSTALLMENT_PAYMENT',
+            description=f"Installment payment for Order {installment_order.order.id}",
+            balance_type=balance_type
+        )
+        payment.transaction = transaction
+        payment.save()
+
+        # Update due date for next payment
+        installment_order.due_date += timedelta(days=30)
+        installment_order.save()
+
+        return payment
 
 class InstallmentOrderSerializer(serializers.ModelSerializer):
     payments = InstallmentPaymentSerializer(many=True, read_only=True)
@@ -163,20 +240,29 @@ class OrderSerializer(serializers.ModelSerializer):
             raise ValidationError({"phone": "This field is required."})
 
         # Apply coupon if provided
+        data['discounted_total'] = total
         if coupon_code:
             coupon = Coupon.objects.filter(code=coupon_code, is_active=True).first()
             if not coupon:
                 logger.warning(f"Invalid coupon code: {coupon_code}")
                 raise ValidationError({"coupon_code": "Invalid or inactive coupon code."})
-            data['coupon'] = coupon
+            applicable_products = coupon.applicable_products.all()
+            has_specific_products = applicable_products.exists()
+            applicable_total = Decimal('0')
+            for item in items:
+                if not has_specific_products or item['product'] in applicable_products:
+                    applicable_total += item['quantity'] * item['product'].price
+            if applicable_total <= 0:
+                logger.warning(f"Coupon {coupon_code} does not apply to any items")
+                raise ValidationError({"coupon_code": "This coupon does not apply to any items in your cart."})
             if coupon.discount_type == 'PERCENT':
-                discount = total * (coupon.discount_value / Decimal('100'))
+                discount = applicable_total * (coupon.discount_value / Decimal('100'))
             else:
-                discount = coupon.discount_value
-            data['discounted_total'] = max(total - discount, Decimal('0'))
+                discount = min(coupon.discount_value, applicable_total)
+            data['discounted_total'] = total - discount
+            data['coupon'] = coupon
         else:
             data['coupon'] = None
-            data['discounted_total'] = total
         data['total'] = total
 
         # Validate wallet balance

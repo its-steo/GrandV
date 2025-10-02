@@ -1,3 +1,4 @@
+from django.forms import ValidationError
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -13,10 +14,10 @@ from datetime import timedelta
 import logging
 import boto3
 from django.conf import settings
-from django.core.mail import send_mail  # Added: For sending email
-from django.template.loader import render_to_string  # Added: For rendering email template
-from django.utils.html import strip_tags  # Added: For plain text fallback
-from django.template.exceptions import TemplateDoesNotExist  # Added: To handle template not found
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from django.template.exceptions import TemplateDoesNotExist
 
 logger = logging.getLogger(__name__)
 
@@ -109,6 +110,40 @@ class RemoveFromCartView(APIView):
         serializer = CartSerializer(cart)
         return Response(serializer.data)
 
+class OrderListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        orders = Order.objects.filter(user=request.user)
+        serializer = OrderSerializer(orders, many=True)
+        return Response(serializer.data)
+
+class InstallmentOrderListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        installment_orders = InstallmentOrder.objects.filter(order__user=request.user)
+        serializer = InstallmentOrderSerializer(installment_orders, many=True)
+        return Response(serializer.data)
+
+class InstallmentPaymentView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = InstallmentPaymentSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            try:
+                with transaction.atomic():
+                    payment = serializer.save()
+                    return Response(InstallmentPaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
+            except ValidationError as ve:
+                logger.error(f"Validation error during installment payment: {str(ve)}")
+                return Response({"error": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                logger.error(f"Failed to process installment payment: {str(e)}")
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 class CheckoutView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -122,8 +157,6 @@ class CheckoutView(APIView):
 
         try:
             order = serializer.save()
-
-            # Send order confirmation email
             try:
                 if order.payment_method == 'INSTALLMENT':
                     template_name = 'emails/order_confirmation_installment.html'
@@ -150,7 +183,7 @@ class CheckoutView(APIView):
 
                 html_message = render_to_string(template_name, context)
                 plain_message = strip_tags(html_message)
-                from_email = 'yourapp@example.com'  # Replace with your sender email
+                from_email = 'yourapp@example.com'
                 to_email = request.user.email
 
                 send_mail(
@@ -164,107 +197,12 @@ class CheckoutView(APIView):
             except TemplateDoesNotExist as e:
                 logger.warning(f"Email template not found: {str(e)}. Skipping email notification.")
             except Exception as e:
-                logger.error(f"Failed to send order confirmation email: {str(e)}. Order created but email not sent.")
-
-            return Response({"order_id": order.id}, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            logger.error(f"Checkout failed: {str(e)}")
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-class OrderListView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        orders = Order.objects.filter(user=request.user)
-        serializer = OrderSerializer(orders, many=True)
-        return Response(serializer.data)
-
-class InstallmentOrderListView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        installment_orders = InstallmentOrder.objects.filter(order__user=request.user)
-        serializer = InstallmentOrderSerializer(installment_orders, many=True)
-        return Response(serializer.data)
-
-class InstallmentPaymentView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    @transaction.atomic
-    def post(self, request):
-        serializer = InstallmentPaymentSerializer(data=request.data)
-        if serializer.is_valid():
-            installment_order_id = request.data.get('installment_order_id')
-            amount = Decimal(request.data.get('amount'))
-            installment_order = get_object_or_404(InstallmentOrder, pk=installment_order_id, order__user=request.user)
-            if installment_order.remaining_balance < amount:
-                return Response({"error": "Payment amount exceeds remaining balance"}, status=status.HTTP_400_BAD_REQUEST)
-            wallet = Wallet.objects.get(user=request.user)
-            if request.user.is_marketer:
-                if wallet.deposit_balance + wallet.views_earnings_balance < amount:
-                    return Response({"error": "Insufficient balance"}, status=status.HTTP_400_BAD_REQUEST)
-                from_earnings = min(amount, wallet.views_earnings_balance)
-                from_deposit = amount - from_earnings
-                wallet.views_earnings_balance -= from_earnings
-                wallet.deposit_balance -= from_deposit
-                balance_type = (
-                    'views_earnings_balance' if from_earnings > 0 and from_deposit == 0
-                    else 'deposit_balance' if from_deposit > 0 and from_earnings == 0
-                    else 'mixed_balance'
-                )
-            else:
-                if wallet.deposit_balance < amount:
-                    return Response({"error": "Insufficient deposit balance"}, status=status.HTTP_400_BAD_REQUEST)
-                wallet.deposit_balance -= amount
-                balance_type = 'deposit_balance'
-            wallet.save()
-
-            payment = InstallmentPayment.objects.create(
-                installment_order=installment_order,
-                amount=amount
-            )
-
-            # Create transaction
-            Transaction.objects.create(
-                user=request.user,
-                amount=-amount,
-                transaction_type='INSTALLMENT_PAYMENT',
-                description=f"Installment payment for Order {installment_order.order.id}",
-                balance_type=balance_type
-            )
-
-            installment_order.due_date = timezone.now() + timedelta(days=30)
-            installment_order.save()
-
-            # Send payment confirmation email
-            try:
-                subject = "Installment Payment Received 💸"
-                html_message = render_to_string('emails/installment_payment_confirmation.html', {
-                    'user': request.user,
-                    'order_id': installment_order.order.id,
-                    'amount': amount,
-                    'remaining_balance': installment_order.remaining_balance,
-                    'next_due_date': installment_order.due_date,
-                })
-                plain_message = strip_tags(html_message)
-                from_email = 'yourapp@example.com'  # Replace with your sender email
-                to_email = request.user.email
-
-                send_mail(
-                    subject,
-                    plain_message,
-                    from_email,
-                    [to_email],
-                    html_message=html_message,
-                )
-                logger.info(f"Installment payment confirmation email sent to {to_email}")
-            except TemplateDoesNotExist as e:
-                logger.warning(f"Email template not found: {str(e)}. Skipping email notification.")
-            except Exception as e:
-                logger.error(f"Failed to send installment payment email: {str(e)}. Payment processed but email not sent.")
+                logger.error(f"Failed to send order confirmation email: {str(e)}")
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Checkout failed: {str(e)}")
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class LipaRegisterView(APIView):
     permission_classes = [IsAuthenticated]
@@ -274,8 +212,6 @@ class LipaRegisterView(APIView):
         serializer = LipaRegistrationSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             registration = serializer.save()
-
-            # Added: Send Lipa registration confirmation email
             try:
                 subject = "Thank You for Registering for Lipa Mdogo Mdogo 📝"
                 html_message = render_to_string('emails/lipa_registration_confirmation.html', {
@@ -284,7 +220,7 @@ class LipaRegisterView(APIView):
                     'created_at': registration.created_at,
                 })
                 plain_message = strip_tags(html_message)
-                from_email = 'yourapp@example.com'  # Replace with your sender email
+                from_email = 'yourapp@example.com'
                 to_email = request.user.email
 
                 send_mail(
@@ -354,22 +290,75 @@ class TrackOrderView(APIView):
 
     def get(self, request, order_id):
         order = get_object_or_404(Order, pk=order_id, user=request.user)
-        if order.status not in ['SHIPPED', 'DELIVERED']:
-            return Response({"message": "Tracking information not available"}, status=status.HTTP_404_NOT_FOUND)
         
-        # Mock tracking data (replace with actual tracking service integration)
         tracking_data = {
             'tracking_number': f"TRK{order.id:08d}",
-            'estimated_delivery': (order.ordered_at + timedelta(days=7)).isoformat(),
             'history': [
                 {'description': 'Order placed', 'timestamp': order.ordered_at.isoformat()},
-                {'description': 'Order processed', 'timestamp': (order.ordered_at + timedelta(days=1)).isoformat()},
-                {'description': 'Order shipped', 'timestamp': (order.ordered_at + timedelta(days=2)).isoformat()} if order.status == 'SHIPPED' or order.status == 'DELIVERED' else None,
-                {'description': 'Order delivered', 'timestamp': (order.ordered_at + timedelta(days=5)).isoformat()} if order.status == 'DELIVERED' else None,
             ]
         }
-        tracking_data['history'] = [event for event in tracking_data['history'] if event]
+
+        if order.status == 'PROCESSING':
+            tracking_data['status'] = 'processing'
+            tracking_data['preparation_steps'] = [
+                "Your delivery guy has arrived",
+                "The company is packaging your product",
+                "Delivery guy is collecting your package"
+            ]
+            tracking_data['history'].append(
+                {'description': 'Order processed', 'timestamp': (order.ordered_at + timedelta(hours=1)).isoformat()}
+            )
+        elif order.status == 'SHIPPED':
+            tracking_data['status'] = 'shipped'
+            tracking_data['estimated_delivery'] = (order.ordered_at + timedelta(days=7)).isoformat()
+            tracking_data['estimated_minutes'] = 30  # Demo value; can be dynamic
+            tracking_data['delivery_guy'] = {
+                'name': 'John Doe',
+                'vehicle_type': 'Motorcycle'
+            }
+            tracking_data['history'].extend([
+                {'description': 'Order processed', 'timestamp': (order.ordered_at + timedelta(hours=1)).isoformat()},
+                {'description': 'Order shipped', 'timestamp': (order.ordered_at + timedelta(hours=2)).isoformat()}
+            ])
+        elif order.status == 'DELIVERED':
+            tracking_data['status'] = 'delivered'
+            tracking_data['estimated_delivery'] = (order.ordered_at + timedelta(days=7)).isoformat()
+            tracking_data['history'].extend([
+                {'description': 'Order processed', 'timestamp': (order.ordered_at + timedelta(hours=1)).isoformat()},
+                {'description': 'Order shipped', 'timestamp': (order.ordered_at + timedelta(hours=2)).isoformat()},
+                {'description': 'Order delivered', 'timestamp': (order.ordered_at + timedelta(hours=5)).isoformat()}
+            ])
+        else:
+            return Response({"message": "Tracking information not available"}, status=status.HTTP_404_NOT_FOUND)
+        
         return Response(tracking_data)
+
+class ConfirmDeliveryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, order_id):
+        order = get_object_or_404(Order, pk=order_id, user=request.user)
+        if order.status != 'SHIPPED':
+            return Response({"error": "Order not in shipped status"}, status=status.HTTP_400_BAD_REQUEST)
+        order.status = 'DELIVERED'
+        order.save()
+        return Response({"message": "Delivery confirmed"}, status=status.HTTP_200_OK)
+
+class SubmitRatingView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, order_id):
+        order = get_object_or_404(Order, pk=order_id, user=request.user)
+        if order.status != 'DELIVERED':
+            return Response({"error": "Can only rate delivered orders"}, status=status.HTTP_400_BAD_REQUEST)
+        rating = request.data.get('rating')
+        if not isinstance(rating, int) or rating < 1 or rating > 5:
+            return Response({"error": "Rating must be an integer between 1 and 5"}, status=status.HTTP_400_BAD_REQUEST)
+        if order.rating:
+            return Response({"error": "Order already rated"}, status=status.HTTP_400_BAD_REQUEST)
+        order.rating = rating
+        order.save()
+        return Response({"message": "Rating submitted successfully"}, status=status.HTTP_200_OK)
 
 class CouponValidateView(APIView):
     permission_classes = [IsAuthenticated]

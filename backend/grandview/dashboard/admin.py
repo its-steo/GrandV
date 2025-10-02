@@ -1,3 +1,4 @@
+# Modified admin.py
 from django.contrib import admin
 from .models import (
     Category, Image, Product, Cart, CartItem, Order, OrderItem,
@@ -41,6 +42,7 @@ class CouponAdmin(admin.ModelAdmin):
     list_display = ('code', 'discount_type', 'discount_value', 'is_active')
     list_filter = ('discount_type', 'is_active')
     search_fields = ('code',)
+    filter_horizontal = ('applicable_products',)
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
