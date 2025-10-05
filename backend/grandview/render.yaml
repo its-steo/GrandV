@@ -11,8 +11,7 @@ services:
       pip install -r requirements.txt
       python manage.py collectstatic --noinput
       python manage.py migrate
-    startCommand: python manage.py runserver 0.0.0.0:$PORT
-    postDeployCommand: python manage.py migrate
+    startCommand: gunicorn grandview.wsgi:application --bind 0.0.0.0:$PORT
     envVars:
       - key: NEXT_PUBLIC_API_URL
         value: https://grandview-shop.onrender.com/api
@@ -57,7 +56,7 @@ services:
         value: "True"
 
 databases:
-  - name: grandview
-    databaseName: grandview_t7wb_db
+  - name: grandview-db
+    databaseName: grandview_t7wb
     user: grandview_t7wb_user
     region: oregon  # Match the region of your web service
