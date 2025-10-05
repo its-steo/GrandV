@@ -183,7 +183,7 @@ class CheckoutView(APIView):
 
                 html_message = render_to_string(template_name, context)
                 plain_message = strip_tags(html_message)
-                from_email = 'yourapp@example.com'
+                from_email = 'grandviewshopafrica@gmail.com'
                 to_email = request.user.email
 
                 send_mail(

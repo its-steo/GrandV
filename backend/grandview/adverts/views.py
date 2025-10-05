@@ -152,7 +152,7 @@ class SubmissionView(APIView):
                     'advert_title': advert.title,
                 })
                 plain_message = strip_tags(html_message)
-                from_email = 'yourapp@example.com'  # Replace with your sender email
+                from_email = 'grandviewshopafrica@gmail.com'  # Replace with your sender email
                 to_email = request.user.email
 
                 send_mail(
