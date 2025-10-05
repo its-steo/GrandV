@@ -1,5 +1,5 @@
 import type { NextConfig } from 'next';
-import withPWA from 'next-pwa'; // Now recognized by TypeScript
+import withPWA from 'next-pwa';
 
 const nextConfig: NextConfig = {
   typescript: {
@@ -8,38 +8,28 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: false,
   },
-  //images: {
-  //  remotePatterns: [
-  //    { protocol: 'http', hostname: 'localhost', port: '8000', pathname: '/**' },
-  //    { protocol: 'http', hostname: '127.0.0.1', port: '8000', pathname: '/**' },
-  //    { protocol: 'https', hostname: 'grandview-shop.onrender.com', port: '8000', pathname: '/**' },
-  //  ],
-  //  deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-  //  imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-  //  formats: ['image/webp', 'image/avif'],
-  //},
   images: {
-  remotePatterns: [
-    {
-      protocol: 'https',
-      hostname: 'grandview-shop.onrender.com',
-      port: '',
-      pathname: '/media/**',
-    },
-    {
-      protocol: 'http',
-      hostname: 'localhost',
-      port: '3000',
-      pathname: '/images/**',
-    },
-    {
-      protocol: 'http',
-      hostname: '127.0.0.1',
-      port: '3000',
-      pathname: '/images/**',
-    },
-  ],
-},
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'grandview-shop.onrender.com',
+        port: '',
+        pathname: '/media/**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '3000',
+        pathname: '/images/**',
+      },
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        port: '3000',
+        pathname: '/images/**',
+      },
+    ],
+  },
 };
 
 export default withPWA({
@@ -47,14 +37,5 @@ export default withPWA({
   disable: process.env.NODE_ENV === 'development',
   register: true,
   skipWaiting: true,
-  runtimeCaching: [
-    {
-      urlPattern: /^https?.*/,
-      handler: 'NetworkFirst',
-      options: {
-        cacheName: 'offlineCache',
-        expiration: { maxEntries: 200 },
-      },
-    },
-  ],
+  swSrc: 'public/sw.js', // Specify custom service worker source
 })(nextConfig);

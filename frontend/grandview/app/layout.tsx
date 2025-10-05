@@ -9,15 +9,22 @@ import "./globals.css";
 import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "sonner";
 import { Suspense } from "react";
-import Head from "next/head"; // Correct import for App Router
+import Head from "next/head";
 
 export const metadata: Metadata = {
   title: "Grandview-shop - Professional WhatsApp Advertising Platform",
   description:
     "Professional advertising platform for WhatsApp marketing campaigns with advanced analytics and user management",
   generator: "v0.app",
+  manifest: "/manifest.json", // Ensure manifest is referenced
   icons: {
-    icon: "/images/grandvlogo.png", // Favicon and potential PWA icon
+    icon: [
+      { url: "/images/grandvlogo-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/images/grandvlogo-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/images/grandvlogo-192.png", sizes: "192x192", type: "image/png" },
+    ],
   },
 };
 
@@ -26,7 +33,9 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
     <html lang="en" suppressHydrationWarning>
       <Head>
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#3d3d3d" /> {/* Fixed hex code */}
+        <meta name="theme-color" content="#3d3d3d" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </Head>
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <ThemeProvider

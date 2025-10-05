@@ -100,7 +100,7 @@ def send_order_status_update_email(sender, instance, created, **kwargs):
 
         html_message = render_to_string(template_name, context)
         plain_message = strip_tags(html_message)
-        from_email = 'yourapp@example.com'  # Replace with your sender email
+        from_email = 'grandviewshopafrica@gmail.com'  # Replace with your sender email
         to_email = instance.user.email
 
         send_mail(
