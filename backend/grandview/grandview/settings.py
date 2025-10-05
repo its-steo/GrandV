@@ -148,14 +148,15 @@ WSGI_APPLICATION = 'grandview.wsgi.application'
 
 # Render Postgres (uncomment for production)
 DATABASES = {
-     'default': dj_database_url.config(
-         default=os.getenv('DATABASE_URL'),
-         conn_max_age=600,
-         conn_health_checks=True,
-         ssl_require=os.getenv('DATABASE_SSL', 'True') == 'True'
-     )
- }
-
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME', 'grandview_t7wb'),
+        'USER': os.getenv('DB_USER', 'grandview_t7wb_user'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'YiGzy8w5g0eQNYHGHMqvf5cmopUagzUU'),
+        'HOST': os.getenv('DB_HOST', 'dpg-d3h8nlbuibrs73ao8k6g-a.oregon-postgres.render.com'),
+        'PORT': os.getenv('DB_PORT', '5432'),
+    }
+}
 # Custom storage for S3 (dashboard, adverts)
 class S3MediaStorage(S3Boto3Storage):
     bucket_name = os.getenv('AWS_STORAGE_BUCKET_NAME', 'grandview-storage')
