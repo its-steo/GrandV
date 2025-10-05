@@ -57,6 +57,6 @@ services:
 
 databases:
   - name: grandview-db
-    databaseName: grandview_t7wb
-    user: grandview_t7wb_user
+    databaseName: grandviewdb
+    user: grandviewdb_user
     region: oregon  # Match the region of your web service
