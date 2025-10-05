@@ -21,6 +21,8 @@ export const metadata: Metadata = {
     icon: [
       { url: "/images/grandvlogo-192.png", sizes: "192x192", type: "image/png" },
       { url: "/images/grandvlogo-512.png", sizes: "512x512", type: "image/png" },
+      { url: "/images/grandvlogo-maskable-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/images/grandvlogo-maskable-512.png", sizes: "512x512", type: "image/png" },
     ],
     apple: [
       { url: "/images/grandvlogo-192.png", sizes: "192x192", type: "image/png" },

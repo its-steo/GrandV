@@ -33,9 +33,10 @@ const nextConfig: NextConfig = {
 };
 
 export default withPWA({
-  dest: 'public',
-  disable: process.env.NODE_ENV === 'development',
-  register: true,
-  skipWaiting: true,
-  swSrc: 'public/sw.js', // Specify custom service worker source
+  dest: 'public', // Output directory for the generated service worker
+  disable: false, // Enable in development for testing; revert to process.env.NODE_ENV === 'development' after testing
+  register: true, // Automatically register the service worker
+  skipWaiting: true, // Skip waiting on install
+  swSrc: 'app/sw.js', // Path to the custom service worker source file
+  swDest: 'sw.js', // Output filename for the generated service worker (in public/)
 })(nextConfig);
