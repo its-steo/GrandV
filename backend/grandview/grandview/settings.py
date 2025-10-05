@@ -103,30 +103,58 @@ CHANNEL_LAYERS = {
 }
 
 # CORS settings
-CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'False') == 'True'
-CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000').split(',')
+CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000,https://grand-v.vercel.app,https://grandview-shop.onrender.com').split(',')
+CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'True') == 'True'
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    'content-type',
+    'authorization',
+    'x-csrftoken',
+]
 
-# CSRF Trusted Origins
-CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000').split(',')
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000,https://grandview-shop.onrender.com,https://grand-v.vercel.app').split(',')
 
-# Database
-# Use DATABASE_URL if available (production), fallback to individual vars (local)
-database_url = os.getenv('DATABASE_URL')
-if database_url:
-    DATABASES = {
-        'default': dj_database_url.parse(database_url, conn_max_age=600, conn_health_checks=True),
-    }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DB_NAME', 'grandview_t7wb'),
-            'USER': os.getenv('DB_USER', 'grandview_t7wb_user'),
-            'PASSWORD': os.getenv('DB_PASSWORD', 'YiGzy8w5g0eQNYHGHMqvf5cmopUagzUU'),
-            'HOST': os.getenv('DB_HOST', 'dpg-d3h8nlbuibrs73ao8k6g-a.oregon-postgres.render.com'),
-            'PORT': os.getenv('DB_PORT', '5432'),
-        }
-    }
+# URL configuration
+ROOT_URLCONF = 'grandview.urls'
+
+SITE_URL = 'https://grandview.vercel.app'
+#SITE_URL = 'http://localhost:3000'  # For local testing, change as needed
+
+# Template configuration (fixes admin.E403)
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = 'grandview.wsgi.application'
+
+#DATABASES = {
+#    'default': {
+#        'ENGINE': 'django.db.backends.sqlite3',
+#        'NAME': BASE_DIR / 'db.sqlite3',
+#    }
+#}
+
+# Render Postgres (uncomment for production)
+DATABASES = {
+     'default': dj_database_url.config(
+         default=os.getenv('DATABASE_URL'),
+         conn_max_age=600,
+         conn_health_checks=True,
+         ssl_require=os.getenv('DATABASE_SSL', 'True') == 'True'
+     )
+ }
 
 # Custom storage for S3 (dashboard, adverts)
 class S3MediaStorage(S3Boto3Storage):
@@ -181,31 +209,31 @@ LOGOUT_REDIRECT_URL = '/'
 LOGIN_REDIRECT_URL = '/'
 
 # Logging
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'root': {
-        'handlers': ['console'],
-        'level': 'INFO',
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        'storages': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-    },
-}
+#LOGGING = {
+#    'version': 1,
+#    'disable_existing_loggers': False,
+#    'handlers': {
+#        'console': {
+#            'class': 'logging.StreamHandler',
+#        },
+#    },
+#    'root': {
+#        'handlers': ['console'],
+#        'level': 'INFO',
+#    },
+#    'loggers': {
+#        'django': {
+#            'handlers': ['console'],
+#            'level': 'INFO',
+#            'propagate': False,
+#        },
+#        'storages': {
+#            'handlers': ['console'],
+#            'level': 'DEBUG',
+#            'propagate': False,
+#        },
+#    },
+#}
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

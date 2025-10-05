@@ -7,15 +7,22 @@ services:
     env: python
     region: oregon  # Match the region of your database
     plan: free  # Adjust based on needs (free, starter, standard, pro)
-    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
-    preDeployCommand: python manage.py migrate  # Runs migrations after build but before start
-    startCommand: gunicorn --bind 0.0.0.0:$PORT grandview.wsgi:application
-    healthCheckPath: /  # Optional: For zero-downtime deploys
+    buildCommand: |
+      pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+      python manage.py migrate
+    startCommand: gunicorn grandview.wsgi:application --bind 0.0.0.0:$PORT
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://grandview-shop.onrender.com/api
+      - key: NEXT_PUBLIC_BACKEND_URL
+        value: https://grandview-shop.onrender.com
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0  # Compatible with Django 5.2.4; adjust to 3.13.4 if needed
+        value: 3.11  # Compatible with Django 5.2.4
       - key: DJANGO_SECRET_KEY
-        sync: false  # Sensitive; set in Render dashboard
+        sync: false
+        value: your_secure_secret_key_here  # Set in Render dashboard
       - key: DEBUG
         value: "False"  # Disable debug in production
       - key: ALLOWED_HOSTS
@@ -29,7 +36,12 @@ services:
       - key: EMAIL_HOST_USER
         value: "globalgrowthinvest@gmail.com"  # Set in Render dashboard
       - key: EMAIL_HOST_PASSWORD
-        sync: false  # Sensitive; set in Render dashboard
+        sync: false
+        value: "fdvyuvtreqtoocir"  # Set in Render dashboard
+      - key: DATABASE_URL
+        fromDatabase:
+          name: grandview-db
+          property: connectionString
       - key: SESSION_COOKIE_SECURE
         value: "True"  # Enable for HTTPS
       - key: CSRF_COOKIE_SECURE
@@ -45,6 +57,6 @@ services:
 
 databases:
   - name: grandview-db
-    databaseName: grandview_t7wb
-    user: grandview_t7wb_user
+    databaseName: grandviewdb
+    user: grandviewdb_user
     region: oregon  # Match the region of your web service
