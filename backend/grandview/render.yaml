@@ -9,7 +9,7 @@ services:
       pip install -r requirements.txt
       python manage.py collectstatic --noinput
       python manage.py migrate --noinput
-    startCommand: waitress-serve --port=$PORT grandview.wsgi:application  # Changed to waitress for consistency
+    startCommand:  python manage.py runserver 0.0.0.0:8000 
     preDeployCommand: python manage.py migrate --noinput
     envVars:
       - key: WEB_CONCURRENCY
