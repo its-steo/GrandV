@@ -154,7 +154,7 @@ DATABASES = {
          conn_health_checks=True,
          ssl_require=os.getenv('DATABASE_SSL', 'True') == 'True'
      )
- }
+}
 
 # Custom storage for S3 (dashboard, adverts)
 class S3MediaStorage(S3Boto3Storage):
