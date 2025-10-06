@@ -15,7 +15,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-p=ag)#dxywkov=na&&l9%6kp!y%)$%$anw(gxamoih__oxwujl')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'True') == 'True'  # Fixed: Match .env DEBUG=True
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0').split(',')
 ALLOWED_HOSTS.append('grandview-shop.onrender.com')
@@ -40,7 +40,24 @@ INSTALLED_APPS = [
     'adverts',
     'dashboard',
     'support',
-    'storages',  # Added: For S3 storage
+    'storages',
+]
+
+# Template configuration
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / 'templates'],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
 ]
 
 MIDDLEWARE = [
@@ -54,6 +71,9 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
+
+# Root URL configuration
+ROOT_URLCONF = 'grandview.urls'
 
 # Configure WhiteNoise storage
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
@@ -103,42 +123,10 @@ CHANNEL_LAYERS = {
 }
 
 # CORS settings
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000,https://grand-v.vercel.app,https://grandview-shop.onrender.com').split(',')
-CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'True') == 'True'
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_HEADERS = [
-    'content-type',
-    'authorization',
-    'x-csrftoken',
-]
 
-CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000,https://grandview-shop.onrender.com,https://grand-v.vercel.app').split(',')
-
-# URL configuration
-ROOT_URLCONF = 'grandview.urls'
-
-SITE_URL = 'https://grandview.vercel.app'
-#SITE_URL = 'http://localhost:3000'  # For local testing, change as needed
-
-# Template configuration (fixes admin.E403)
-TEMPLATES = [
-    {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-            ],
-        },
-    },
-]
-
-WSGI_APPLICATION = 'grandview.wsgi.application'
-
+# Database
 #DATABASES = {
 #    'default': {
 #        'ENGINE': 'django.db.backends.sqlite3',
@@ -149,7 +137,6 @@ WSGI_APPLICATION = 'grandview.wsgi.application'
 # Render Postgres (uncomment for production)
 DATABASE_URL = os.getenv('DATABASE_URL')
 DATABASE_SSL = os.getenv('DATABASE_SSL', 'True') == 'True'
-
 database_config = dj_database_url.config(
     default=DATABASE_URL,
     conn_max_age=600,
@@ -165,7 +152,7 @@ DATABASES = {
     'default': database_config
 }
 
-# Custom storage for S3 (dashboard, adverts)
+# Custom storage for S3
 class S3MediaStorage(S3Boto3Storage):
     bucket_name = os.getenv('AWS_STORAGE_BUCKET_NAME', 'grandview-storage')
     region_name = 'eu-north-1'
@@ -177,15 +164,15 @@ class S3MediaStorage(S3Boto3Storage):
     object_parameters = {'CacheControl': 'max-age=86400'}
 
     def __init__(self, *args, **kwargs):
-        self.acl = kwargs.pop('default_acl', 'public-read')  # Default public-read, override for Lipa
+        self.acl = kwargs.pop('default_acl', 'public-read')
         super().__init__(*args, **kwargs)
 
-# Keep DEFAULT_FILE_STORAGE as local (for support, packages)
+# Keep DEFAULT_FILE_STORAGE as local
 DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# Static files (fixes staticfiles.W004)
+# Static files
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
@@ -197,6 +184,9 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'grandviewshopafrica@gmail.com')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = 'Grandview <grandviewshopafrica@gmail.com>'
+SITE_URL = os.getenv('SITE_URL', 'https://grandview-shop.onrender.com')
+SITE_URL = os.getenv('SITE_URL', 'https://localhost:8000')
 
 # Security settings
 SECURE_BROWSER_XSS_FILTER = True
@@ -216,33 +206,6 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 LOGIN_URL = '/api/accounts/login/'
 LOGOUT_REDIRECT_URL = '/'
 LOGIN_REDIRECT_URL = '/'
-
-# Logging
-#LOGGING = {
-#    'version': 1,
-#    'disable_existing_loggers': False,
-#    'handlers': {
-#        'console': {
-#            'class': 'logging.StreamHandler',
-#        },
-#    },
-#    'root': {
-#        'handlers': ['console'],
-#        'level': 'INFO',
-#    },
-#    'loggers': {
-#        'django': {
-#            'handlers': ['console'],
-#            'level': 'INFO',
-#            'propagate': False,
-#        },
-#        'storages': {
-#            'handlers': ['console'],
-#            'level': 'DEBUG',
-#            'propagate': False,
-#        },
-#    },
-#}
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
