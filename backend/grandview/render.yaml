@@ -1,62 +1,67 @@
+# Render configuration for deploying the Django 'grandview' project
+# See https://render.com/docs/blueprint-spec for details on render.yaml
+
 services:
   - type: web
     name: grandview-backend
     env: python
-    region: oregon
-    plan: free
-    pythonVersion: "3.12.7"
+    region: oregon  # Match the region of your database
+    plan: free  # Adjust based on needs (free, starter, standard, pro)
+    pythonVersion: "3.12.7"  # Pin to 3.12 for stability; matches your intent
     buildCommand: |
       pip install -r requirements.txt
       python manage.py collectstatic --noinput
       python manage.py migrate --noinput
-    startCommand:  python manage.py runserver 0.0.0.0:8000 
-    preDeployCommand: python manage.py migrate --noinput
+    startCommand: gunicorn grandview.wsgi:application --bind 0.0.0.0:$PORT --workers $WEB_CONCURRENCY
+    preDeployCommand: python manage.py migrate --noinput  # Ensure migrations run pre-start
     envVars:
       - key: WEB_CONCURRENCY
-        value: "2"  # Reduced for free plan to avoid memory issues
+        value: "4"  # Adjust based on plan (e.g., 2x CPU cores)
       - key: NEXT_PUBLIC_API_URL
         value: https://grandview-shop.onrender.com/api
       - key: NEXT_PUBLIC_BACKEND_URL
         value: https://grandview-shop.onrender.com
       - key: DJANGO_SECRET_KEY
-        sync: false
-        generateValue: true
+        sync: false  # Set manually in Render dashboard
+        generateValue: true  # Auto-generate if not set
       - key: DEBUG
-        value: "False"
+        value: "False"  # Disable debug in production
       - key: ALLOWED_HOSTS
-        value: ".onrender.com,grandview-shop.onrender.com,localhost,127.0.0.1"  # Added localhost for local testing
+        value: ".onrender.com,grandview-shop.onrender.com"  # Wildcard for Render domains
       - key: CORS_ALLOWED_ORIGINS
-        value: "https://grand-v.vercel.app,http://localhost:3000"  # Added localhost for local frontend testing
+        value: "https://grand-v.vercel.app"  # Your frontend domain
       - key: CORS_ALLOW_ALL_ORIGINS
-        value: "False"
+        value: "False"  # Disable for production
       - key: CSRF_TRUSTED_ORIGINS
-        value: "https://grandview-shop.onrender.com,https://grand-v.vercel.app,http://localhost:3000"  # Added localhost
+        value: "https://grandview-shop.onrender.com,https://grand-v.vercel.app"
       - key: EMAIL_HOST_USER
-        sync: false
+        sync: false  # Set manually
+        value: "globalgrowthinvest@gmail.com"
       - key: EMAIL_HOST_PASSWORD
-        sync: false
+        sync: false  # Set manually (app password)
+        value: "fdvyuvtreqtoocir"
       - key: DATABASE_URL
         fromDatabase:
           name: grandview-db
           property: connectionString
       - key: DATABASE_SSL
-        value: "True"
+        value: "True"  # Explicitly enable SSL require for dj_database_url
       - key: SESSION_COOKIE_SECURE
-        value: "True"
+        value: "True"  # Enable for HTTPS
       - key: CSRF_COOKIE_SECURE
-        value: "True"
+        value: "True"  # Enable for HTTPS
       - key: SECURE_SSL_REDIRECT
-        value: "True"
+        value: "True"  # Redirect HTTP to HTTPS
       - key: SECURE_HSTS_SECONDS
-        value: "31536000"
+        value: "31536000"  # Enable HSTS for 1 year
       - key: SECURE_HSTS_INCLUDE_SUBDOMAINS
         value: "True"
       - key: SECURE_HSTS_PRELOAD
         value: "True"
 
 databases:
-  - type: pgsql
+  - type: pgsql  # Use 'pgsql' for Postgres
     name: grandview-db
     databaseName: grandviewdb
     user: grandviewdb_user
-    region: oregon
+    region: oregon  # Match the region of your web service
