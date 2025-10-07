@@ -10,9 +10,6 @@ from django.utils import timezone
 from django.db.models import Sum
 from decimal import Decimal
 from django.contrib.auth import authenticate
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-from django.conf import settings
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
@@ -22,22 +19,6 @@ class RegisterView(APIView):
         if serializer.is_valid():
             user = serializer.save()
             token, created = Token.objects.get_or_create(user=user)
-            
-            # Send welcome email
-            subject = 'Welcome to Grandview!'
-            html_message = render_to_string('emails/welcome_email.html', {
-                'user': user,
-                'site_url': settings.SITE_URL  # Ensure SITE_URL is set in settings.py
-            })
-            send_mail(
-                subject,
-                message='Welcome to Grandview! Your account has been created.',
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                html_message=html_message,
-                fail_silently=True,
-            )
-            
             return Response({
                 'token': token.key,
                 'user': {

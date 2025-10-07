@@ -2,7 +2,6 @@ from django.db import models
 from accounts.models import CustomUser
 from wallet.models import Wallet, Transaction
 from decimal import Decimal
-from django.core.mail import send_mail
 from django.utils import timezone
 from django.db import transaction
 from datetime import timedelta
@@ -69,30 +68,33 @@ class Coupon(models.Model):
     code = models.CharField(max_length=50, unique=True)
     discount_type = models.CharField(max_length=20, choices=[('PERCENT', 'Percent'), ('FIXED', 'Fixed')])
     discount_value = models.DecimalField(max_digits=10, decimal_places=2)
+    applicable_products = models.ManyToManyField(Product, blank=True)
     is_active = models.BooleanField(default=True)
-    applicable_products = models.ManyToManyField(Product, blank=True, related_name='coupons')
 
     def __str__(self):
         return self.code
 
 class Order(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    total = models.DecimalField(max_digits=10, decimal_places=2)
-    discounted_total = models.DecimalField(max_digits=10, decimal_places=2, null=True)
-    coupon = models.ForeignKey(Coupon, on_delete=models.SET_NULL, null=True, blank=True)
-    ordered_at = models.DateTimeField(auto_now_add=True)
-    payment_method = models.CharField(max_length=20, choices=[('FULL', 'Full Payment'), ('INSTALLMENT', 'Installment')])
-    status = models.CharField(max_length=20, choices=[
+    STATUS_CHOICES = [
         ('PENDING', 'Pending'),
         ('PROCESSING', 'Processing'),
         ('SHIPPED', 'Shipped'),
         ('DELIVERED', 'Delivered'),
         ('CANCELLED', 'Cancelled'),
-    ], default='PENDING')
-    address = models.TextField()
-    phone = models.CharField(max_length=20)
-    delivery_fee = models.DecimalField(max_digits=10, decimal_places=2)
-    rating = models.PositiveIntegerField(null=True, blank=True, choices=[(i, i) for i in range(1, 6)])
+    ]
+    PAYMENT_METHODS = [
+        ('FULL', 'Full Payment'),
+        ('INSTALLMENT', 'Installment'),
+    ]
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    total = models.DecimalField(max_digits=10, decimal_places=2)
+    discounted_total = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    ordered_at = models.DateTimeField(auto_now_add=True)
+    coupon = models.ForeignKey(Coupon, null=True, blank=True, on_delete=models.SET_NULL)
+    rating = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
         return f"Order {self.id} by {self.user.username}"
@@ -107,21 +109,23 @@ class OrderItem(models.Model):
         return f"{self.quantity} x {self.product.name} in Order {self.order.id}"
 
 class InstallmentOrder(models.Model):
-    order = models.OneToOneField(Order, on_delete=models.CASCADE)
-    initial_deposit = models.DecimalField(max_digits=10, decimal_places=2)
-    remaining_balance = models.DecimalField(max_digits=10, decimal_places=2)
-    months = models.IntegerField(default=3)
-    monthly_payment = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    due_date = models.DateTimeField()
-    installment_status = models.CharField(max_length=20, choices=[
+    STATUS_CHOICES = [
         ('PENDING', 'Pending'),
         ('ONGOING', 'Ongoing'),
         ('PAID', 'Paid'),
         ('OVERDUE', 'Overdue'),
-    ], default='PENDING')
+    ]
+
+    order = models.OneToOneField(Order, on_delete=models.CASCADE)
+    initial_deposit = models.DecimalField(max_digits=10, decimal_places=2)
+    remaining_balance = models.DecimalField(max_digits=10, decimal_places=2)
+    months = models.PositiveIntegerField(default=6)
+    monthly_payment = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+    due_date = models.DateTimeField(null=True)
+    installment_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
 
     def save(self, *args, **kwargs):
-        if not self.pk:  # Only set due_date for new objects
+        if not self.due_date and not self.pk:
             self.due_date = timezone.now() + timedelta(days=30)
             self.installment_status = 'PENDING'
         if self.remaining_balance <= 0:

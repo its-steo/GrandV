@@ -1,7 +1,6 @@
-# Updated views.py - No change needed, as serializer handles it
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny  # Callback is public
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 from .models import Wallet, Deposit, Transaction
 from .serializers import WalletSerializer, DepositSerializer, TransactionSerializer, WithdrawSerializer
@@ -58,26 +57,21 @@ class TransactionHistoryView(APIView):
         return Response(serializer.data)
 
 class CallbackView(APIView):
-    permission_classes = [AllowAny]  # M-Pesa callback is public
+    permission_classes = [AllowAny]
 
     def post(self, request):
         try:
-            # Handle JSON body
             if isinstance(request.body, bytes):
-                data = json.loads(request.body.decode('utf-8'))
+                body = json.loads(request.body.decode('utf-8'))
             else:
-                data = request.data
-
-            body = data.get('Body', {})
-            callback = body.get('stkCallback', {})
-            merchant_request_id = callback.get('MerchantRequestID')
+                body = request.data
+            callback = body.get('Body', {}).get('stkCallback', {})
             checkout_request_id = callback.get('CheckoutRequestID')
             result_code = callback.get('ResultCode')
 
             logger.info(f"M-Pesa Callback received: CheckoutRequestID={checkout_request_id}, ResultCode={result_code}")
 
             if result_code == 0:
-                # Success
                 callback_metadata = callback.get('CallbackMetadata', {})
                 items = callback_metadata.get('Item', [])
                 amount = None
@@ -103,12 +97,11 @@ class CallbackView(APIView):
                         deposit.status = 'COMPLETED'
                         deposit.mpesa_receipt_number = str(receipt_number)
                         deposit.phone_number = str(phone_number)
-                        deposit.save()  # Triggers wallet update and email
+                        deposit.save()  # Triggers wallet update
                         logger.info(f"Deposit {deposit.pk} completed via STK Push")
                     else:
                         logger.warning(f"No matching pending deposit for CheckoutRequestID {checkout_request_id}")
             else:
-                # Failure
                 error_desc = callback.get('ResultDesc', 'Unknown error')
                 deposit = Deposit.objects.filter(transaction_id=checkout_request_id).first()
                 if deposit:

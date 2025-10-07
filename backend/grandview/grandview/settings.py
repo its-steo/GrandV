@@ -127,14 +127,14 @@ ASGI_APPLICATION = 'grandview.asgi.application'
 
 
 # Email configuration
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_HOST_USER = 'grandviewshopafrica@gmail.com'
-EMAIL_HOST_PASSWORD = 'mrodgyesjnjeugmv'  # App-specific password for Gmail
-EMAIL_USE_TLS = True
-DEFAULT_FROM_EMAIL = 'Grandview <grandviewshopafrica@gmail.com>'  # Must match EMAIL_HOST_USER or a verified alias
-ADMIN_EMAIL = 'steomustadd@gmail.com'  # Admin email for deposit notifications
+#EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+#EMAIL_HOST = 'smtp.gmail.com'
+#EMAIL_PORT = 587
+#EMAIL_HOST_USER = 'grandviewshopafrica@gmail.com'
+#EMAIL_HOST_PASSWORD = 'mrodgyesjnjeugmv'  # App-specific password for Gmail
+#EMAIL_USE_TLS = True
+#DEFAULT_FROM_EMAIL = 'Grandview <grandviewshopafrica@gmail.com>'  # Must match EMAIL_HOST_USER or a verified alias
+#ADMIN_EMAIL = 'steomustadd@gmail.com'  # Admin email for deposit notifications
 
 # Template configuration
 TEMPLATES = [
@@ -182,6 +182,7 @@ CHANNEL_LAYERS = {
 #        'NAME': BASE_DIR / 'db.sqlite3',
 #    }
 #}
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',

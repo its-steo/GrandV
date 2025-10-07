@@ -1,10 +1,11 @@
-# Updated serializers.py to deduct full amount and calculate fee after
+
 from rest_framework import serializers
 from .models import Wallet, Transaction, Withdrawal, Deposit
 from packages.models import Purchase
 from django.utils import timezone
 from decimal import Decimal
 import logging
+from .payment import PaymentClient  # Fixed: Correct import from wallet/payment.py
 
 logger = logging.getLogger(__name__)
 
@@ -55,68 +56,57 @@ class DepositSerializer(serializers.Serializer):
 
         if method == 'stk':
             phone = validated_data['phone_number']
-            # Format phone to 254... if necessary (assume user provides correct format)
-            from wallet.payment import PaymentClient  # Import here to avoid circular
             client = PaymentClient()
-            transaction_ref = f"DEP{deposit.pk}"
-            response = client.initiate_stk_push(phone, amount, transaction_ref)
+            response = client.initiate_stk_push(phone, amount, str(deposit.id))
             if response.get('ResponseCode') == '0':
                 deposit.transaction_id = response['CheckoutRequestID']
-                deposit.phone_number = phone
                 deposit.save()
-                Transaction.objects.create(
-                    user=user,
-                    amount=amount,
-                    transaction_type='DEPOSIT',
-                    description=f"STK Push initiated for {amount} (Pending confirmation)",
-                    balance_type='deposit'
-                )
-                return {'message': 'STK Push initiated successfully. Check your phone for PIN prompt.', 'checkout_id': response['CheckoutRequestID']}
+                return {
+                    'message': 'STK push initiated. Please check your phone to complete the payment.',
+                    'deposit_id': deposit.id
+                }
             else:
-                deposit.delete()
-                raise serializers.ValidationError(f"Failed to initiate STK Push: {response.get('error', 'Unknown error')}")
-        elif method == 'manual':
+                deposit.status = 'FAILED'
+                deposit.save()
+                logger.error(f"STK push failed: {response.get('error')}")
+                return {
+                    'message': 'STK push failed. Please try again or use manual deposit.',
+                    'deposit_id': deposit.id
+                }
+        else:
             deposit.mpesa_code = validated_data['mpesa_code']
             deposit.save()
-            Transaction.objects.create(
-                user=user,
-                amount=amount,
-                transaction_type='DEPOSIT',
-                description=f"Manual deposit submitted for approval: {validated_data['mpesa_code']}",
-                balance_type='deposit'
-            )
-            return {'message': 'Manual deposit submitted for admin approval. You will be notified via email once approved.', 'deposit_id': deposit.pk}
-        else:
-            raise serializers.ValidationError("Invalid deposit method.")
+            return {
+                'message': 'Deposit request received and pending verification.',
+                'deposit_id': deposit.id
+            }
 
 class WithdrawSerializer(serializers.Serializer):
     amount = serializers.DecimalField(max_digits=10, decimal_places=2)
-    mpesa_number = serializers.CharField(max_length=15, required=True)  # New required field
+    mpesa_number = serializers.CharField(max_length=15)
 
     def validate_amount(self, value):
-        if value <= Decimal('0'):
-            raise serializers.ValidationError("Amount must be positive.")
+        if value <= 0:
+            raise serializers.ValidationError("Withdrawal amount must be positive.")
         return value
 
     def validate_mpesa_number(self, value):
-        if not value.startswith('254') or len(value) != 12:
-            raise serializers.ValidationError("Invalid M-Pesa number format. Use 254xxxxxxxxx")
+        if not value.startswith('+254') or len(value) != 12 or not value[1:].isdigit():
+            raise serializers.ValidationError("Invalid M-Pesa number format. Use +254XXXXXXXXX.")
         return value
 
     def validate(self, data):
         user = self.context['request'].user
-        wallet, _ = Wallet.objects.get_or_create(user=user)
         balance_type = self.context.get('balance_type', 'main_balance')
+        wallet, _ = Wallet.objects.get_or_create(user=user)
 
-        # Check package for views earnings withdrawal restriction
         if balance_type == 'main_balance':
             active_purchase = Purchase.objects.filter(
-                user=user,
-                expiry_date__gt=timezone.now()
-            ).order_by('-purchase_date').first()
-            if active_purchase and active_purchase.package.rate_per_view in [90, 100]:
+                user=user, status='ACTIVE', package__rate_per_view__gte=100
+            ).exists()
+            if not active_purchase and wallet.views_earnings_balance > 0:
                 raise serializers.ValidationError(
-                    "You are not eligible for views withdrawal. Upgrade your account to withdraw your earnings."
+                    "Cannot withdraw earnings without an active Standard or Premium package. Upgrade your account to withdraw your earnings."
                 )
             if wallet.deposit_balance + wallet.views_earnings_balance < data['amount']:
                 raise serializers.ValidationError("Insufficient main balance.")

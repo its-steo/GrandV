@@ -1,11 +1,6 @@
 from rest_framework import serializers
 from .models import CustomUser
 from django.contrib.auth import authenticate
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-from django.utils.html import strip_tags
-from django.conf import settings
-import datetime
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True)
@@ -42,27 +37,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         if 'referred_by' in validated_data and validated_data['referred_by']:
             user.referred_by = validated_data['referred_by']
             user.save()
-
-        # Send welcome email
-        subject = 'Welcome to Grandview!'
-        context = {
-            'user': user,
-            'now': {'year': datetime.date.today().year},  # Dynamic year
-        }
-        html_message = render_to_string('emails/welcome_email.html', context)
-        plain_message = strip_tags(html_message)
-        from_email = settings.DEFAULT_FROM_EMAIL
-        to_email = user.email
-
-        send_mail(
-            subject,
-            plain_message,
-            from_email,
-            [to_email],
-            html_message=html_message,
-            fail_silently=True,
-        )
-
         return user
 
 class LoginSerializer(serializers.Serializer):
