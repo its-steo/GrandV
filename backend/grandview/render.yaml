@@ -12,7 +12,7 @@ services:
       pip install -r requirements.txt
       python manage.py collectstatic --noinput
       python manage.py migrate --noinput
-    startCommand: python manage.py runserver 0.0.0.0:$PORT
+    startCommand: daphne -b 0.0.0.0 -p $PORT grandview.asgi:application
     preDeployCommand: python manage.py migrate --noinput  # Ensure migrations run pre-start
     envVars:
       - key: NEXT_PUBLIC_API_URL
@@ -20,7 +20,7 @@ services:
       - key: NEXT_PUBLIC_BACKEND_URL
         value: https://grandview-shop.onrender.com
       - key: DJANGO_SECRET_KEY
-        sync: false  # Set manually in Render dashboard
+        sync: True  # Set manually in Render dashboard
         generateValue: true  # Auto-generate if not set
       - key: DEBUG
         value: "False"  # Disable debug in production
@@ -29,7 +29,7 @@ services:
       - key: CORS_ALLOWED_ORIGINS
         value: "https://grand-v.vercel.app"  # Your frontend domain
       - key: CORS_ALLOW_ALL_ORIGINS
-        value: "False"  # Disable for production
+        value: "True"  # Disable for production
       - key: CSRF_TRUSTED_ORIGINS
         value: "https://grandview-shop.onrender.com,https://grand-v.vercel.app"
       - key: EMAIL_HOST_USER
@@ -37,7 +37,7 @@ services:
         value: "grandviewshopafrica@gmail.com"
       - key: EMAIL_HOST_PASSWORD
         sync: false  # Set manually (app password)
-        value: "wskhdnihfiydsikc"
+        value: "mrodgyesjnjeugmv"
       - key: DATABASE_URL
         fromDatabase:
           name: grandview-db
