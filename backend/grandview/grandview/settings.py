@@ -15,7 +15,7 @@ DEBUG = os.getenv('DEBUG', 'False') == 'False'
 
 
 #ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0').split(',')
-ALLOWED_HOSTS = ['https://grandview-shop.onrender.com', 'https://grand-v.vercel.app', 'https://grandview.co.ke', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['https://grandview-shop.onrender.com', 'https://grand-v.vercel.app', 'https://grandview.co.ke', 'grandview-shop.onrender.com', 'localhost', '127.0.0.1']
 
 
 CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000,https://grandview-shop.onrender.com,https://grand-v.vercel.app,https://grandview.co.ke').split(',')
