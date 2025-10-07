@@ -1,8 +1,12 @@
-//const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://grandview-shop.onrender.com/api"
-//const MEDIA_BASE_URL = process.env.NEXT_PUBLIC_MEDIA_URL || "http://localhost:8000"
-const MEDIA_BASE_URL = process.env.NEXT_PUBLIC_MEDIA_URL || "https://grandview-shop.onrender.com"
-
+// api.ts
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
+  (process.env.NODE_ENV === 'development' 
+    ? 'http://localhost:8000/api' 
+    : 'https://grandview-shop.onrender.com/api');
+const MEDIA_BASE_URL = process.env.NEXT_PUBLIC_MEDIA_URL || 
+  (process.env.NODE_ENV === 'development' 
+    ? 'http://localhost:8000' 
+    : 'https://grandview-shop.onrender.com');
 
 
 // Utility function to safely parse JSON responses
@@ -26,12 +30,11 @@ function getAuthHeaders(excludeContentType = false) {
   }
 
   if (token) {
-    headers["Authorization"] = `Token ${token}`
+    headers["Authorization"] = `Bearer ${token}`  // Changed from `Token` to `Bearer` for JWT
   }
 
   return headers
 }
-
 // Interfaces
 
 export interface User {
