@@ -14,12 +14,8 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from decimal import Decimal
 import logging
+from django.db.models import Sum
 import time
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-from django.utils.html import strip_tags
-from django.template.exceptions import TemplateDoesNotExist  # Added: To handle template not found specifically
-from django.db.models import Sum  # Added for aggregate
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +55,7 @@ class AdvertDownloadView(APIView):
 
 class SubmissionView(APIView):
     permission_classes = [IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser, JSONParser]  # MultiPart first for file uploads
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     @transaction.atomic
     def post(self, request):
@@ -142,32 +138,6 @@ class SubmissionView(APIView):
             # Artificial delay
             time.sleep(2)
 
-            # Send email notification in a separate try-except to prevent failure if template is missing
-            try:
-                subject = "Congratulations! You've Earned from WhatsApp Views"
-                html_message = render_to_string('emails/earning_notification.html', {
-                    'user': request.user,
-                    'earnings': earnings,
-                    'views_count': views_count,
-                    'advert_title': advert.title,
-                })
-                plain_message = strip_tags(html_message)
-                from_email = 'grandviewshopafrica@gmail.com'  # Replace with your sender email
-                to_email = request.user.email
-
-                send_mail(
-                    subject,
-                    plain_message,
-                    from_email,
-                    [to_email],
-                    html_message=html_message,
-                )
-                logger.info(f"Email sent to {to_email} for earnings: {earnings}")
-            except TemplateDoesNotExist as e:
-                logger.warning(f"Email template not found: {str(e)}. Skipping email notification.")
-            except Exception as e:
-                logger.error(f"Failed to send email: {str(e)}. Submission succeeded but email not sent.")
-
             serializer = SubmissionSerializer(submission)
             logger.info(f"Submission created successfully: ID={submission.id}, earnings={earnings}")
             return Response({'submission': serializer.data}, status=status.HTTP_201_CREATED)
@@ -196,5 +166,5 @@ class SubmissionHistoryView(APIView):
         total_earnings = submissions.aggregate(total=Sum('earnings'))['total'] or Decimal('0.00')
         return Response({
             'submissions': serializer.data,
-            'total_earnings': float(total_earnings)  # Convert to float for JSON
+            'total_earnings': float(total_earnings)
         })

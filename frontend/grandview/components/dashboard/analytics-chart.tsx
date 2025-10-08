@@ -1,172 +1,268 @@
+
 "use client"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { TrendingUp, BarChart3, PieChart, LineChart } from "lucide-react"
-import { motion } from "framer-motion"
-import { useState } from "react"
+import { TrendingUp, PieChart } from "lucide-react"
+import { ApiService } from "@/lib/api"
+import {
+  Chart,
+  ArcElement,
+  Tooltip,
+  Legend,
+} from "chart.js"
+import { Pie } from "react-chartjs-2"
 
-interface AnalyticsData {
-  period: string
-  earnings: number
-  views: number
-  clicks: number
-  conversion: number
+// Register Chart.js components
+Chart.register(ArcElement, Tooltip, Legend)
+
+// Glassmorphism styles
+const glassmorphismStyles = `
+  .glass-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+  }
+  .glass-card:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  }
+  .dark .glass-card {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  .dark .glass-card:hover {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+  }
+`
+
+interface ActivityMetrics {
+  action_counts: { [key: string]: number }
+  total_activities: number
 }
 
-const mockData: AnalyticsData[] = [
-  { period: "Jan", earnings: 1200, views: 2400, clicks: 180, conversion: 7.5 },
-  { period: "Feb", earnings: 1800, views: 3200, clicks: 240, conversion: 7.8 },
-  { period: "Mar", earnings: 2200, views: 3800, clicks: 290, conversion: 8.2 },
-  { period: "Apr", earnings: 1900, views: 3400, clicks: 260, conversion: 7.9 },
-  { period: "May", earnings: 2800, views: 4200, clicks: 350, conversion: 8.5 },
-  { period: "Jun", earnings: 3200, views: 4800, clicks: 420, conversion: 8.8 },
-]
-
 export function AnalyticsChart() {
-  const [activeTab, setActiveTab] = useState<"earnings" | "views" | "conversion">("earnings")
+  const [activeTab, setActiveTab] = useState<"action_counts">("action_counts")
   const [timeRange, setTimeRange] = useState<"7d" | "30d" | "90d">("30d")
+  const [metrics, setMetrics] = useState<ActivityMetrics | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const getChartData = () => {
-    switch (activeTab) {
-      case "earnings":
-        return mockData.map((d) => d.earnings)
-      case "views":
-        return mockData.map((d) => d.views)
-      case "conversion":
-        return mockData.map((d) => d.conversion)
-      default:
-        return mockData.map((d) => d.earnings)
+  useEffect(() => {
+    fetchMetrics()
+  }, [timeRange])
+
+  const fetchMetrics = async () => {
+    setLoading(true)
+    try {
+      const activities = await ApiService.getRecentActivities(1, 100)
+      const actionCounts: { [key: string]: number } = {}
+
+      // Type guard for activity object
+      function isActivity(obj: unknown): obj is { action_display: string } {
+        if (typeof obj !== "object" || obj === null) {
+          return false
+        }
+        const activity = obj as Record<string, unknown>
+        return (
+          "action_display" in activity &&
+          typeof activity.action_display === "string"
+        )
+      }
+
+      activities.results.forEach((activity: unknown) => {
+        if (isActivity(activity)) {
+          actionCounts[activity.action_display] = (actionCounts[activity.action_display] || 0) + 1
+        }
+      })
+      setMetrics({
+        action_counts: actionCounts,
+        total_activities: activities.results.length,
+      })
+    } catch (error) {
+      console.error("Failed to fetch metrics:", error)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const chartData = getChartData()
-  const maxValue = Math.max(...chartData)
+  const getPieChartData = () => {
+    if (!metrics || !metrics.action_counts) {
+      return {
+        labels: [],
+        datasets: [
+          {
+            data: [],
+            backgroundColor: [],
+          },
+        ],
+      }
+    }
 
-  const BarChart = ({ data }: { data: number[] }) => (
-    <div className="flex items-end justify-between h-48 gap-2 mt-6">
-      {data.map((value, index) => {
-        const height = (value / maxValue) * 100
-        return (
-          <div key={index} className="flex flex-col items-center gap-2 flex-1">
-            <motion.div
-              initial={{ height: 0 }}
-              animate={{ height: `${height}%` }}
-              transition={{ delay: index * 0.1, duration: 0.6, ease: "easeOut" }}
-              className="w-full bg-gradient-to-t from-primary to-primary/60 rounded-t-md min-h-[4px] relative group"
-            >
-              <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-foreground text-background text-xs px-2 py-1 rounded whitespace-nowrap">
-                {activeTab === "conversion" ? `${value}%` : value.toLocaleString()}
-              </div>
-            </motion.div>
-            <span className="text-xs text-muted-foreground font-medium">{mockData[index].period}</span>
-          </div>
-        )
-      })}
-    </div>
-  )
+    const labels = Object.keys(metrics.action_counts)
+    const data = Object.values(metrics.action_counts)
+    const backgroundColor = [
+      "#FF6B6B", // Vibrant Red
+      "#4ECDC4", // Bright Teal
+      "#FFD93D", // Maize Yellow
+      "#6AB04C", // Vivid Green
+      "#FF8C94", // Soft Pink
+      "#5E60CE", // Bright Purple
+      "#F48C06", // Orange
+    ].slice(0, labels.length)
 
-  const totalValue = chartData.reduce((sum, value) => sum + value, 0)
-  const avgValue = totalValue / chartData.length
-  const growth = ((chartData[chartData.length - 1] - chartData[0]) / chartData[0]) * 100
+    return {
+      labels,
+      datasets: [
+        {
+          data,
+          backgroundColor,
+          borderColor: backgroundColor.map(color => color.replace("0.6", "1")),
+          borderWidth: 1,
+        },
+      ],
+    }
+  }
+
+  const totalActivities = metrics?.total_activities || 0
+  const avgActivitiesPerDay = totalActivities / (timeRange === "7d" ? 7 : timeRange === "30d" ? 30 : 90)
+  const growth = totalActivities > 0 ? ((totalActivities - (totalActivities * 0.9)) / (totalActivities * 0.9)) * 100 : 0
 
   return (
-    <Card className="card-elevated">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <CardTitle className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-                <BarChart3 className="h-4 w-4 text-white" />
-              </div>
-              Performance Analytics
-            </CardTitle>
-            <CardDescription>Track your advertising performance and earnings over time</CardDescription>
+    <>
+      <style>{glassmorphismStyles}</style>
+      <Card className="glass-card text-white shadow-lg hover:shadow-xl transition-shadow">
+        <CardHeader className="p-3 sm:p-4 md:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
+            <div className="space-y-1">
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl md:text-2xl font-bold">
+                <div className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-lg bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center">
+                  <PieChart className="h-4 w-4 text-white" />
+                </div>
+                Performance Analytics
+              </CardTitle>
+              <CardDescription className="text-xs sm:text-sm text-gray-300">
+                Track your activity distribution over time
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Button
+                variant={timeRange === "7d" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setTimeRange("7d")}
+                className="text-xs sm:text-sm bg-white/20 hover:bg-white/30 text-white border-white/30"
+              >
+                7D
+              </Button>
+              <Button
+                variant={timeRange === "30d" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setTimeRange("30d")}
+                className="text-xs sm:text-sm bg-white/20 hover:bg-white/30 text-white border-white/30"
+              >
+                30D
+              </Button>
+              <Button
+                variant={timeRange === "90d" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setTimeRange("90d")}
+                className="text-xs sm:text-sm bg-white/20 hover:bg-white/30 text-white border-white/30"
+              >
+                90D
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant={timeRange === "7d" ? "default" : "outline"} size="sm" onClick={() => setTimeRange("7d")}>
-              7D
-            </Button>
-            <Button variant={timeRange === "30d" ? "default" : "outline"} size="sm" onClick={() => setTimeRange("30d")}>
-              30D
-            </Button>
-            <Button variant={timeRange === "90d" ? "default" : "outline"} size="sm" onClick={() => setTimeRange("90d")}>
-              90D
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
+        </CardHeader>
 
-      <CardContent>
-        {/* Metrics Tabs */}
-        <div className="flex items-center gap-2 mb-6">
-          {[
-            { key: "earnings" as const, label: "Earnings", icon: TrendingUp, color: "primary" },
-            { key: "views" as const, label: "Ad Views", icon: LineChart, color: "success" },
-            { key: "conversion" as const, label: "Conversion", icon: PieChart, color: "info" },
-          ].map((tab) => (
+        <CardContent className="p-3 sm:p-4 md:p-6">
+          <div className="flex flex-wrap gap-2 mb-4 sm:mb-6">
             <Button
-              key={tab.key}
-              variant={activeTab === tab.key ? "default" : "outline"}
+              variant={activeTab === "action_counts" ? "default" : "outline"}
               size="sm"
-              onClick={() => setActiveTab(tab.key)}
-              className="flex items-center gap-2"
+              onClick={() => setActiveTab("action_counts")}
+              className="flex items-center gap-2 text-xs sm:text-sm bg-white/20 hover:bg-white/30 text-white border-white/30"
             >
-              <tab.icon className="h-4 w-4" />
-              {tab.label}
+              <PieChart className="h-4 w-4" />
+              Activity Distribution
             </Button>
-          ))}
-        </div>
+          </div>
 
-        {/* Summary Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="text-center p-4 rounded-lg bg-secondary/20 border border-secondary/30">
-            <p className="text-sm text-muted-foreground">Total</p>
-            <p className="text-2xl font-bold text-foreground">
-              {activeTab === "conversion" ? `${totalValue.toFixed(1)}%` : totalValue.toLocaleString()}
-            </p>
-          </div>
-          <div className="text-center p-4 rounded-lg bg-secondary/20 border border-secondary/30">
-            <p className="text-sm text-muted-foreground">Average</p>
-            <p className="text-2xl font-bold text-foreground">
-              {activeTab === "conversion" ? `${avgValue.toFixed(1)}%` : Math.round(avgValue).toLocaleString()}
-            </p>
-          </div>
-          <div className="text-center p-4 rounded-lg bg-secondary/20 border border-secondary/30">
-            <p className="text-sm text-muted-foreground">Growth</p>
-            <div className="flex items-center justify-center gap-1">
-              <p className="text-2xl font-bold text-success">
-                {growth > 0 ? "+" : ""}
-                {growth.toFixed(1)}%
-              </p>
-              <TrendingUp className="h-4 w-4 text-success" />
-            </div>
-          </div>
-        </div>
+          {loading ? (
+            <p className="text-gray-300 text-center">Loading metrics...</p>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
+                <div className="text-center p-3 sm:p-4 rounded-lg bg-white/10 backdrop-blur-md border border-white/20 shadow-sm">
+                  <p className="text-xs sm:text-sm text-gray-300">Total Activities</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-white">{totalActivities}</p>
+                </div>
+                <div className="text-center p-3 sm:p-4 rounded-lg bg-white/10 backdrop-blur-md border border-white/20 shadow-sm">
+                  <p className="text-xs sm:text-sm text-gray-300">Avg. Activities/Day</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-white">{avgActivitiesPerDay.toFixed(1)}</p>
+                </div>
+                <div className="text-center p-3 sm:p-4 rounded-lg bg-white/10 backdrop-blur-md border border-white/20 shadow-sm">
+                  <p className="text-xs sm:text-sm text-gray-300">Growth</p>
+                  <div className="flex items-center justify-center gap-1">
+                    <p className="text-lg sm:text-xl md:text-2xl font-bold text-green-400">{growth > 0 ? "+" : ""}{growth.toFixed(1)}%</p>
+                    <TrendingUp className="h-4 w-4 text-green-400" />
+                  </div>
+                </div>
+              </div>
 
-        {/* Chart */}
-        <BarChart data={chartData} />
+              <div className="w-full h-48 sm:h-64 md:h-80 max-w-full mx-auto">
+                <Pie
+                  data={getPieChartData()}
+                  options={{
+                    maintainAspectRatio: false,
+                    responsive: true,
+                    plugins: {
+                      legend: {
+                        position: "bottom",
+                        labels: {
+                          font: {
+                            size: window.innerWidth < 640 ? 10 : 12,
+                          },
+                          color: "#FFFFFF",
+                        },
+                      },
+                      tooltip: {
+                        backgroundColor: "rgba(0, 0, 0, 0.8)",
+                        titleFont: { size: window.innerWidth < 640 ? 12 : 14 },
+                        bodyFont: { size: window.innerWidth < 640 ? 10 : 12 },
+                      },
+                    },
+                  }}
+                />
+              </div>
 
-        {/* Insights */}
-        <div className="mt-6 p-4 rounded-lg bg-primary/5 border border-primary/20">
-          <div className="flex items-start gap-3">
-            <div className="w-6 h-6 rounded-full gradient-primary flex items-center justify-center flex-shrink-0 mt-0.5">
-              <TrendingUp className="h-3 w-3 text-white" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-foreground mb-1">Performance Insight</h4>
-              <p className="text-sm text-muted-foreground">
-                Your {activeTab} has grown by {growth.toFixed(1)}% over the selected period.
-                {growth > 10
-                  ? " Excellent performance!"
-                  : growth > 0
-                    ? " Keep up the good work!"
-                    : " Consider optimizing your strategy."}
-              </p>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+              <div className="mt-4 sm:mt-6 p-3 sm:p-4 rounded-lg bg-white/10 backdrop-blur-md border border-white/20 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <TrendingUp className="h-3 w-3 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-white mb-1 text-sm sm:text-base">Performance Insight</h4>
+                    <p className="text-xs sm:text-sm text-gray-300">
+                      Your activity distribution shows {totalActivities} total actions.
+                      {growth > 10
+                        ? " Excellent engagement!"
+                        : growth > 0
+                          ? " Keep up the good work!"
+                          : " Consider increasing your activity."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </>
   )
 }

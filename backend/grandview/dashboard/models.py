@@ -2,12 +2,13 @@ from django.db import models
 from accounts.models import CustomUser
 from wallet.models import Wallet, Transaction
 from decimal import Decimal
-from django.core.mail import send_mail
 from django.utils import timezone
 from django.db import transaction
 from datetime import timedelta
 import logging
 from grandview.settings import S3MediaStorage
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey
 
 logger = logging.getLogger(__name__)
 
@@ -70,29 +71,40 @@ class Coupon(models.Model):
     discount_type = models.CharField(max_length=20, choices=[('PERCENT', 'Percent'), ('FIXED', 'Fixed')])
     discount_value = models.DecimalField(max_digits=10, decimal_places=2)
     is_active = models.BooleanField(default=True)
-    applicable_products = models.ManyToManyField(Product, blank=True, related_name='coupons')
+    applicable_products = models.ManyToManyField(Product, blank=True)
 
     def __str__(self):
         return self.code
 
 class Order(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    total = models.DecimalField(max_digits=10, decimal_places=2)
-    discounted_total = models.DecimalField(max_digits=10, decimal_places=2, null=True)
-    coupon = models.ForeignKey(Coupon, on_delete=models.SET_NULL, null=True, blank=True)
-    ordered_at = models.DateTimeField(auto_now_add=True)
-    payment_method = models.CharField(max_length=20, choices=[('FULL', 'Full Payment'), ('INSTALLMENT', 'Installment')])
-    status = models.CharField(max_length=20, choices=[
+    STATUS_CHOICES = [
         ('PENDING', 'Pending'),
         ('PROCESSING', 'Processing'),
         ('SHIPPED', 'Shipped'),
         ('DELIVERED', 'Delivered'),
         ('CANCELLED', 'Cancelled'),
-    ], default='PENDING')
+    ]
+    PAYMENT_CHOICES = [
+        ('FULL', 'Full Payment'),
+        ('INSTALLMENT', 'Installment'),
+    ]
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    total = models.DecimalField(max_digits=10, decimal_places=2)
+    discounted_total = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    coupon = models.ForeignKey(Coupon, on_delete=models.SET_NULL, null=True, blank=True)
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    ordered_at = models.DateTimeField(auto_now_add=True)
     address = models.TextField()
-    phone = models.CharField(max_length=20)
-    delivery_fee = models.DecimalField(max_digits=10, decimal_places=2)
-    rating = models.PositiveIntegerField(null=True, blank=True, choices=[(i, i) for i in range(1, 6)])
+    phone = models.CharField(max_length=15)
+    delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    rating = models.PositiveIntegerField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        if self.pk is None:
+            self.discounted_total = self.total
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Order {self.id} by {self.user.username}"
@@ -107,21 +119,23 @@ class OrderItem(models.Model):
         return f"{self.quantity} x {self.product.name} in Order {self.order.id}"
 
 class InstallmentOrder(models.Model):
-    order = models.OneToOneField(Order, on_delete=models.CASCADE)
-    initial_deposit = models.DecimalField(max_digits=10, decimal_places=2)
-    remaining_balance = models.DecimalField(max_digits=10, decimal_places=2)
-    months = models.IntegerField(default=3)
-    monthly_payment = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    due_date = models.DateTimeField()
-    installment_status = models.CharField(max_length=20, choices=[
+    STATUS_CHOICES = [
         ('PENDING', 'Pending'),
         ('ONGOING', 'Ongoing'),
         ('PAID', 'Paid'),
         ('OVERDUE', 'Overdue'),
-    ], default='PENDING')
+    ]
+
+    order = models.OneToOneField(Order, on_delete=models.CASCADE)
+    initial_deposit = models.DecimalField(max_digits=10, decimal_places=2)
+    remaining_balance = models.DecimalField(max_digits=10, decimal_places=2)
+    months = models.PositiveIntegerField(default=3)
+    monthly_payment = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    due_date = models.DateTimeField()
+    installment_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
 
     def save(self, *args, **kwargs):
-        if not self.pk:  # Only set due_date for new objects
+        if self.pk is None:  # First time save for new objects
             self.due_date = timezone.now() + timedelta(days=30)
             self.installment_status = 'PENDING'
         if self.remaining_balance <= 0:
@@ -172,3 +186,30 @@ class LipaProgramRegistration(models.Model):
 
     def __str__(self):
         return f"{self.full_name} - Lipa Mdogo Mdogo"
+
+class Activity(models.Model):
+    ACTION_CHOICES = [
+        ('ORDER_PLACED', 'Order Placed'),
+        ('PAYMENT_MADE', 'Payment Made'),
+        ('LIPA_REGISTERED', 'Lipa Registration'),
+        ('CART_ITEM_ADDED', 'Product Added to Cart'),
+        ('ORDER_STATUS_CHANGED', 'Order Status Updated'),
+        ('LIPA_STATUS_CHANGED', 'Lipa Status Updated'),
+    ]
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='activities')
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES)
+    description = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
+    # Generic foreign key to link to related object (e.g., Order, InstallmentPayment)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, null=True, blank=True)
+    object_id = models.PositiveIntegerField(null=True, blank=True)
+    related_object = GenericForeignKey('content_type', 'object_id')
+
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name_plural = 'Activities'
+
+    def __str__(self):
+        return f"{self.get_action_display()} - {self.description[:50]}"

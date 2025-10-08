@@ -376,6 +376,15 @@ export interface PresignedUrlResponse {
   key: string
 }
 
+export interface Activity {
+  id: number
+  action: string
+  action_display: string
+  description: string
+  timestamp: string
+  related_object_detail?: string
+}
+
 export class ApiService {
   // Auth endpoints (from accounts app)
   static async register(userData: {
@@ -836,6 +845,19 @@ export class ApiService {
     }
 
     return safeParseJSON(response) as Promise<TrackingInfo>
+  }
+
+  static async getRecentActivities(page: number = 1, pageSize: number = 20): Promise<{ results: Activity[], count: number }> {
+    const response = await fetch(`${API_BASE_URL}/dashboard/recent-activity/?page=${page}&page_size=${pageSize}`, {
+      headers: getAuthHeaders(),
+    })
+
+    if (!response.ok) {
+      const error = await safeParseJSON(response)
+      throw new Error((error as { message?: string }).message || "Failed to fetch recent activities")
+    }
+
+    return safeParseJSON(response) as Promise<{ results: Activity[], count: number }>
   }
 
   // Wallet endpoints

@@ -8,9 +8,9 @@ import { FeaturedProducts } from "@/components/dashboard/featured-products"
 import { ApiService, type WalletBalance } from "@/lib/api"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { TrendingUp, Eye, Users, Wallet, Crown, BarChart3, ArrowRight, MessageCircle } from "lucide-react"
-import Link from "next/link"
+import { TrendingUp, BarChart3, MessageCircle } from "lucide-react"
 import { motion } from "framer-motion"
+import { AnalyticsChart } from "@/components/dashboard/analytics-chart"
 
 // Define glassmorphism styles
 const glassmorphismStyles = `
@@ -41,21 +41,18 @@ const glassmorphismStyles = `
 export default function DashboardPage() {
   const { user, isAuthenticated, isLoading } = useAuth()
   const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null)
-  //const [setShowBonusPopup] = useState(false)
-  //const [setShowPremiumWelcome] = useState(false)
+  const [activities, setActivities] = useState<unknown[]>([])
+  const [loadingActivities, setLoadingActivities] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const pageSize = 20
 
   useEffect(() => {
     if (isAuthenticated) {
       fetchWalletBalance()
-      //const bonusTimer = setTimeout(() => setShowBonusPopup(true), 2000)
-      //const premiumTimer = setTimeout(() => setShowPremiumWelcome(true), 5000)
-
-      return () => {
-        //clearTimeout(bonusTimer)
-        //clearTimeout(premiumTimer)
-      }
+      fetchActivities(currentPage)
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated, currentPage])
 
   const fetchWalletBalance = async () => {
     try {
@@ -63,6 +60,25 @@ export default function DashboardPage() {
       setWalletBalance(balance)
     } catch (error) {
       console.error("Failed to fetch wallet balance:", error)
+    }
+  }
+
+  const fetchActivities = async (page: number) => {
+    setLoadingActivities(true)
+    try {
+      const response = await ApiService.getRecentActivities(page, pageSize)
+      setActivities(response.results)
+      setTotalPages(Math.ceil(response.count / pageSize))
+    } catch (error) {
+      console.error("Failed to fetch activities:", error)
+    } finally {
+      setLoadingActivities(false)
+    }
+  }
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page)
     }
   }
 
@@ -141,84 +157,11 @@ export default function DashboardPage() {
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.8 }}
+              transition={{ duration: 0.8 }}
             >
               <StatsCards walletBalance={walletBalance} />
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.6, duration: 0.8 }}
-              className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
-            >
-              {[
-                {
-                  href: "/ads",
-                  icon: Eye,
-                  title: "View Advertisements",
-                  subtitle: "Start earning from ads",
-                  bgColor: "glass-card",
-                  description: "Browse and interact with targeted advertisements",
-                },
-                {
-                  href: "/packages",
-                  icon: Crown,
-                  title: "Premium Plans",
-                  subtitle: "Upgrade your account",
-                  bgColor: "glass-card",
-                  description: "Access exclusive features and higher earnings",
-                },
-                {
-                  href: "/wallet",
-                  icon: Wallet,
-                  title: "Wallet Management",
-                  subtitle: "Manage your funds",
-                  bgColor: "glass-card",
-                  description: "View balance, withdraw earnings, and transactions",
-                },
-                {
-                  href: "/profile",
-                  icon: Users,
-                  title: "Referral Program",
-                  subtitle: "Earn bonus income",
-                  bgColor: "glass-card",
-                  description: "Invite friends and earn referral commissions",
-                },
-              ].map((item, index) => (
-                <motion.div
-                  key={item.title}
-                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ delay: 0.8 + index * 0.1, duration: 0.5 }}
-                  whileHover={{ scale: 1.05, y: -8 }}
-                  className="group"
-                >
-                  <Card className={`h-full ${item.bgColor} text-white shadow-lg hover:shadow-xl transition-shadow`}>
-                    <Link href={item.href} className="block h-full">
-                      <CardHeader className="pb-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <motion.div
-                            whileHover={{ rotate: 15, scale: 1.1 }}
-                            transition={{ duration: 0.2 }}
-                            className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg bg-white/10 backdrop-blur-md border border-white/20 shadow-lg flex items-center justify-center"
-                          >
-                            <item.icon className="h-5 sm:h-6 w-5 sm:w-6 text-white" />
-                          </motion.div>
-                          <ArrowRight className="h-4 w-4 text-white group-hover:text-white transition-colors animate-pulse" />
-                        </div>
-                        <CardTitle className="text-sm sm:text-base md:text-lg font-bold">{item.title}</CardTitle>
-                        <p className="text-xs sm:text-sm font-bold">{item.subtitle}</p>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <p className="text-xs sm:text-sm text-white leading-relaxed font-medium">{item.description}</p>
-                      </CardContent>
-                    </Link>
-                  </Card>
-                </motion.div>
-              ))}
             </motion.div>
 
             <motion.div
@@ -245,24 +188,61 @@ export default function DashboardPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {[
-                      { action: "Ad viewed", time: "2 minutes ago", earnings: "+KSH 15" },
-                      { action: "Referral bonus", time: "1 hour ago", earnings: "+KSH 250" },
-                      { action: "Daily login bonus", time: "Today", earnings: "+KSH 50" },
-                    ].map((activity, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between py-2 border-b border-white border-opacity-20 last:border-0"
-                      >
-                        <div>
-                          <p className="font-bold text-sm sm:text-base text-white">{activity.action}</p>
-                          <p className="text-xs sm:text-sm text-white font-medium">{activity.time}</p>
+                  {loadingActivities ? (
+                    <p className="text-white">Loading activities...</p>
+                  ) : activities.length > 0 ? (
+                    <div className="space-y-4">
+                      {activities.map((activity) => {
+                        const act = activity as {
+                          id: string | number
+                          action_display: string
+                          timestamp: string
+                          related_object_detail?: string
+                        }
+                        return (
+                          <div
+                            key={act.id}
+                            className="flex items-center justify-between py-2 border-b border-white border-opacity-20 last:border-0"
+                          >
+                            <div>
+                              <p className="font-bold text-sm sm:text-base text-white">{act.action_display}</p>
+                              <p className="text-xs sm:text-sm text-white font-medium">
+                                {new Date(act.timestamp).toLocaleString()}
+                              </p>
+                              {act.related_object_detail && (
+                                <p className="text-xs sm:text-sm text-gray-300">{act.related_object_detail}</p>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                      {totalPages > 1 && (
+                        <div className="flex justify-center gap-2 mt-4">
+                          <Button
+                            size="sm"
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage === 1}
+                            className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                          >
+                            Previous
+                          </Button>
+                          <span className="text-white">
+                            Page {currentPage} of {totalPages}
+                          </span>
+                          <Button
+                            size="sm"
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                            className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                          >
+                            Next
+                          </Button>
                         </div>
-                        <span className="text-sm sm:text-base font-bold text-white">{activity.earnings}</span>
-                      </div>
-                    ))}
-                  </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-white">No recent activities found.</p>
+                  )}
                 </CardContent>
               </Card>
 
@@ -276,23 +256,7 @@ export default function DashboardPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {[
-                      { metric: "Ads Viewed Today", value: "24", change: "+12%" },
-                      { metric: "Weekly Earnings", value: "KSH 1,250", change: "+8%" },
-                      { metric: "Referrals Active", value: "8", change: "+2" },
-                    ].map((metric, index) => (
-                      <div key={index} className="flex items-center justify-between py-2">
-                        <div>
-                          <p className="font-bold text-sm sm:text-base text-white">{metric.metric}</p>
-                          <p className="text-base sm:text-lg font-bold text-white">{metric.value}</p>
-                        </div>
-                        <span className="text-white font-bold text-xs sm:text-sm bg-teal-500 px-3 py-1 rounded-full">
-                          {metric.change}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                  <AnalyticsChart />
                 </CardContent>
               </Card>
             </motion.div>

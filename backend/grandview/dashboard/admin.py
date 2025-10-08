@@ -3,7 +3,7 @@ from django.contrib import admin
 from .models import (
     Category, Image, Product, Cart, CartItem, Order, OrderItem,
     ProductImage, LipaProgramRegistration, InstallmentOrder,
-    InstallmentPayment, Coupon
+    InstallmentPayment, Coupon, Activity
 )
 
 @admin.register(Category)
@@ -71,3 +71,11 @@ class LipaProgramRegistrationAdmin(admin.ModelAdmin):
     list_display = ('user', 'full_name', 'status', 'created_at')
     list_filter = ('status',)
     search_fields = ('full_name', 'user__username')
+
+@admin.register(Activity)
+class ActivityAdmin(admin.ModelAdmin):
+    list_display = ('action', 'description', 'timestamp', 'user')
+    list_filter = ('action', 'timestamp')
+    search_fields = ('description', 'user__username')
+    readonly_fields = ('timestamp',)
+    date_hierarchy = 'timestamp'

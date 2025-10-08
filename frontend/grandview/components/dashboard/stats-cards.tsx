@@ -43,11 +43,11 @@ export function StatsCards({ walletBalance }: StatsCardsProps) {
       solidColor: "bg-green-500",
     },
     {
-      title: "Referral Bonus",
+      title: "Agent Bonus",
       value: walletBalance?.referral_balance || "0.00",
       icon: Users,
       bgColor: "bg-pink-600",
-      description: "From team referrals",
+      description: "From Advertisements bonuses",
       change: "+15.3%",
       changeType: "positive" as const,
       trend: [20, 25, 30, 28, 35, 42, 48],

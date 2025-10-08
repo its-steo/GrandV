@@ -1,117 +1,69 @@
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-from django.utils.html import strip_tags
-from django.template.exceptions import TemplateDoesNotExist
+from .models import Order, InstallmentPayment, LipaProgramRegistration, CartItem, Activity
+from django.contrib.contenttypes.models import ContentType
 import logging
-from .models import LipaProgramRegistration, Order
 
 logger = logging.getLogger(__name__)
 
-@receiver(pre_save, sender=LipaProgramRegistration)
-def capture_previous_lipa_status(sender, instance, **kwargs):
-    if instance.pk:
-        previous = sender.objects.get(pk=instance.pk)
-        instance._previous_status = previous.status
+@receiver(post_save, sender=Order)
+def track_order_activity(sender, instance, created, **kwargs):
+    if created:
+        description = f"A user placed an order for {', '.join([item.product.name for item in instance.items.all()])}"
+        Activity.objects.create(
+            user=instance.user,
+            action='ORDER_PLACED',
+            description=description,
+            content_type=ContentType.objects.get_for_model(Order),
+            object_id=instance.id
+        )
+        logger.info(f"Activity created for order {instance.id}")
     else:
-        instance._previous_status = None
+        # For status changes
+        description = f"Order status updated to {instance.status}"
+        Activity.objects.create(
+            user=instance.user,
+            action='ORDER_STATUS_CHANGED',
+            description=description,
+            content_type=ContentType.objects.get_for_model(Order),
+            object_id=instance.id
+        )
+
+@receiver(post_save, sender=InstallmentPayment)
+def track_payment_activity(sender, instance, created, **kwargs):
+    if created:
+        description = f"A user made a payment of KSh {instance.amount} for installment order {instance.installment_order.order.id}"
+        Activity.objects.create(
+            user=instance.installment_order.order.user,
+            action='PAYMENT_MADE',
+            description=description,
+            content_type=ContentType.objects.get_for_model(InstallmentPayment),
+            object_id=instance.id
+        )
+        logger.info(f"Activity created for payment {instance.id}")
 
 @receiver(post_save, sender=LipaProgramRegistration)
-def send_lipa_status_email(sender, instance, created, **kwargs):
-    if created or instance._previous_status == instance.status:
-        return  # Confirmation handled in view; no change
-
-    try:
-        if instance.status == 'APPROVED':
-            template_name = 'emails/lipa_approved.html'
-            subject = "Congratulations! Your Lipa Mdogo Mdogo Application is Approved 🎉"
-        elif instance.status == 'REJECTED':
-            template_name = 'emails/lipa_rejected.html'
-            subject = "Update on Your Lipa Mdogo Mdogo Application ❌"
-        else:
-            return
-
-        html_message = render_to_string(template_name, {
-            'user': instance.user,
-            'full_name': instance.full_name,
-            'status': instance.status,
-            'updated_at': instance.updated_at,
-        })
-        plain_message = strip_tags(html_message)
-        from_email = 'yourapp@example.com'  # Replace with your sender email
-        to_email = instance.user.email
-
-        send_mail(
-            subject,
-            plain_message,
-            from_email,
-            [to_email],
-            html_message=html_message,
+def track_lipa_activity(sender, instance, created, **kwargs):
+    if created:
+        description = f"A user registered for Lipa Mdogo Mdogo program"
+        Activity.objects.create(
+            user=instance.user,
+            action='LIPA_REGISTERED',
+            description=description,
+            content_type=ContentType.objects.get_for_model(LipaProgramRegistration),
+            object_id=instance.id
         )
-        logger.info(f"Lipa status email sent to {to_email} for status {instance.status}")
-    except TemplateDoesNotExist as e:
-        logger.warning(f"Email template not found: {str(e)}. Skipping email notification.")
-    except Exception as e:
-        logger.error(f"Failed to send Lipa status email: {str(e)}.")
+        logger.info(f"Activity created for Lipa registration {instance.id}")
 
-@receiver(pre_save, sender=Order)
-def capture_previous_order_status(sender, instance, **kwargs):
-    if instance.pk:
-        previous = sender.objects.get(pk=instance.pk)
-        instance._previous_status = previous.status
-    else:
-        instance._previous_status = None
-
-@receiver(post_save, sender=Order)
-def send_order_status_update_email(sender, instance, created, **kwargs):
-    if created or instance._previous_status == instance.status:
-        return  # Confirmation handled in view; no change
-
-    try:
-        if instance.status == 'DELIVERED':
-            template_name = 'emails/order_delivered_rating.html'
-            subject = "Your Order Has Been Delivered! Please Rate Our Service 🌟"
-            context = {
-                'user': instance.user,
-                'order_id': instance.id,
-                'ordered_at': instance.ordered_at,
-                'total': instance.discounted_total,
-                'frontend_url': f'http://yourapp.com/orders/{instance.id}/rate'  # Replace with your frontend URL
-            }
-        else:
-            template_name = 'emails/order_status_update.html'
-            subject = f"Your Order #{instance.id} Status Update: {instance.status.capitalize()} 📦"
-            status_descriptions = {
-                'PROCESSING': 'Your order is now being processed. We\'re preparing your items!',
-                'SHIPPED': 'Great news! Your order has been shipped and is on its way.',
-                'DELIVERED': 'Your order has been delivered. Enjoy your purchase!',
-                'CANCELLED': 'Your order has been cancelled. If this was unexpected, please contact support.',
-            }
-            description = status_descriptions.get(instance.status, f'Your order status has changed to {instance.status}.')
-            context = {
-                'user': instance.user,
-                'order_id': instance.id,
-                'status': instance.status,
-                'description': description,
-                'ordered_at': instance.ordered_at,
-                'total': instance.discounted_total,
-            }
-
-        html_message = render_to_string(template_name, context)
-        plain_message = strip_tags(html_message)
-        from_email = 'grandviewshopafrica@gmail.com'  # Replace with your sender email
-        to_email = instance.user.email
-
-        send_mail(
-            subject,
-            plain_message,
-            from_email,
-            [to_email],
-            html_message=html_message,
+@receiver(post_save, sender=CartItem)
+def track_cart_activity(sender, instance, created, **kwargs):
+    if created:
+        description = f"A user added {instance.product.name} to cart"
+        Activity.objects.create(
+            user=instance.cart.user,
+            action='CART_ITEM_ADDED',
+            description=description,
+            content_type=ContentType.objects.get_for_model(CartItem),
+            object_id=instance.id
         )
-        logger.info(f"Order status update email sent to {to_email} for order {instance.id}, status {instance.status}")
-    except TemplateDoesNotExist as e:
-        logger.warning(f"Email template not found: {str(e)}. Skipping email notification.")
-    except Exception as e:
-        logger.error(f"Failed to send order status update email: {str(e)}.")
+        logger.info(f"Activity created for cart item {instance.id}")
