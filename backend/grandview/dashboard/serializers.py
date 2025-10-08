@@ -3,7 +3,7 @@ from rest_framework import serializers
 from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
-from .models import Category, Product, Image, ProductImage, Cart, CartItem, Coupon, InstallmentOrder, Order, OrderItem, InstallmentPayment, LipaProgramRegistration
+from .models import Category, Product, Image, ProductImage, Cart, CartItem, Coupon, InstallmentOrder, Order, OrderItem, InstallmentPayment, LipaProgramRegistration, Activity
 from wallet.models import Transaction, Wallet
 from accounts.models import CustomUser
 from decimal import Decimal
@@ -46,7 +46,7 @@ class ProductSerializer(serializers.ModelSerializer):
     )
     sub_images = ProductImageSerializer(source='productimage_set', many=True, read_only=True)
     main_image = serializers.ImageField(use_url=True)
-    available_coupons = CouponSerializer(source='coupons', many=True, read_only=True)
+    available_coupons = CouponSerializer(source='coupon_set', many=True, read_only=True)
     discounted_price = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
@@ -54,17 +54,17 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'price', 'main_image', 'sub_images', 'description', 'category', 'category_id', 'is_featured', 'supports_installments', 'available_coupons', 'discounted_price']
 
     def get_discounted_price(self, obj):
-        coupons = obj.coupons.filter(is_active=True)
+        coupons = obj.coupon_set.filter(is_active=True)
         if not coupons.exists():
-            return obj.price
+            return float(obj.price)
         min_price = obj.price
         for coupon in coupons:
             if coupon.discount_type == 'PERCENT':
-                d = obj.price * (coupon.discount_value / Decimal('100'))
+                discount = obj.price * (coupon.discount_value / Decimal('100'))
             else:
-                d = min(coupon.discount_value, obj.price)
-            min_price = min(min_price, obj.price - d)
-        return min_price
+                discount = min(coupon.discount_value, obj.price)
+            min_price = min(min_price, obj.price - discount)
+        return float(min_price)
 
 class CartItemSerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
@@ -80,7 +80,7 @@ class CartItemSerializer(serializers.ModelSerializer):
         fields = ['id', 'product', 'product_id', 'quantity', 'subtotal']
 
     def get_subtotal(self, obj):
-        return obj.quantity * obj.product.price
+        return float(obj.quantity * obj.product.price)
 
 class CartSerializer(serializers.ModelSerializer):
     items = CartItemSerializer(many=True, read_only=True)
@@ -91,7 +91,7 @@ class CartSerializer(serializers.ModelSerializer):
         fields = ['id', 'items', 'total', 'created_at']
 
     def get_total(self, obj):
-        return sum(item.quantity * item.product.price for item in obj.items.all())
+        return float(sum(item.quantity * item.product.price for item in obj.items.all()))
 
 class InstallmentPaymentSerializer(serializers.ModelSerializer):
     installment_order_id = serializers.PrimaryKeyRelatedField(queryset=InstallmentOrder.objects.all(), source='installment_order')
@@ -302,7 +302,6 @@ class OrderSerializer(serializers.ModelSerializer):
             from_deposit = amount_to_deduct - from_earnings
             wallet.views_earnings_balance -= from_earnings
             wallet.deposit_balance -= from_deposit
-            # Set balance_type based on which balance is used
             balance_type = (
                 'views_earnings_balance' if from_earnings > 0 and from_deposit == 0
                 else 'deposit_balance' if from_deposit > 0 and from_earnings == 0
@@ -400,3 +399,23 @@ class LipaRegistrationSerializer(serializers.ModelSerializer):
         if instance.status == 'APPROVED':
             raise ValidationError("Cannot update an approved Lipa Mdogo Mdogo registration.")
         return super().update(instance, validated_data)
+
+class ActivitySerializer(serializers.ModelSerializer):
+    action_display = serializers.CharField(source='get_action_display', read_only=True)
+    related_object_detail = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Activity
+        fields = ['id', 'action', 'action_display', 'description', 'timestamp', 'related_object_detail']
+
+    def get_related_object_detail(self, obj):
+        if obj.related_object:
+            if isinstance(obj.related_object, Order):
+                return f"Order #{obj.related_object.id} - Total: KSh {obj.related_object.discounted_total}"
+            elif isinstance(obj.related_object, InstallmentPayment):
+                return f"Payment of KSh {obj.related_object.amount}"
+            elif isinstance(obj.related_object, LipaProgramRegistration):
+                return f"Status: {obj.related_object.status}"
+            elif isinstance(obj.related_object, CartItem):
+                return f"Product: {obj.related_object.product.name}"
+        return None

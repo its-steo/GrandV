@@ -5,7 +5,7 @@ from .views import (
     CheckoutView, OrderListView, InstallmentOrderListView,
     InstallmentPaymentView, LipaRegisterView, LipaPresignedUploadView,
     LipaRegistrationView, TrackOrderView, CouponValidateView,
-    ConfirmDeliveryView, SubmitRatingView
+    ConfirmDeliveryView, SubmitRatingView, RecentActivityView
 )
 
 urlpatterns = [
@@ -27,4 +27,5 @@ urlpatterns = [
     path('dashboard/orders/<int:order_id>/confirm/', ConfirmDeliveryView.as_view(), name='confirm_delivery'),
     path('dashboard/orders/<int:order_id>/rate/', SubmitRatingView.as_view(), name='submit_rating'),
     path('dashboard/coupon/validate/', CouponValidateView.as_view(), name='coupon_validate'),
+    path('dashboard/recent-activity/', RecentActivityView.as_view(), name='recent_activity'),
 ]

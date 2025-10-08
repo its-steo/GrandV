@@ -4,8 +4,9 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser
-from .models import Product, Cart, CartItem, Coupon, Order, InstallmentOrder, InstallmentPayment, LipaProgramRegistration, Wallet, Transaction
-from .serializers import ProductSerializer, CartSerializer, OrderSerializer, InstallmentOrderSerializer, InstallmentPaymentSerializer, LipaRegistrationSerializer
+from rest_framework.pagination import PageNumberPagination
+from .models import Product, Cart, CartItem, Coupon, Order, InstallmentOrder, InstallmentPayment, LipaProgramRegistration, Activity
+from .serializers import ProductSerializer, CartSerializer, OrderSerializer, InstallmentOrderSerializer, InstallmentPaymentSerializer, LipaRegistrationSerializer, ActivitySerializer
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.utils import timezone
@@ -14,12 +15,13 @@ from datetime import timedelta
 import logging
 import boto3
 from django.conf import settings
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-from django.utils.html import strip_tags
-from django.template.exceptions import TemplateDoesNotExist
 
 logger = logging.getLogger(__name__)
+
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 class ProductListView(APIView):
     permission_classes = [AllowAny]
@@ -157,48 +159,6 @@ class CheckoutView(APIView):
 
         try:
             order = serializer.save()
-            try:
-                if order.payment_method == 'INSTALLMENT':
-                    template_name = 'emails/order_confirmation_installment.html'
-                    subject = "Your Installment Purchase Confirmation 💳"
-                    context = {
-                        'user': request.user,
-                        'order_id': order.id,
-                        'total': order.discounted_total,
-                        'payment_method': order.payment_method,
-                        'initial_deposit': order.installment_order.initial_deposit,
-                        'remaining_balance': order.installment_order.remaining_balance,
-                        'monthly_payment': order.installment_order.monthly_payment,
-                        'next_due_date': order.installment_order.due_date,
-                    }
-                else:
-                    template_name = 'emails/order_confirmation_full.html'
-                    subject = "Your Purchase Confirmation 🎉"
-                    context = {
-                        'user': request.user,
-                        'order_id': order.id,
-                        'total': order.discounted_total,
-                        'payment_method': order.payment_method,
-                    }
-
-                html_message = render_to_string(template_name, context)
-                plain_message = strip_tags(html_message)
-                from_email = 'grandviewshopafrica@gmail.com'
-                to_email = request.user.email
-
-                send_mail(
-                    subject,
-                    plain_message,
-                    from_email,
-                    [to_email],
-                    html_message=html_message,
-                )
-                logger.info(f"Order confirmation email sent to {to_email} for order {order.id}")
-            except TemplateDoesNotExist as e:
-                logger.warning(f"Email template not found: {str(e)}. Skipping email notification.")
-            except Exception as e:
-                logger.error(f"Failed to send order confirmation email: {str(e)}")
-
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except Exception as e:
             logger.error(f"Checkout failed: {str(e)}")
@@ -212,30 +172,6 @@ class LipaRegisterView(APIView):
         serializer = LipaRegistrationSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             registration = serializer.save()
-            try:
-                subject = "Thank You for Registering for Lipa Mdogo Mdogo 📝"
-                html_message = render_to_string('emails/lipa_registration_confirmation.html', {
-                    'user': request.user,
-                    'full_name': registration.full_name,
-                    'created_at': registration.created_at,
-                })
-                plain_message = strip_tags(html_message)
-                from_email = 'yourapp@example.com'
-                to_email = request.user.email
-
-                send_mail(
-                    subject,
-                    plain_message,
-                    from_email,
-                    [to_email],
-                    html_message=html_message,
-                )
-                logger.info(f"Lipa registration confirmation email sent to {to_email}")
-            except TemplateDoesNotExist as e:
-                logger.warning(f"Email template not found: {str(e)}. Skipping email notification.")
-            except Exception as e:
-                logger.error(f"Failed to send Lipa confirmation email: {str(e)}. Registration created but email not sent.")
-
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -377,3 +313,14 @@ class CouponValidateView(APIView):
             "discount_type": coupon.discount_type,
             "discount_value": float(coupon.discount_value),
         })
+
+class RecentActivityView(APIView):
+    permission_classes = [IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
+
+    def get(self, request):
+        activities = Activity.objects.all()  # Global feed
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(activities, request)
+        serializer = ActivitySerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
