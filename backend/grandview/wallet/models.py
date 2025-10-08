@@ -85,6 +85,7 @@ class Deposit(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     transaction_id = models.CharField(max_length=50, blank=True, null=True)
     mpesa_receipt_number = models.CharField(max_length=20, blank=True, null=True)
+    mpesa_code = models.CharField(max_length=20, blank=True, null=True)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)  # Ensure this field exists
     updated_at = models.DateTimeField(auto_now=True)
