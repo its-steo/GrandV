@@ -86,6 +86,8 @@ class Deposit(models.Model):
     transaction_id = models.CharField(max_length=50, blank=True, null=True)
     mpesa_receipt_number = models.CharField(max_length=20, blank=True, null=True)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)  # Ensure this field exists
+    updated_at = models.DateTimeField(auto_now=True)
     status = models.CharField(max_length=10, choices=[('PENDING', 'Pending'), ('COMPLETED', 'Completed'), ('FAILED', 'Failed')], default='PENDING')
 
     def save(self, *args, **kwargs):
