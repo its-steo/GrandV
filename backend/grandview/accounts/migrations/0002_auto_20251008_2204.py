@@ -2,7 +2,7 @@
 
 from django.db import migrations
 
-from backend.grandview.accounts import models
+from accounts import models
 
 
 class Migration(migrations.Migration):
