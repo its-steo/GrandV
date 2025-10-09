@@ -212,14 +212,14 @@ export function RegisterForm({ onToggleMode }: RegisterFormProps) {
               className="space-y-2"
             >
               <Label htmlFor="referral_code" className="text-gray-200 font-medium text-sm">
-                Referral Code
+                Agent Code
                 {formData.referral_code && <span className="text-cyan-300 text-xs ml-2">(Applied)</span>}
               </Label>
               <Input
                 id="referral_code"
                 name="referral_code"
                 type="text"
-                placeholder="Enter referral code (optional)"
+                placeholder="Enter Agent code (optional)"
                 value={formData.referral_code}
                 onChange={handleChange}
                 className="h-10 border-gray-600 focus:border-cyan-400 focus:ring-cyan-400/20 bg-gray-700/50 text-white placeholder-gray-400"
