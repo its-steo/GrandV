@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react"
@@ -17,23 +18,24 @@ export function AdvertCard({ advert, onSubmissionSuccess }: AdvertCardProps) {
   const [isDownloading, setIsDownloading] = useState(false)
   const [imageError, setImageError] = useState(false)
 
-  const previewUrl = advert.file
+  const previewUrl = advert.file // Now an S3 URL (e.g., https://your-bucket-name.s3.amazonaws.com/adverts/filename)
 
   const handleDownload = async () => {
     try {
       setIsDownloading(true)
-      const blob = await ApiService.downloadAdvert(advert.id)
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      const extension = advert.file.split(".").pop() || "file"
-      a.download = `advert-${advert.id}.${extension}`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+      // Call ApiService.downloadAdvert, which returns a Blob
+      const response = await ApiService.downloadAdvert(advert.id)
+      // Create a download link for the Blob
+      const url = URL.createObjectURL(response)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = advert.title || "advert-file"
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
       toast.success("🎉 Download Started!", {
-        description: "Your ad file is ready to view",
+        description: "Your ad file is being downloaded",
       })
     } catch (error) {
       toast.error("Download Failed", {
@@ -101,7 +103,7 @@ export function AdvertCard({ advert, onSubmissionSuccess }: AdvertCardProps) {
                 <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center">
                   <ImageIcon className="h-6 w-6 text-white" />
                 </div>
-                <span className="text-sm font-medium">Preview Loading...</span>
+                <span className="text-sm font-medium">Image Unavailable</span>
               </div>
             </div>
           ) : (
@@ -111,6 +113,7 @@ export function AdvertCard({ advert, onSubmissionSuccess }: AdvertCardProps) {
                 alt={advert.title}
                 className="w-full h-full object-cover group-hover/image:scale-110 transition-transform duration-500"
                 onError={handleImageError}
+                loading="lazy" // Optimize image loading
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300"></div>
               <div className="absolute top-3 right-3 opacity-0 group-hover/image:opacity-100 transition-opacity duration-300">
