@@ -1,11 +1,12 @@
+# adverts/models.py
 from django.db import models
+from grandview.settings import S3MediaStorage  # Import the custom storage class
 from accounts.models import CustomUser
 from packages.models import Package
 from wallet.models import Wallet
 from decimal import Decimal
-from datetime import datetime
-from django.utils import timezone  # Add this import for timezone-aware now()
-from django.core.exceptions import ValidationError  # Add this for admin-friendly error
+from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 RATE_CHOICES = [
     (90, '90 per view'),
@@ -15,7 +16,7 @@ RATE_CHOICES = [
 
 class Advert(models.Model):
     title = models.CharField(max_length=100)
-    file = models.FileField(upload_to='adverts/')
+    file = models.FileField(upload_to='adverts/', storage=S3MediaStorage())  # Use custom S3MediaStorage
     rate_category = models.IntegerField(choices=RATE_CHOICES)
     upload_date = models.DateTimeField(auto_now_add=True)
 
@@ -26,7 +27,7 @@ class Submission(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     advert = models.ForeignKey(Advert, on_delete=models.CASCADE)
     views_count = models.PositiveIntegerField(default=1)
-    screenshot = models.FileField(upload_to='submissions/')
+    screenshot = models.FileField(upload_to='submissions/')  # Uses default local storage
     submission_date = models.DateTimeField(auto_now_add=True)
     earnings = models.DecimalField(max_digits=10, decimal_places=2)
 
@@ -37,6 +38,4 @@ class Submission(models.Model):
         return f"{self.user.username} - {self.advert.title} - {self.submission_date}"
 
     def save(self, *args, **kwargs):
-        # Removed: Wallet update and Transaction creation (handled in SubmissionView.post)
-        # Only save submission data
         super().save(*args, **kwargs)

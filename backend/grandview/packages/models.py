@@ -1,11 +1,12 @@
 from django.db import models
 from accounts.models import CustomUser
-from datetime import timedelta
 from django.utils import timezone
+from datetime import timedelta
+from grandview.settings import S3MediaStorage  # Import the custom storage class
 
 class Package(models.Model):
     name = models.CharField(max_length=100)
-    image = models.ImageField(upload_to='packages/')
+    image = models.ImageField(upload_to='packages/', storage=S3MediaStorage())  # Use S3MediaStorage
     validity_days = models.IntegerField()
     rate_per_view = models.IntegerField()
     description = models.TextField()

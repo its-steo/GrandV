@@ -12,21 +12,15 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'grandview-shop.onrender.com',
+        hostname: 'grandview-storage.s3.amazonaws.com',
         port: '',
-        pathname: '/media/**',
+        pathname: '/packages/**',  // Restrict to packages folder for security
       },
       {
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '8000',
-        pathname: '/images/**',
-      },
-      {
-        protocol: 'http',
-        hostname: '127.0.0.1',
-        port: '8000',
-        pathname: '/images/**',
+        protocol: 'https',
+        hostname: 'grandview-storage.s3.eu-north-1.amazonaws.com',
+        port: '',
+        pathname: '/packages/**',  // Include region-specific hostname if used
       },
     ],
   },

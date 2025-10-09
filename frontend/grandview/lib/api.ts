@@ -202,11 +202,15 @@ export interface SubmissionResponse {
 
 export interface Submission {
   id: number
+  user: number
+  advert: number
   advert_title: string
   views_count: number
+  screenshot: string // Local URL (e.g., /media/submissions/filename)
   earnings: string
   submission_date: string
 }
+
 export interface PackageType {
   id: number
   name: string

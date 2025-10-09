@@ -1,10 +1,12 @@
+# views.py
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.exceptions import UnsupportedMediaType, ParseError, ValidationError
-from django.http import HttpResponse
+from django.http import HttpResponseRedirect  # Changed from HttpResponse
+from django.http import StreamingHttpResponse
 from django.db import transaction
 from .models import Advert, Submission
 from packages.models import Package, Purchase
@@ -16,6 +18,9 @@ from decimal import Decimal
 import logging
 from django.db.models import Sum
 import time
+from django.conf import settings
+import boto3
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -49,9 +54,44 @@ class AdvertDownloadView(APIView):
 
     def get(self, request, pk):
         advert = get_object_or_404(Advert, pk=pk)
-        response = HttpResponse(advert.file.read(), content_type='application/octet-stream')
-        response['Content-Disposition'] = f'attachment; filename="{advert.file.name}"'
-        return response
+        file_key = advert.file.name  # e.g., 'adverts/filename.pdf'
+        logger.info(f"Attempting to download advert {pk} with file_key: {file_key}")
+
+        # Initialize s3_client
+        try:
+            logger.debug(f"Initializing S3 client with bucket: {settings.AWS_STORAGE_BUCKET_NAME}, region: {settings.AWS_S3_REGION_NAME}")
+            s3_client = boto3.client(
+                's3',
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                region_name=settings.AWS_S3_REGION_NAME
+            )
+        except Exception as e:
+            logger.error(f"Failed to initialize S3 client: {str(e)}")
+            return Response({"error": f"Failed to initialize S3 client: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # Retrieve file from S3
+        try:
+            logger.debug(f"Fetching file from S3: Bucket={settings.AWS_STORAGE_BUCKET_NAME}, Key={file_key}")
+            response = s3_client.get_object(
+                Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                Key=file_key
+            )
+            file_name = os.path.basename(file_key)
+            logger.info(f"Successfully fetched file: {file_name}")
+            response = StreamingHttpResponse(
+                response['Body'],
+                content_type=response['ContentType']
+            )
+            response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+            return response
+        except s3_client.exceptions.NoSuchKey:
+            logger.error(f"File not found in S3: Bucket={settings.AWS_STORAGE_BUCKET_NAME}, Key={file_key}")
+            return Response({"error": "File not found in S3"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Failed to download file for advert {pk}: {str(e)}")
+            return Response({"error": f"Failed to download file: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
 
 class SubmissionView(APIView):
     permission_classes = [IsAuthenticated]
@@ -135,7 +175,6 @@ class SubmissionView(APIView):
                 description=f'Earned KSH {earnings} from {views_count} views of "{advert.title}"'
             )
 
-            # Artificial delay
             time.sleep(2)
 
             serializer = SubmissionSerializer(submission)

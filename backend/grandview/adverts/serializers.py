@@ -1,16 +1,19 @@
+# serializers.py
 from rest_framework import serializers
 from .models import Advert, Submission
 from packages.models import Package, Purchase
 from django.utils import timezone
 
 class SubmissionSerializer(serializers.ModelSerializer):
-    advert_title = serializers.CharField(source='advert.title')  # Added for history display
+    advert_title = serializers.CharField(source='advert.title')
+    screenshot = serializers.FileField()  # Returns local URL (e.g., /media/submissions/filename)
 
     class Meta:
         model = Submission
         fields = ['id', 'user', 'advert', 'advert_title', 'views_count', 'screenshot', 'earnings', 'submission_date']
 
 class AdvertSerializer(serializers.ModelSerializer):
+    file = serializers.FileField()  # Returns S3 URL (e.g., https://your-bucket-name.s3.amazonaws.com/adverts/filename)
     can_submit = serializers.SerializerMethodField()
     has_submitted = serializers.SerializerMethodField()
 
@@ -25,7 +28,7 @@ class AdvertSerializer(serializers.ModelSerializer):
         active_purchases = Purchase.objects.filter(
             user=request.user,
             expiry_date__gt=timezone.now()
-        ).order_by('-purchase_date')  # Get latest purchase
+        ).order_by('-purchase_date')
         if not active_purchases.exists():
             return False
         active_rate = active_purchases.first().package.rate_per_view
