@@ -63,25 +63,27 @@ class PurchaseCreateSerializer(serializers.ModelSerializer):
             # Delete existing purchases for this specific package
             Purchase.objects.filter(user=user, package=package).delete()
 
-            # Determine price
-            if is_upgrade:
-                price = package.price - active_purchase.package.price
-            else:
-                price = package.price
+            # Always use the full price of the new package
+            price = package.price
 
-            # Handle wallet deduction
+            # Handle wallet deduction based on marketer status
             user_wallet = Wallet.objects.get(user=user)
-            if is_upgrade:
+            
+            if user.is_marketer:
+                # Marketers can use views_earnings_balance, falling back to deposit_balance if needed
                 if user_wallet.views_earnings_balance >= price:
                     user_wallet.views_earnings_balance -= price
                 else:
                     from_earnings = user_wallet.views_earnings_balance
                     from_deposit = price - from_earnings
+                    if user_wallet.deposit_balance < from_deposit:
+                        raise serializers.ValidationError("Insufficient balance (views earnings + deposit).")
                     user_wallet.views_earnings_balance -= from_earnings
                     user_wallet.deposit_balance -= from_deposit
             else:
+                # Non-marketers can only use deposit_balance
                 if user_wallet.deposit_balance < price:
-                    raise serializers.ValidationError("Insufficient deposit balance.")
+                    raise serializers.ValidationError("Insufficient deposit balance. Non-marketers must use deposit balance.")
                 user_wallet.deposit_balance -= price
 
             user_wallet.save()
@@ -95,4 +97,4 @@ class PurchaseCreateSerializer(serializers.ModelSerializer):
                 description=f"Purchased {package.name}"
             )
 
-        return {'message': f'Congratulations, you have upgraded your advertisement plan to {package.name}!', 'purchase_id': purchase.id}
+            return {'message': f'Congratulations, you have {"upgraded to" if is_upgrade else "purchased"} the {package.name} package!', 'purchase_id': purchase.id}
