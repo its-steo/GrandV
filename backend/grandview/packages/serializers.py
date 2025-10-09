@@ -10,9 +10,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 class PackageSerializer(serializers.ModelSerializer):
+    image = serializers.ImageField()  # Explicitly define to ensure S3 URL is returned
+
     class Meta:
         model = Package
-        fields = '__all__'
+        fields = ['id', 'name', 'image', 'validity_days', 'rate_per_view', 'description', 'price']
 
 class PurchaseSerializer(serializers.ModelSerializer):
     package = PackageSerializer(read_only=True)
@@ -51,17 +53,17 @@ class PurchaseCreateSerializer(serializers.ModelSerializer):
                     if package.rate_per_view == 120:
                         is_premium_upgrade = True
 
-            # Deactivate all existing active purchases for this user (set to EXPIRED and update expiry_date)
+            # Deactivate all existing active purchases for this user
             Purchase.objects.filter(user=user, status='ACTIVE').update(
                 status='EXPIRED',
                 expiry_date=timezone.now()
             )
             logger.info(f"Deactivated all existing active purchases for user {user.username}")
 
-            # Delete existing purchases for this specific package to avoid any conflicts
+            # Delete existing purchases for this specific package
             Purchase.objects.filter(user=user, package=package).delete()
 
-            # Determine price: full price for new, difference for upgrade
+            # Determine price
             if is_upgrade:
                 price = package.price - active_purchase.package.price
             else:
@@ -82,7 +84,7 @@ class PurchaseCreateSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError("Insufficient deposit balance.")
                 user_wallet.deposit_balance -= price
 
-            user_wallet.save()  # Triggers commission logic
+            user_wallet.save()
 
             purchase = Purchase.objects.create(user=user, package=package)
 
