@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Withdrawal Approved - GrandView</title>
+    <title>Referral Commission Earned - GrandView</title>
     <style>
         body { font-family: 'Arial', sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; color: #333; }
         .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
@@ -13,7 +13,6 @@
         .content { padding: 30px; text-align: center; }
         .content p { font-size: 16px; line-height: 1.6; margin-bottom: 20px; }
         .amount-highlight { background: linear-gradient(135deg, #10b981 0%, #f59e0b 100%); color: white; padding: 10px 20px; border-radius: 50px; display: inline-block; font-weight: bold; font-size: 24px; margin: 20px 0; }
-        .fee-info { font-size: 14px; color: #64748b; margin-top: -10px; }
         .button { display: inline-block; background: linear-gradient(135deg, #10b981 0%, #f59e0b 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; margin-top: 20px; }
         .footer { background-color: #f8fafc; padding: 20px; text-align: center; color: #64748b; font-size: 14px; }
     </style>
@@ -21,18 +20,17 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>💰 Withdrawal Approved!</h1>
+            <h1>🎉 New Referral Commission Earned!</h1>
             <p>Congratulations, {{ user.username }}!</p>
         </div>
         <div class="content">
-            <p>Your withdrawal request has been approved and the funds have been sent to your M-Pesa number {{ mpesa_number }}.</p>
-            <div class="amount-highlight">KSh {{ net_amount }}</div>
-            <p class="fee-info">Original request: KSh {{ amount }} (Fee: KSh {{ fee|floatformat:2 }})</p>
-            <p>Thank you for being a valued GrandView member. Keep earning!</p>
-            <a href="https://grand-v.vercel.app" class="button">Check Wallet</a>
+            <p>Your downline, {{ downline_username }}, had a deposit deduction of KSh {{ deduction_amount }}, and you've earned a referral commission.</p>
+            <div class="amount-highlight">KSh {{ commission }}</div>
+            <p>This commission has been added to your referral balance. Check your wallet to see your updated earnings!</p>
+            <a href="https://grand-v.vercel.app" class="button">View Wallet</a>
         </div>
         <div class="footer">
-            <p>If you didn't initiate this withdrawal, contact support immediately.<br>
+            <p>If you have any questions, our support team is here to help.<br>
             Best regards,<br><strong>GrandView Business Platform Team</strong></p>
             <p>&copy; {% now "Y" %} GrandView. All rights reserved.</p>
         </div>

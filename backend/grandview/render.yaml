@@ -34,10 +34,10 @@ services:
         value: "https://grandview-shop.onrender.com,https://grand-v.vercel.app"
       - key: EMAIL_HOST_USER
         sync: false  # Set manually
-        value: "globalgrowthinvest@gmail.com"
+        value: "grandviewshopafrica@gmail.com"
       - key: EMAIL_HOST_PASSWORD
         sync: false  # Set manually (app password)
-        value: "acywtknrolrqkjhw"
+        value: "jcsajscciezckcjr"
       - key: DATABASE_URL
         fromDatabase:
           name: grandviewbackend

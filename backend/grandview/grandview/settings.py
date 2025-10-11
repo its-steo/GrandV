@@ -125,14 +125,13 @@ CHANNEL_LAYERS = {
 
 # Email configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-#EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
-EMAIL_HOST_USER = 'globalgrowthinvest@gmail.com'
-EMAIL_HOST_PASSWORD = 'acywtknrolrqkjhw'  # App-specific password for Gmail
+EMAIL_HOST_USER = 'grandviewshopafrica@gmail.com'
+EMAIL_HOST_PASSWORD = 'jcsajscciezckcjr'  # App-specific password for Gmail
 EMAIL_USE_TLS = True
-DEFAULT_FROM_EMAIL = 'Grandview <globalgrowthinvest@gmail.com>'  # Must match EMAIL_HOST_USER or a verified alias
-ADMIN_EMAIL = 'globalgrowthinvest@gmail.com'  # Admin email for deposit notifications
+DEFAULT_FROM_EMAIL = 'Grandview <grandviewshopafrica@gmail.com>'  # Must match EMAIL_HOST_USER or a verified alias
+ADMIN_EMAIL = 'grandviewshopafrica@gmail.com'  # Admin email for deposit notifications
 
 
 # CORS settings

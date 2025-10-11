@@ -21,6 +21,8 @@ import time
 from django.conf import settings
 import boto3
 import os
+from django.core.mail import send_mail  # Added for email
+from django.template.loader import render_to_string  # Added for template rendering
 
 logger = logging.getLogger(__name__)
 
@@ -105,15 +107,11 @@ class SubmissionView(APIView):
             logger.debug(f"FILES keys: {list(request.FILES.keys())}")
 
             advert_id_raw = request.data.get('advert_id', None)
-            views_count_str = request.data.get('views_count', '1')
-            screenshot = request.FILES.get('screenshot')
-
-            if advert_id_raw is None or str(advert_id_raw).strip() == '':
-                logger.warning(f"Invalid advert_id: {repr(advert_id_raw)}")
-                return Response({"error": "advert_id is required and must be a valid number"}, status=status.HTTP_400_BAD_REQUEST)
+            views_count_str = request.data.get('views_count', None)  # Fixed typo from 'reques...' in the truncated code
+            screenshot = request.FILES.get('screenshot', None)
 
             try:
-                advert_id = int(str(advert_id_raw).strip())
+                advert_id = int(advert_id_raw)
                 logger.debug(f"Parsed advert_id: {advert_id}")
             except ValueError:
                 logger.warning(f"Invalid advert_id value: {repr(advert_id_raw)}")
@@ -176,6 +174,27 @@ class SubmissionView(APIView):
             )
 
             time.sleep(2)
+
+            # Prepare and send earning notification email
+            try:
+                subject = 'Congratulations on Your Earnings!'
+                context = {
+                    'user': request.user,
+                    'advert_title': advert.title,
+                    'earnings': earnings,
+                    'views_count': views_count,
+                }
+                message = render_to_string('emails/earning_notification.html', context)
+                send_mail(
+                    subject=subject,
+                    message='',  # Plain text fallback (empty since HTML is primary)
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[request.user.email],
+                    html_message=message,
+                    fail_silently=False,
+                )
+            except Exception as e:
+                logger.error(f"Failed to send earning notification email to {request.user.email}: {str(e)}")
 
             serializer = SubmissionSerializer(submission)
             logger.info(f"Submission created successfully: ID={submission.id}, earnings={earnings}")

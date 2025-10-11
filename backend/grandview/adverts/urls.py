@@ -7,5 +7,5 @@ urlpatterns = [
     path('adverts/', AdvertListView.as_view(), name='advert_list'),
     path('adverts/<int:pk>/download/', AdvertDownloadView.as_view(), name='advert_download'),
     path('adverts/submit/', csrf_exempt(SubmissionView.as_view()), name='advert_submit'),  # Add csrf_exempt here
-    path('submissions/', csrf_exempt(SubmissionHistoryView.as_view()), name='submission_history'),  # Add csrf_exempt here
+    path('submissions/', (SubmissionHistoryView.as_view()), name='submission_history'),  # Add csrf_exempt here
 ]
