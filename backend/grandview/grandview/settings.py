@@ -41,7 +41,6 @@ INSTALLED_APPS = [
     'dashboard',
     'support',
     'storages',
-    'session_security',  # Added for inactivity expiration
 ]
 
 # Template configuration
@@ -71,7 +70,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
-    'session_security.middleware.SessionSecurityMiddleware',  # Added after SessionMiddleware
 ]
 
 # Root URL configuration
@@ -109,10 +107,8 @@ REST_FRAMEWORK = {
 
 # JWT settings
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-    'ROTATE_REFRESH_TOKENS': True,  # Issue new refresh token on each refresh (prevents reuse of stolen tokens)
-    'BLACKLIST_AFTER_ROTATION': True,
 }
 
 # Channels settings
@@ -182,7 +178,6 @@ class S3MediaStorage(S3Boto3Storage):
     file_overwrite = False
     custom_domain = f'{bucket_name}.s3.amazonaws.com'
     querystring_auth = False
-    querystring_auth = False
     object_parameters = {'CacheControl': 'max-age=86400'}
 
     def __init__(self, *args, **kwargs):
@@ -216,14 +211,6 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False') == 'True'
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
-
-# Session settings for inactivity expiration
-#SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Expire session when browser is closed
-#SESSION_SAVE_EVERY_REQUEST = True  # Update session on every request (enables sliding expiration)
-#SESSION_COOKIE_AGE = 1800  # 30 minutes total session lifetime
-#SESSION_SECURITY_WARN_AFTER = 300  # Warn after 5 minutes of inactivity
-#SESSION_SECURITY_EXPIRE_AFTER = 600  # Expire after 10 minutes of inactivity
 
 # Login/Redirect Settings
 LOGIN_URL = '/api/accounts/login/'
