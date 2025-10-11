@@ -216,14 +216,14 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False') == 'True'
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-CSRF_COOKIE_SAMESITE = 'Strict'
+
 
 # Session settings for inactivity expiration
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Expire session when browser is closed
-SESSION_SAVE_EVERY_REQUEST = True  # Update session on every request (enables sliding expiration)
-SESSION_COOKIE_AGE = 1800  # 30 minutes total session lifetime
-SESSION_SECURITY_WARN_AFTER = 300  # Warn after 5 minutes of inactivity
-SESSION_SECURITY_EXPIRE_AFTER = 600  # Expire after 10 minutes of inactivity
+#SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Expire session when browser is closed
+#SESSION_SAVE_EVERY_REQUEST = True  # Update session on every request (enables sliding expiration)
+#SESSION_COOKIE_AGE = 1800  # 30 minutes total session lifetime
+#SESSION_SECURITY_WARN_AFTER = 300  # Warn after 5 minutes of inactivity
+#SESSION_SECURITY_EXPIRE_AFTER = 600  # Expire after 10 minutes of inactivity
 
 # Login/Redirect Settings
 LOGIN_URL = '/api/accounts/login/'
