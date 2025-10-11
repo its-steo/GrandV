@@ -23,6 +23,7 @@ import boto3
 import os
 from django.core.mail import send_mail  # Added for email
 from django.template.loader import render_to_string  # Added for template rendering
+from .serializers import TransactionSerializer 
 
 logger = logging.getLogger(__name__)
 
@@ -225,4 +226,114 @@ class SubmissionHistoryView(APIView):
         return Response({
             'submissions': serializer.data,
             'total_earnings': float(total_earnings)
+        })
+
+class WithdrawalView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            wallet = Wallet.objects.get(user=request.user)
+            views_earnings_balance = wallet.views_earnings_balance
+
+            active_purchases = Purchase.objects.filter(
+                user=request.user,
+                expiry_date__gt=timezone.now()
+            ).order_by('-purchase_date')
+
+            can_withdraw = False
+            if active_purchases.exists():
+                active_rate = active_purchases.first().package.rate_per_view
+                if active_rate == 120:
+                    can_withdraw = True
+
+            return Response({
+                'views_earnings_balance': float(views_earnings_balance),
+                'can_withdraw': can_withdraw
+            })
+        except Wallet.DoesNotExist:
+            logger.error("User wallet not found")
+            return Response({"error": "User wallet not found. Please contact support."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            logger.error(f"Unexpected error in withdrawal GET: {str(e)}")
+            return Response({"error": "An unexpected error occurred. Please try again."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @transaction.atomic
+    def post(self, request):
+        try:
+            amount_str = request.data.get('amount')
+            if not amount_str:
+                return Response({"success": False, "message": "Amount is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                amount = Decimal(amount_str)
+                if amount <= 0:
+                    return Response({"success": False, "message": "Amount must be greater than 0"}, status=status.HTTP_400_BAD_REQUEST)
+            except:
+                return Response({"success": False, "message": "Invalid amount"}, status=status.HTTP_400_BAD_REQUEST)
+
+            active_purchases = Purchase.objects.filter(
+                user=request.user,
+                expiry_date__gt=timezone.now()
+            ).order_by('-purchase_date')
+
+            if not active_purchases.exists() or active_purchases.first().package.rate_per_view != 120:
+                return Response({"success": False, "message": "Upgrade to premium package (120 per view) to withdraw"}, status=status.HTTP_400_BAD_REQUEST)
+
+            wallet = Wallet.objects.get(user=request.user)
+            if wallet.views_earnings_balance < amount:
+                return Response({"success": False, "message": "Insufficient balance"}, status=status.HTTP_400_BAD_REQUEST)
+
+            wallet.views_earnings_balance -= amount
+            wallet.save()
+
+            Transaction.objects.create(
+                user=request.user,
+                amount=-amount,
+                transaction_type='WITHDRAWAL',
+                description=f'Withdrew KSH {amount} from views earnings'
+            )
+
+            # Send email
+            try:
+                subject = 'Withdrawal Successful!'
+                context = {
+                    'user': request.user,
+                    'amount': amount,
+                }
+                message = render_to_string('emails/withdrawal_notification.html', context)
+                send_mail(
+                    subject=subject,
+                    message='',  # Plain text fallback
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[request.user.email],
+                    html_message=message,
+                    fail_silently=False,
+                )
+            except Exception as e:
+                logger.error(f"Failed to send withdrawal notification email to {request.user.email}: {str(e)}")
+
+            return Response({
+                "success": True,
+                "message": "Withdrawal successful",
+                "new_balance": float(wallet.views_earnings_balance)
+            }, status=status.HTTP_200_OK)
+
+        except Wallet.DoesNotExist:
+            logger.error("User wallet not found")
+            return Response({"success": False, "message": "User wallet not found. Please contact support."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            logger.error(f"Unexpected error in withdrawal POST: {str(e)}")
+            return Response({"success": False, "message": "An unexpected error occurred. Please try again."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class TransactionHistoryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        transactions = Transaction.objects.filter(user=request.user).order_by('-created_at')
+        serializer = TransactionSerializer(transactions, many=True)
+        total_amount = transactions.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        return Response({
+            'transactions': serializer.data,
+            'total_amount': float(total_amount)
         })

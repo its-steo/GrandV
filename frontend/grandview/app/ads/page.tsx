@@ -7,7 +7,7 @@ import { SubmissionModal } from "@/components/ads/submission-modal"
 import { PackageStatus } from "@/components/ads/package-status"
 import { ApiService, type Advert, type UserPackage } from "@/lib/api"
 import { toast } from "sonner"
-import { Loader2, Play, TrendingUp, DollarSign, Eye, Calendar } from "lucide-react"
+import { Loader2, Play, TrendingUp, DollarSign, Eye, Calendar, ImageIcon } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
@@ -17,7 +17,6 @@ import { motion } from "framer-motion"
 // Error Boundary Component
 import { ErrorBoundary } from "react-error-boundary"
 
-// Use Submission type from API
 import type { Submission } from "@/lib/api"
 
 const ErrorFallback = ({ error }: { error: Error }) => (

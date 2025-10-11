@@ -3,6 +3,8 @@ from rest_framework import serializers
 from .models import Advert, Submission
 from packages.models import Package, Purchase
 from django.utils import timezone
+from rest_framework import serializers
+from wallet.models import Transaction
 
 class SubmissionSerializer(serializers.ModelSerializer):
     advert_title = serializers.CharField(source='advert.title')
@@ -44,3 +46,8 @@ class AdvertSerializer(serializers.ModelSerializer):
             advert=obj,
             submission_date__date=today
         ).exists()
+
+class TransactionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Transaction
+        fields = ['id', 'amount', 'transaction_type', 'description', 'created_at']
