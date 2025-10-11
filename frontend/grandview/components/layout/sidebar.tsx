@@ -20,6 +20,7 @@ import {
   Megaphone,
   TrendingUp,
   MessageCircle,
+  DollarSign, // Added for Withdraw icon
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { cn } from "@/lib/utils"
@@ -28,6 +29,7 @@ import { useRouter } from "next/navigation"
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home, description: "Overview & Analytics", iconColor: "text-blue-500 dark:text-blue-400" },
   { name: "Advertise", href: "/ads", icon: Megaphone, description: "WhatsApp Ad Campaigns", badge: "New", iconColor: "text-green-500 dark:text-green-400" },
+  { name: "Withdraw", href: "/withdraw", icon: DollarSign,description: "Views Earning Withdrawals", iconColor: "text-green-500 dark:text-green-400" },
   { name: "Wallet", href: "/wallet", icon: Wallet, description: "Payments & Billing", iconColor: "text-teal-500 dark:text-teal-400" },
   { name: "Packages", href: "/packages", icon: Package, description: "Subscription Plans", iconColor: "text-amber-500 dark:text-amber-400" },
   { name: "Store", href: "/store", icon: ShoppingBag, description: "Marketing Tools", iconColor: "text-purple-500 dark:text-purple-400" },
@@ -38,6 +40,7 @@ const quickActions = [
   { name: "Profile", href: "/profile", icon: User, iconColor: "text-cyan-500 dark:text-cyan-400" },
   { name: "Orders", href: "/orders", icon: ShoppingCart, iconColor: "text-orange-500 dark:text-orange-400" },
   { name: "Lipa Mdogo", href: "/lipa", icon: CreditCard, iconColor: "text-red-500 dark:text-red-400" },
+   // Added Withdraw
 ]
 
 export function Sidebar() {

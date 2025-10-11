@@ -178,11 +178,22 @@ export interface Advert {
   has_submitted: boolean
 }
 
+ export interface WithdrawalData {
+  views_earnings_balance: number
+  can_withdraw: boolean
+}
+
 export interface CartItem {
   id: number
   product: Product
   quantity: number
   total_price: string
+}
+
+export interface WithdrawalResponse {
+  success: boolean
+  message: string
+  new_balance: number
 }
 
 export interface UserPackage {
@@ -1155,6 +1166,34 @@ export class ApiService {
     if (typeof window !== "undefined") {
       localStorage.removeItem("auth_token")
     }
+  }
+
+  static async getWithdrawalData(): Promise<WithdrawalData> {
+    const response = await fetch(`${API_BASE_URL}/withdraw/`, {
+      headers: getAuthHeaders(),
+    })
+
+    if (!response.ok) {
+      const error = await safeParseJSON(response)
+      throw new Error((error as { message?: string }).message || "Failed to fetch withdrawal data")
+    }
+
+    return safeParseJSON(response) as Promise<WithdrawalData>
+  }
+
+  static async postWithdrawal(amount: number): Promise<WithdrawalResponse> {
+    const response = await fetch(`${API_BASE_URL}/withdraw/`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ amount }),
+    })
+
+    if (!response.ok) {
+      const error = await safeParseJSON(response)
+      throw new Error((error as { message?: string }).message || "Failed to process withdrawal")
+    }
+
+    return safeParseJSON(response) as Promise<WithdrawalResponse>
   }
 
   static async getProducts(params?: {
