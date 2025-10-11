@@ -34,7 +34,7 @@ class Wallet(models.Model):
                         upline = self.user.referred_by
                         upline_wallet, _ = Wallet.objects.get_or_create(user=upline)
                         upline_wallet.referral_balance += commission
-                        upline_wallet.save(bypass_commission=True)  # Prevent recursive commission
+                        upline_wallet.save(bypass_commission=True)
                         Transaction.objects.create(
                             user=upline,
                             amount=commission,
@@ -42,7 +42,7 @@ class Wallet(models.Model):
                             description=f"Commission from downline {self.user.username}'s deposit deduction of {deposit_diff}"
                         )
                         logger.debug(f"Credited {commission} to upline {upline.username}'s referral_balance")
-                        # Send email to upline
+                        # Send commission email to upline
                         try:
                             context = {
                                 'user': upline,
@@ -51,7 +51,9 @@ class Wallet(models.Model):
                                 'commission': commission,
                                 'site_url': settings.SITE_URL,
                             }
+                            logger.debug(f"Attempting to render emails/commission_earned.html with context: {context}")
                             message = render_to_string('emails/commission_earned.html', context)
+                            logger.debug(f"Template rendered successfully for {upline.email}")
                             send_mail(
                                 subject='New Referral Commission Earned',
                                 message='',
@@ -60,11 +62,11 @@ class Wallet(models.Model):
                                 html_message=message,
                                 fail_silently=False,
                             )
-                            logger.info(f"Commission email sent to upline {upline.email}")
+                            logger.info(f"Commission email sent to {upline.email}")
                         except Exception as e:
-                            logger.error(f"Failed to send commission email to {upline.email}: {str(e)}")
+                            logger.error(f"Failed to send commission email to {upline.email}: {str(e)}", exc_info=True)
             except Exception as e:
-                logger.error(f"Commission logic error: {str(e)}")
+                logger.error(f"Commission logic error: {str(e)}", exc_info=True)
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -85,7 +87,7 @@ class Transaction(models.Model):
     BALANCE_TYPE_CHOICES = [
         ('VIEWS_EARNINGS', 'Views Earnings'),
         ('DEPOSIT', 'Deposit'),
-        ('REFERRAL', 'Referral'),
+       ('REFERRAL', 'Referral'),
     ]
 
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='transactions')
@@ -115,15 +117,33 @@ class Deposit(models.Model):
     status = models.CharField(max_length=10, choices=[('PENDING', 'Pending'), ('COMPLETED', 'Completed'), ('FAILED', 'Failed')], default='PENDING')
 
     def save(self, *args, **kwargs):
-        old_status = None
-        if self.pk:
-            old_deposit = Deposit.objects.get(pk=self.pk)
-            old_status = old_deposit.status
-        
+        is_new = self.pk is None
+        if is_new:
+            # Send admin email for new deposit request
+            try:
+                context = {
+                    'user': self.wallet.user,
+                    'amount': self.amount,
+                    'method': 'M-Pesa STK Push' if self.transaction_id else 'Manual M-Pesa',
+                    'phone_number': self.phone_number or 'N/A',
+                    'mpesa_code': self.mpesa_code or 'N/A',
+                    'site_url': settings.SITE_URL,
+                }
+                logger.debug(f"Attempting to render emails/admin_deposit_request.html with context: {context}")
+                message = render_to_string('emails/admin_deposit_request.html', context)
+                send_mail(
+                    subject=f'New Deposit Request from {self.wallet.user.username}',
+                    message='',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[settings.ADMIN_EMAIL],
+                    html_message=message,
+                    fail_silently=False,
+                )
+                logger.info(f"Admin deposit request email sent for deposit by {self.wallet.user.username}")
+            except Exception as e:
+                logger.error(f"Failed to send admin deposit request email: {str(e)}", exc_info=True)
         super().save(*args, **kwargs)
-        
-        # Check if status changed to COMPLETED
-        if old_status != 'COMPLETED' and self.status == 'COMPLETED':
+        if self.status == 'COMPLETED':
             self.wallet.deposit_balance += self.amount
             self.wallet.save()
             Transaction.objects.create(
@@ -132,21 +152,17 @@ class Deposit(models.Model):
                 transaction_type='DEPOSIT',
                 description=f"Deposit of {self.amount} via M-Pesa {self.mpesa_code or self.mpesa_receipt_number or 'manual'}"
             )
-            logger.info(f"Deposit {self.pk} completed and wallet updated")
-            
-            # Send deposit confirmation email
+            # Send deposit confirmation email to user
             try:
                 context = {
                     'user': self.wallet.user,
                     'amount': self.amount,
-                    'mpesa_code': self.mpesa_code,
-                    'mpesa_receipt_number': self.mpesa_receipt_number,
-                    'phone_number': self.phone_number,
                     'site_url': settings.SITE_URL,
                 }
+                logger.debug(f"Attempting to render emails/deposit_confirmed.html with context: {context}")
                 message = render_to_string('emails/deposit_confirmed.html', context)
                 send_mail(
-                    subject='Deposit Confirmed - GrandView',
+                    subject='Deposit Confirmed',
                     message='',
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[self.wallet.user.email],
@@ -155,7 +171,8 @@ class Deposit(models.Model):
                 )
                 logger.info(f"Deposit confirmation email sent to {self.wallet.user.email}")
             except Exception as e:
-                logger.error(f"Failed to send deposit confirmation email to {self.wallet.user.email}: {str(e)}")
+                logger.error(f"Failed to send deposit confirmation email to {self.wallet.user.email}: {str(e)}", exc_info=True)
+            logger.info(f"Deposit {self.pk} completed and wallet updated")
 
     def __str__(self):
         return f"Deposit of {self.amount} for {self.wallet.user.username} ({self.status})"
@@ -174,56 +191,77 @@ class Withdrawal(models.Model):
     pending_transaction = models.OneToOneField(Transaction, null=True, blank=True, on_delete=models.SET_NULL, related_name='withdrawal_pending')
 
     def save(self, *args, **kwargs):
-        old_status = None
+        is_new = self.pk is None
+        if is_new:
+            # Send admin email for new withdrawal request
+            try:
+                context = {
+                    'user': self.wallet.user,
+                    'amount': self.amount,
+                    'net_amount': self.net_amount,
+                    'fee': self.fee,
+                    'mpesa_number': self.mpesa_number,
+                    'balance_type': self.balance_type.replace('_', ' ').title(),
+                    'site_url': settings.SITE_URL,
+                }
+                logger.debug(f"Attempting to render emails/admin_withdrawal_request.html with context: {context}")
+                message = render_to_string('emails/admin_withdrawal_request.html', context)
+                send_mail(
+                    subject=f'New Withdrawal Request from {self.wallet.user.username}',
+                    message='',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[settings.ADMIN_EMAIL],
+                    html_message=message,
+                    fail_silently=False,
+                )
+                logger.info(f"Admin withdrawal request email sent for withdrawal by {self.wallet.user.username}")
+            except Exception as e:
+                logger.error(f"Failed to send admin withdrawal request email: {str(e)}", exc_info=True)
         if self.pk:
             old = Withdrawal.objects.get(pk=self.pk)
-            old_status = old.status
             if self.status != old.status:
                 if self.status == 'PAID':
                     if self.pending_transaction:
                         self.pending_transaction.transaction_type = 'WITHDRAW_COMPLETED'
                         self.pending_transaction.description = f"Completed withdrawal of {self.net_amount} (after fee {self.fee}) from {self.balance_type.replace('_', ' ')} to M-Pesa {self.mpesa_number}"
                         self.pending_transaction.save()
-                        
-                        # Send withdrawal approved email
-                        try:
-                            context = {
-                                'user': self.wallet.user,
-                                'amount': self.amount,
-                                'net_amount': self.net_amount,
-                                'fee': self.fee,
-                                'mpesa_number': self.mpesa_number,
-                                'balance_type': self.balance_type.replace('_', ' ').title(),
-                                'site_url': settings.SITE_URL,
-                            }
-                            message = render_to_string('emails/withdrawal_approved.html', context)
-                            send_mail(
-                                subject='Withdrawal Approved - GrandView',
-                                message='',
-                                from_email=settings.DEFAULT_FROM_EMAIL,
-                                recipient_list=[self.wallet.user.email],
-                                html_message=message,
-                                fail_silently=False,
-                            )
-                            logger.info(f"Withdrawal approval email sent to {self.wallet.user.email}")
-                        except Exception as e:
-                            logger.error(f"Failed to send withdrawal approved email to {self.wallet.user.email}: {str(e)}")
-                            
+                    # Send withdrawal approval email to user
+                    try:
+                        context = {
+                            'user': self.wallet.user,
+                            'amount': self.amount,
+                            'net_amount': self.net_amount,
+                            'fee': self.fee,
+                            'mpesa_number': self.mpesa_number,
+                            'site_url': settings.SITE_URL,
+                        }
+                        logger.debug(f"Attempting to render emails/withdrawal_approved.html with context: {context}")
+                        message = render_to_string('emails/withdrawal_approved.html', context)
+                        send_mail(
+                            subject='Withdrawal Approved',
+                            message='',
+                            from_email=settings.DEFAULT_FROM_EMAIL,
+                            recipient_list=[self.wallet.user.email],
+                            html_message=message,
+                            fail_silently=False,
+                        )
+                        logger.info(f"Withdrawal approval email sent to {self.wallet.user.email}")
+                    except Exception as e:
+                        logger.error(f"Failed to send withdrawal approval email to {self.wallet.user.email}: {str(e)}", exc_info=True)
                 elif self.status == 'CANCELLED':
                     if self.pending_transaction:
                         self.pending_transaction.transaction_type = 'WITHDRAW_CANCELLED'
                         self.pending_transaction.description = f"Cancelled withdrawal of {self.amount} from {self.balance_type.replace('_', ' ')}"
                         self.pending_transaction.save()
-                    if self.balance_type == 'REFERRAL':
-                        self.wallet.referral_balance += self.net_amount  # Refund net amount
-                    elif self.balance_type == 'DEPOSIT':
+                    if self.balance_type == 'referral_balance':
+                        self.wallet.referral_balance += self.net_amount
+                    else:
                         self.wallet.deposit_balance += self.from_deposit
-                    elif self.balance_type == 'VIEWS_EARNINGS':
                         self.wallet.views_earnings_balance += self.from_earnings
-                    self.wallet.save(bypass_commission=True)  # Bypass commission logic
+                    self.wallet.save(bypass_commission=True)
                     Transaction.objects.create(
                         user=self.wallet.user,
-                        amount=self.amount,  # Refund original amount
+                        amount=self.amount,
                         transaction_type='WITHDRAW_REFUND',
                         description=f"Refund for cancelled withdrawal of {self.amount} from {self.balance_type.replace('_', ' ')}"
                     )
