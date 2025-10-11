@@ -9,7 +9,10 @@ from wallet.models import Transaction
 from django.utils import timezone
 from django.db.models import Sum
 from decimal import Decimal
+from django.core.mail import send_mail
 from django.contrib.auth import authenticate
+from django.template.loader import render_to_string
+from django.conf import settings
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
@@ -19,7 +22,27 @@ class RegisterView(APIView):
         if serializer.is_valid():
             user = serializer.save()
             token, created = Token.objects.get_or_create(user=user)
-            
+
+            # Prepare and send welcome email
+            try:
+                subject = 'Welcome to Grandview!'
+                context = {
+                    'user': user,
+                    'site_url': settings.SITE_URL,
+                }
+                message = render_to_string('emails/welcome_email.html', context)
+                send_mail(
+                    subject=subject,
+                    message='',  # Plain text message (empty since we're using HTML)
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[user.email],
+                    html_message=message,
+                    fail_silently=False,
+                )
+            except Exception as e:
+                # Log the error but don't fail the registration
+                print(f"Failed to send welcome email: {str(e)}")
+
             return Response({
                 'token': token.key,
                 'user': {
@@ -31,6 +54,7 @@ class RegisterView(APIView):
                 }
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
