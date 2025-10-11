@@ -37,10 +37,10 @@ services:
         value: "grandviewshopafrica@gmail.com"
       - key: EMAIL_HOST_PASSWORD
         sync: false  # Set manually (app password)
-        value: "wskhdnihfiydsikc"
+        value: "jcsajscciezckcjr"
       - key: DATABASE_URL
         fromDatabase:
-          name: grandview-db
+          name: grandviewbackend
           property: connectionString
       - key: DATABASE_SSL
         value: "True"  # Explicitly enable SSL require for dj_database_url

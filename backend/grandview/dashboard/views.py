@@ -15,6 +15,8 @@ from datetime import timedelta
 import logging
 import boto3
 from django.conf import settings
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
 
 logger = logging.getLogger(__name__)
 
@@ -63,60 +65,101 @@ class AddToCartView(APIView):
         quantity = request.data.get('quantity', 1)
         try:
             quantity = int(quantity)
-            if quantity <= 0:
-                raise ValueError
-        except (ValueError, TypeError):
+            if quantity < 1:
+                return Response({"error": "Quantity must be at least 1"}, status=status.HTTP_400_BAD_REQUEST)
+        except ValueError:
             return Response({"error": "Invalid quantity"}, status=status.HTTP_400_BAD_REQUEST)
-
         product = get_object_or_404(Product, pk=product_id)
         cart, _ = Cart.objects.get_or_create(user=request.user)
-        cart_item, created = CartItem.objects.get_or_create(
-            cart=cart,
-            product=product,
-            defaults={'quantity': quantity}
-        )
+        cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
         if not created:
             cart_item.quantity += quantity
-            cart_item.save()
-        logger.info(f"Added {quantity} of product {product.id} to cart for user {request.user.username}")
+        else:
+            cart_item.quantity = quantity
+        cart_item.save()
         serializer = CartSerializer(cart)
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class UpdateCartView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        cart_item_id = request.data.get('cart_item_id')
+        product_id = request.data.get('product_id')
         quantity = request.data.get('quantity')
         try:
             quantity = int(quantity)
-            if quantity <= 0:
-                raise ValueError
-        except (ValueError, TypeError):
+            if quantity < 1:
+                return Response({"error": "Quantity must be at least 1"}, status=status.HTTP_400_BAD_REQUEST)
+        except ValueError:
             return Response({"error": "Invalid quantity"}, status=status.HTTP_400_BAD_REQUEST)
-
-        cart_item = get_object_or_404(CartItem, pk=cart_item_id, cart__user=request.user)
+        cart = get_object_or_404(Cart, user=request.user)
+        cart_item = get_object_or_404(CartItem, cart=cart, product_id=product_id)
         cart_item.quantity = quantity
         cart_item.save()
-        serializer = CartSerializer(cart_item.cart)
+        serializer = CartSerializer(cart)
         return Response(serializer.data)
 
 class RemoveFromCartView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        cart_item_id = request.data.get('cart_item_id')
-        cart_item = get_object_or_404(CartItem, pk=cart_item_id, cart__user=request.user)
-        cart = cart_item.cart
+        product_id = request.data.get('product_id')
+        cart = get_object_or_404(Cart, user=request.user)
+        cart_item = get_object_or_404(CartItem, cart=cart, product_id=product_id)
         cart_item.delete()
         serializer = CartSerializer(cart)
         return Response(serializer.data)
+
+class CheckoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        cart = get_object_or_404(Cart, user=request.user)
+        if not cart.items.exists():
+            return Response({"error": "Cart is empty"}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = OrderSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            with transaction.atomic():
+                order = serializer.save()
+                # Send order confirmation email
+                try:
+                    template = 'emails/order_confirmation_installment.html' if order.payment_method == 'INSTALLMENT' else 'emails/order_confirmation_full.html'
+                    context = {
+                        'user': request.user,
+                        'order_id': order.id,
+                        'total': order.discounted_total,
+                        'ordered_at': order.ordered_at,
+                        'site_url': settings.SITE_URL,
+                    }
+                    if order.payment_method == 'INSTALLMENT':
+                        installment_order = InstallmentOrder.objects.get(order=order)
+                        context.update({
+                            'initial_deposit': installment_order.initial_deposit,
+                            'remaining_balance': installment_order.remaining_balance,
+                            'monthly_payment': installment_order.monthly_payment,
+                            'due_date': order.ordered_at + timedelta(days=30),
+                        })
+                    subject = 'Installment Order Confirmed' if order.payment_method == 'INSTALLMENT' else 'Order Confirmed'
+                    message = render_to_string(template, context)
+                    send_mail(
+                        subject=subject,
+                        message='',
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[request.user.email],
+                        html_message=message,
+                        fail_silently=False,
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to send order confirmation email to {request.user.email}: {str(e)}")
+                return Response({"order_id": order.id, "message": "Order placed successfully"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class OrderListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        orders = Order.objects.filter(user=request.user)
+        orders = Order.objects.filter(user=request.user).order_by('-ordered_at')
         serializer = OrderSerializer(orders, many=True)
         return Response(serializer.data)
 
@@ -134,35 +177,31 @@ class InstallmentPaymentView(APIView):
     def post(self, request):
         serializer = InstallmentPaymentSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
-            try:
-                with transaction.atomic():
-                    payment = serializer.save()
-                    return Response(InstallmentPaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
-            except ValidationError as ve:
-                logger.error(f"Validation error during installment payment: {str(ve)}")
-                return Response({"error": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
-            except Exception as e:
-                logger.error(f"Failed to process installment payment: {str(e)}")
-                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            with transaction.atomic():
+                payment = serializer.save()
+                # Send payment receipt email
+                try:
+                    context = {
+                        'user': request.user,
+                        'order_id': payment.installment_order.order.id,
+                        'amount': payment.amount,
+                        'paid_at': payment.paid_at,
+                        'remaining_balance': payment.installment_order.remaining_balance,
+                        'site_url': settings.SITE_URL,
+                    }
+                    message = render_to_string('emails/payment_receipt.html', context)
+                    send_mail(
+                        subject='Installment Payment Received',
+                        message='',
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[request.user.email],
+                        html_message=message,
+                        fail_silently=False,
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to send payment receipt email to {request.user.email}: {str(e)}")
+                return Response({"message": "Payment processed successfully"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-class CheckoutView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    @transaction.atomic
-    def post(self, request):
-        logger.debug(f"Checkout request data: {request.data}")
-        serializer = OrderSerializer(data=request.data, context={'request': request})
-        if not serializer.is_valid():
-            logger.warning(f"Checkout validation failed: {serializer.errors}")
-            return Response({"error": "Invalid checkout data", "details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            order = serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            logger.error(f"Checkout failed: {str(e)}")
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class LipaRegisterView(APIView):
     permission_classes = [IsAuthenticated]
@@ -171,103 +210,71 @@ class LipaRegisterView(APIView):
     def post(self, request):
         serializer = LipaRegistrationSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
-            registration = serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-class LipaRegistrationView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        registration = LipaProgramRegistration.objects.filter(user=request.user).first()
-        if not registration:
-            return Response({"message": "No registration found"}, status=status.HTTP_404_NOT_FOUND)
-        serializer = LipaRegistrationSerializer(registration)
-        return Response(serializer.data)
-
-    def put(self, request):
-        registration = get_object_or_404(LipaProgramRegistration, user=request.user)
-        if registration.status != 'PENDING':
-            return Response({"error": "Cannot update non-pending registration"}, status=status.HTTP_403_FORBIDDEN)
-        serializer = LipaRegistrationSerializer(registration, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
+            with transaction.atomic():
+                registration = serializer.save()
+                # Send lipa registration confirmation email
+                try:
+                    context = {
+                        'user': request.user,
+                        'full_name': registration.full_name,
+                        'created_at': registration.created_at,
+                        'site_url': settings.SITE_URL,
+                    }
+                    message = render_to_string('emails/lipa_registration_confirmation.html', context)
+                    send_mail(
+                        subject='Lipa Mdogo Mdogo Registration Received',
+                        message='',
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[request.user.email],
+                        html_message=message,
+                        fail_silently=False,
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to send lipa registration email to {request.user.email}: {str(e)}")
+                return Response({"message": "Lipa Mdogo Mdogo registration submitted successfully"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class LipaPresignedUploadView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        doc_type = request.data.get('doc_type')
-        if doc_type not in ['id_front', 'id_back', 'passport_photo']:
-            return Response({"error": "Invalid doc type"}, status=status.HTTP_400_BAD_REQUEST)
+        file_name = request.data.get('file_name')
+        file_type = request.data.get('file_type')
+        if not file_name or not file_type:
+            return Response({"error": "file_name and file_type are required"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            s3_client = boto3.client(
+                's3',
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                region_name=settings.AWS_S3_REGION_NAME
+            )
+            key = f"lipa_documents/{file_name}"
+            presigned_url = s3_client.generate_presigned_url(
+                'put_object',
+                Params={'Bucket': settings.AWS_STORAGE_BUCKET_NAME, 'Key': key, 'ContentType': file_type},
+                ExpiresIn=3600
+            )
+            return Response({"presigned_url": presigned_url}, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Failed to generate presigned URL: {str(e)}")
+            return Response({"error": "Failed to generate upload URL"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        file_name = f"lipa_documents/{doc_type}/{request.user.username}_{doc_type}_{int(timezone.now().timestamp())}.{request.data.get('extension', 'jpg')}"
-        content_type = request.data.get('content_type', 'image/jpeg')
+class LipaRegistrationView(APIView):
+    permission_classes = [IsAuthenticated]
 
-        s3_client = boto3.client(
-            's3',
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=settings.AWS_S3_REGION_NAME
-        )
-        presigned = s3_client.generate_presigned_post(
-            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
-            Key=file_name,
-            Fields={'Content-Type': content_type, 'acl': 'private'},
-            Conditions=[['content-length-range', 0, 5*1024*1024]],
-            ExpiresIn=3600
-        )
-        return Response({'upload_url': presigned['url'], 'fields': presigned['fields'], 'key': file_name})
+    def get(self, request):
+        registration = get_object_or_404(LipaProgramRegistration, user=request.user)
+        serializer = LipaRegistrationSerializer(registration)
+        return Response(serializer.data)
 
 class TrackOrderView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, order_id):
         order = get_object_or_404(Order, pk=order_id, user=request.user)
-        
-        tracking_data = {
-            'tracking_number': f"TRK{order.id:08d}",
-            'history': [
-                {'description': 'Order placed', 'timestamp': order.ordered_at.isoformat()},
-            ]
-        }
-
-        if order.status == 'PROCESSING':
-            tracking_data['status'] = 'processing'
-            tracking_data['preparation_steps'] = [
-                "Your delivery guy has arrived",
-                "The company is packaging your product",
-                "Delivery guy is collecting your package"
-            ]
-            tracking_data['history'].append(
-                {'description': 'Order processed', 'timestamp': (order.ordered_at + timedelta(hours=1)).isoformat()}
-            )
-        elif order.status == 'SHIPPED':
-            tracking_data['status'] = 'shipped'
-            tracking_data['estimated_delivery'] = (order.ordered_at + timedelta(days=7)).isoformat()
-            tracking_data['estimated_minutes'] = 30  # Demo value; can be dynamic
-            tracking_data['delivery_guy'] = {
-                'name': 'John Doe',
-                'vehicle_type': 'Motorcycle'
-            }
-            tracking_data['history'].extend([
-                {'description': 'Order processed', 'timestamp': (order.ordered_at + timedelta(hours=1)).isoformat()},
-                {'description': 'Order shipped', 'timestamp': (order.ordered_at + timedelta(hours=2)).isoformat()}
-            ])
-        elif order.status == 'DELIVERED':
-            tracking_data['status'] = 'delivered'
-            tracking_data['estimated_delivery'] = (order.ordered_at + timedelta(days=7)).isoformat()
-            tracking_data['history'].extend([
-                {'description': 'Order processed', 'timestamp': (order.ordered_at + timedelta(hours=1)).isoformat()},
-                {'description': 'Order shipped', 'timestamp': (order.ordered_at + timedelta(hours=2)).isoformat()},
-                {'description': 'Order delivered', 'timestamp': (order.ordered_at + timedelta(hours=5)).isoformat()}
-            ])
-        else:
-            return Response({"message": "Tracking information not available"}, status=status.HTTP_404_NOT_FOUND)
-        
-        return Response(tracking_data)
+        serializer = OrderSerializer(order)
+        return Response(serializer.data)
 
 class ConfirmDeliveryView(APIView):
     permission_classes = [IsAuthenticated]
@@ -278,6 +285,26 @@ class ConfirmDeliveryView(APIView):
             return Response({"error": "Order not in shipped status"}, status=status.HTTP_400_BAD_REQUEST)
         order.status = 'DELIVERED'
         order.save()
+        # Send delivery confirmation and rating email
+        try:
+            context = {
+                'user': request.user,
+                'order_id': order.id,
+                'total': order.discounted_total,
+                'delivered_at': timezone.now(),
+                'site_url': settings.SITE_URL,
+            }
+            message = render_to_string('emails/order_delivered_rating.html', context)
+            send_mail(
+                subject='Your Order Has Been Delivered',
+                message='',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[request.user.email],
+                html_message=message,
+                fail_silently=False,
+            )
+        except Exception as e:
+            logger.error(f"Failed to send delivery confirmation email to {request.user.email}: {str(e)}")
         return Response({"message": "Delivery confirmed"}, status=status.HTTP_200_OK)
 
 class SubmitRatingView(APIView):
@@ -303,11 +330,9 @@ class CouponValidateView(APIView):
         code = request.data.get('coupon_code')
         if not code:
             return Response({"error": "Coupon code is required"}, status=status.HTTP_400_BAD_REQUEST)
-
         coupon = Coupon.objects.filter(code=code, is_active=True).first()
         if not coupon:
             return Response({"error": "Invalid or inactive coupon code"}, status=status.HTTP_400_BAD_REQUEST)
-
         return Response({
             "code": coupon.code,
             "discount_type": coupon.discount_type,

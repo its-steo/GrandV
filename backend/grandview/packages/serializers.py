@@ -97,4 +97,10 @@ class PurchaseCreateSerializer(serializers.ModelSerializer):
                 description=f"Purchased {package.name}"
             )
 
-            return {'message': f'Congratulations, you have {"upgraded to" if is_upgrade else "purchased"} the {package.name} package!', 'purchase_id': purchase.id}
+            return {
+                'message': f'Congratulations, you have {"upgraded to" if is_upgrade else "purchased"} the {package.name} package!',
+                'purchase_id': purchase.id,
+                'is_upgrade': is_upgrade,
+                'is_premium_upgrade': is_premium_upgrade,
+                'previous_rate': previous_rate
+            }

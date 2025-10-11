@@ -122,6 +122,18 @@ CHANNEL_LAYERS = {
     },
 }
 
+
+# Email configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'grandviewshopafrica@gmail.com'
+EMAIL_HOST_PASSWORD = 'jcsajscciezckcjr'  # App-specific password for Gmail
+EMAIL_USE_TLS = True
+DEFAULT_FROM_EMAIL = 'Grandview <grandviewshopafrica@gmail.com>'  # Must match EMAIL_HOST_USER or a verified alias
+ADMIN_EMAIL = 'grandviewshopafrica@gmail.com'  # Admin email for deposit notifications
+
+
 # CORS settings
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000,https://grand-v.vercel.app,https://grandview-shop.onrender.com').split(',')
@@ -182,14 +194,7 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# Email backend
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'grandviewshopafrica@gmail.com')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = 'Grandview <grandviewshopafrica@gmail.com>'
+# Site urls
 SITE_URL = os.getenv('SITE_URL', 'https://grandview-shop.onrender.com')
 SITE_URL = os.getenv('SITE_URL', 'https://localhost:8000')
 
