@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Check, Star, Clock, DollarSign, Loader2, Crown, Zap } from "lucide-react"
 import { ApiService } from "@/lib/api"
 import { toast } from "sonner"
@@ -19,6 +20,7 @@ interface Package {
   description: string
   price: string
   features?: string[]
+  bonus_amount?: string
 }
 
 interface PackageCardProps {
@@ -42,12 +44,26 @@ export function PackageCard({
 }: PackageCardProps) {
   const [isPurchasing, setIsPurchasing] = useState(false)
   const [packageFeatures, setPackageFeatures] = useState<string[]>([])
+  const [showCongratsDialog, setShowCongratsDialog] = useState(false)
+  const [purchaseResponse, setPurchaseResponse] = useState<{ message: string; purchase_id: number; bonus_amount: string } | null>(null)
 
   useEffect(() => {
     const loadFeatures = async () => {
       try {
+        const bonusFeature = pkg.bonus_amount && Number.parseFloat(pkg.bonus_amount) > 0
+          ? `Cashback bonus of ${formatCurrency(pkg.bonus_amount)}`
+          : null
+
         if (pkg.features && pkg.features.length > 0) {
-          setPackageFeatures(pkg.features)
+          // Filter out any existing bonus-related features to avoid duplicates
+          const filteredFeatures = pkg.features.filter(
+            feature => !feature.toLowerCase().includes('cashback bonus')
+          )
+          const featuresWithBonus = [...filteredFeatures]
+          if (bonusFeature) {
+            featuresWithBonus.unshift(bonusFeature) // Place bonus at the top
+          }
+          setPackageFeatures(featuresWithBonus)
         } else {
           const basicFeatures = [
             "Access to premium advertisements",
@@ -55,11 +71,19 @@ export function PackageCard({
             "24/7 priority support",
             `${formatCurrency(pkg.rate_per_view)} per view guaranteed`,
           ]
-
+          if (pkg.rate_per_view === 90) {
+            basicFeatures.push("Cashback bonus of Ksh 3,000")
+          }
           if (pkg.rate_per_view === 100) {
             basicFeatures.push("Priority ad queue access", "Enhanced earning opportunities")
+            basicFeatures.push("Cashback bonus of Ksh 6,000")
           } else if (pkg.rate_per_view === 120) {
             basicFeatures.push("VIP ad access", "Exclusive high-rate campaigns", "Dedicated account manager")
+            basicFeatures.push("Cashback bonus of Ksh 11,000")
+          }
+
+          if (bonusFeature) {
+            basicFeatures.unshift(bonusFeature) // Place bonus at the top
           }
 
           setPackageFeatures(basicFeatures)
@@ -93,10 +117,10 @@ export function PackageCard({
 
     try {
       setIsPurchasing(true)
-      await ApiService.purchasePackage(pkg.id)
-
+      const response = await ApiService.purchasePackage(pkg.id)
+      setPurchaseResponse(response)
+      setShowCongratsDialog(true)
       toast.success(`Successfully purchased ${pkg.name} package`)
-      onPurchaseSuccess()
     } catch (error) {
       console.error("Purchase error:", error)
       toast.error(error instanceof Error ? error.message : "Failed to purchase package")
@@ -150,123 +174,165 @@ export function PackageCard({
   const isPopular = pkg.rate_per_view === 100
   const isPremium = pkg.rate_per_view === 120
 
+  const handleOkClick = () => {
+    setShowCongratsDialog(false)
+    setPurchaseResponse(null)
+    onPurchaseSuccess()
+  }
+
   return (
-    <Card
-      className={`professional-card relative overflow-hidden hover:scale-[1.02] hover:shadow-xl transition-all duration-300 bg-black ${
-        isActive ? "ring-2 ring-primary" : ""
-      } ${isPremium ? "border-purple-200/30" : ""}`}
-    >
-      {isPopular && (
-        <Badge
-          className={`absolute top-2 left-2 ${theme.badge} text-white px-3 sm:px-4 py-1 text-xs sm:text-sm font-semibold z-10 rounded-md`}
-        >
-          <Star className="h-3 sm:h-4 w-3 sm:w-4 mr-1" />
-          Most Popular
-        </Badge>
-      )}
-
-      {isPremium && (
-        <Badge
-          className={`absolute top-2 left-2 ${theme.badge} text-white px-3 sm:px-4 py-1 text-xs sm:text-sm font-semibold z-10 rounded-md`}
-        >
-          <Crown className="h-3 sm:h-4 w-3 sm:w-4 mr-1" />
-          Premium
-        </Badge>
-      )}
-
-      {isActive && (
-        <Badge
-          className="absolute top-2 right-2 bg-purple-500 text-white px-3 sm:px-4 py-1 text-xs sm:text-sm font-semibold z-10 rounded-md"
-        >
-          Active
-        </Badge>
-      )}
-
-      <div className="relative w-full h-40 sm:h-48 overflow-hidden">
-        <div className={`absolute inset-0 bg-gradient-to-br ${theme.bg} opacity-90`} />
-        <Image
-          src={pkg.image.startsWith("http") ? pkg.image : `https://grandview-shop.onrender.com${pkg.image}`}
-          alt={pkg.name}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-      </div>
-
-      <CardHeader className="text-center pb-4 space-y-4">
-        <div className="space-y-2">
-          <CardTitle className="text-xl sm:text-2xl font-bold text-white">{pkg.name}</CardTitle>
-          <div className={`text-3xl sm:text-4xl font-bold bg-gradient-to-r ${theme.gradient} bg-clip-text text-transparent`}>
-            {formatCurrency(pkg.price)}
-          </div>
-          <p className="text-muted-foreground text-sm sm:text-base text-balance">{pkg.description}</p>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-6 px-4 sm:px-6 pb-6">
-        <div className={`p-4 rounded-xl bg-gradient-to-r ${theme.gradient} text-white text-center`}>
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <DollarSign className="h-5 w-5" />
-            <span className="text-lg sm:text-xl font-bold">{formatCurrency(pkg.rate_per_view)} per view</span>
-          </div>
-          <p className="text-sm opacity-90">Guaranteed earning rate</p>
-        </div>
-
-        <div className="flex items-center justify-center gap-2 text-muted-foreground bg-muted/20 rounded-lg p-3">
-          <Clock className="h-4 w-4" />
-          <span className="font-medium text-sm sm:text-base">Valid for {pkg.validity_days} days</span>
-        </div>
-
-        <div className="space-y-3">
-          <h4 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">What is Included</h4>
-          {packageFeatures.map((feature, index) => (
-            <div key={index} className="flex items-start gap-3">
-              <div className="feature-check mt-0.5">
-                <Check className="h-3 w-3" />
-              </div>
-              <span className="text-sm leading-relaxed">{feature}</span>
-            </div>
-          ))}
-        </div>
-
-        <Button
-          onClick={handlePurchase}
-          disabled={isPurchasing || isActive}
-          className={`w-full h-12 text-base font-semibold transition-all duration-300 ${
-            isActive
-              ? "bg-muted text-muted-foreground cursor-not-allowed"
-              : `professional-button bg-gradient-to-r ${theme.gradient} hover:opacity-90`
-          }`}
-        >
-          {isPurchasing ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Processing Purchase...
-            </>
-          ) : isActive ? (
-            "Currently Active"
-          ) : (
-            `Purchase for ${formatCurrency(pkg.price)}`
-          )}
-        </Button>
-
-        {walletBalance && !isActive && (
-          <div className="text-center p-3 bg-muted/20 rounded-lg">
-            <p className="text-sm text-muted-foreground">
-              Available Balance:{" "}
-              <span className="font-semibold text-foreground">
-                {formatCurrency(
-                  isMarketer
-                    ? Number.parseFloat(walletBalance.deposit_balance) +
-                        Number.parseFloat(walletBalance.views_earnings_balance)
-                    : Number.parseFloat(walletBalance.deposit_balance),
-                )}
-              </span>
-            </p>
-          </div>
+    <>
+      <Card
+        className={`professional-card relative overflow-hidden hover:scale-[1.02] hover:shadow-xl transition-all duration-300 bg-black ${isActive ? "ring-2 ring-primary" : ""} ${isPremium ? "border-purple-200/30" : ""}`}
+      >
+        {isPopular && (
+          <Badge
+            className={`absolute top-2 left-2 ${theme.badge} text-white px-3 sm:px-4 py-1 text-xs sm:text-sm font-semibold z-10 rounded-md`}
+          >
+            <Star className="h-3 sm:h-4 w-3 sm:w-4 mr-1" />
+            Most Popular
+          </Badge>
         )}
-      </CardContent>
-    </Card>
+
+        {isPremium && (
+          <Badge
+            className={`absolute top-2 left-2 ${theme.badge} text-white px-3 sm:px-4 py-1 text-xs sm:text-sm font-semibold z-10 rounded-md`}
+          >
+            <Crown className="h-3 sm:h-4 w-3 sm:w-4 mr-1" />
+            Premium
+          </Badge>
+        )}
+
+        {isActive && (
+          <Badge
+            className="absolute top-2 right-2 bg-emerald-500 text-white px-3 sm:px-4 py-1 text-xs sm:text-sm font-semibold z-10 rounded-md"
+          >
+            Active
+          </Badge>
+        )}
+
+        <div className="relative h-48 sm:h-56">
+          <div className={`absolute inset-0 bg-gradient-to-r ${theme.bg} opacity-90`} />
+          <Image
+            src={pkg.image.startsWith("http") ? pkg.image : `https://grandview-shop.onrender.com${pkg.image}`}
+            alt={pkg.name}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+        </div>
+
+        <CardHeader className="text-center pb-4 space-y-4">
+          <div className="space-y-2">
+            <CardTitle className="text-xl sm:text-2xl font-bold text-white">{pkg.name}</CardTitle>
+            <div className={`text-3xl sm:text-4xl font-bold bg-gradient-to-r ${theme.gradient} bg-clip-text text-transparent`}>
+              {formatCurrency(pkg.price)}
+            </div>
+            <p className="text-muted-foreground text-sm sm:text-base text-balance">{pkg.description}</p>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-6 px-4 sm:px-6 pb-6">
+          <div className={`p-4 rounded-xl bg-gradient-to-r ${theme.gradient} text-white text-center`}>
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <DollarSign className="h-5 w-5" />
+              <span className="text-lg sm:text-xl font-bold">{formatCurrency(pkg.rate_per_view)} per view</span>
+            </div>
+            <p className="text-sm opacity-90">Guaranteed earning rate</p>
+          </div>
+
+          <div className="flex items-center justify-center gap-2 text-muted-foreground bg-muted/20 rounded-lg p-3">
+            <Clock className="h-4 w-4" />
+            <span className="font-medium text-sm sm:text-base">Valid for {pkg.validity_days} days</span>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">What is Included</h4>
+            {packageFeatures.map((feature, index) => (
+              <div key={index} className="flex items-start gap-3">
+                <div className="feature-check mt-0.5">
+                  <Check className="h-3 w-3" />
+                </div>
+                <span className={`text-sm leading-relaxed ${feature.toLowerCase().includes('cashback bonus') ? 'text-green-400 font-semibold' : ''}`}>
+                  {feature}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <Button
+            onClick={handlePurchase}
+            disabled={isPurchasing || isActive}
+            className={`w-full h-12 text-base font-semibold transition-all duration-300 ${isActive ? "bg-muted text-muted-foreground cursor-not-allowed" : `professional-button bg-gradient-to-r ${theme.gradient} hover:opacity-90`}`}
+          >
+            {isPurchasing ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Processing Purchase...
+              </>
+            ) : isActive ? (
+              "Currently Active"
+            ) : (
+              `Purchase for ${formatCurrency(pkg.price)}`
+            )}
+          </Button>
+
+          {walletBalance && !isActive && (
+            <div className="text-center p-3 bg-muted/20 rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                Available Balance:{" "}
+                <span className="font-semibold text-foreground">
+                  {formatCurrency(
+                    isMarketer
+                      ? Number.parseFloat(walletBalance.deposit_balance) +
+                          Number.parseFloat(walletBalance.views_earnings_balance)
+                      : Number.parseFloat(walletBalance.deposit_balance),
+                  )}
+                </span>
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={showCongratsDialog} onOpenChange={setShowCongratsDialog}>
+        <DialogContent className="sm:max-w-md bg-gray-900 border border-white/20 rounded-xl animate-slide-in-from-bottom">
+          <DialogHeader className="text-center">
+            <DialogTitle className="text-2xl font-extrabold text-white flex items-center justify-center gap-2">
+              <Star className="h-6 w-6 text-yellow-400" />
+              Congratulations!
+            </DialogTitle>
+            <DialogDescription className="text-base text-white/80">
+              You have successfully purchased the {pkg.name} package!
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 text-center">
+            {purchaseResponse?.bonus_amount && Number.parseFloat(purchaseResponse.bonus_amount) > 0 ? (
+              <>
+                <p className="text-lg font-semibold text-green-500">
+                  You&apos;ve earned a cashback bonus of {formatCurrency(purchaseResponse.bonus_amount)}!
+                </p>
+                <p className="text-sm text-white/80">
+                  Visit the Current Package section to claim your bonus and make it available for withdrawal.
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-white/80">
+                Start earning with your new package by viewing premium advertisements.
+              </p>
+            )}
+          </div>
+          <DialogFooter className="mt-6">
+            <Button
+              onClick={handleOkClick}
+              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-2"
+            >
+              OK
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

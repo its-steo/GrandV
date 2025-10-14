@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cashback Bonus Claimed</title>
+    <style>
+        /* Reset styles */
+        body { margin: 0; padding: 0; font-family: 'Arial', sans-serif; background-color: #f4f4f9; }
+        table { border-collapse: collapse; width: 100%; }
+        img { border: 0; line-height: 100%; outline: none; text-decoration: none; }
+        a { text-decoration: none; }
+        * { box-sizing: border-box; }
+
+        /* Main container */
+        .container { max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+
+        /* Header */
+        .header { padding: 40px 20px; text-align: center; background: url('https://images.unsplash.com/photo-1557682250-33e3e5725b06?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80') no-repeat center; background-size: cover; position: relative; }
+        .header::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); }
+        .header-content { position: relative; z-index: 1; }
+        .header h1 { font-size: 32px; font-weight: 700; margin: 0; text-shadow: 0 2px 4px rgba(0,0,0,0.3); animation: fadeIn 1s ease-in; }
+        .header img { max-width: 150px; margin-bottom: 20px; }
+
+        /* Content */
+        .content { padding: 30px 20px; background: #ffffff; color: #1f2937; }
+        .content p { font-size: 16px; line-height: 1.6; margin: 0 0 20px; }
+        .highlight { font-size: 24px; font-weight: bold; color: #3b82f6; text-align: center; margin: 20px 0; animation: bounceIn 0.8s ease; }
+        .cta-button { display: inline-block; padding: 14px 28px; background: linear-gradient(90deg, #3b82f6, #60a5fa); color: #ffffff; font-size: 16px; font-weight: 600; border-radius: 8px; text-align: center; text-decoration: none; transition: transform 0.3s ease; margin: 20px auto; display: block; width: fit-content; }
+        .cta-button:hover { transform: scale(1.05); }
+
+        /* Footer */
+        .footer { padding: 20px; text-align: center; background: #1e3a8a; font-size: 14px; }
+        .footer p { margin: 0; color: #ffffff; opacity: 0.8; }
+        .footer a { color: #60a5fa; text-decoration: underline; }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes bounceIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            60% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+
+        /* Responsive */
+        @media only screen and (max-width: 600px) {
+            .container { border-radius: 0; }
+            .header h1 { font-size: 24px; }
+            .content p { font-size: 14px; }
+            .highlight { font-size: 20px; }
+            .cta-button { padding: 12px 24px; font-size: 14px; }
+        }
+    </style>
+</head>
+<body>
+    <table class="container" cellpadding="0" cellspacing="0" role="presentation">
+        <!-- Header -->
+        <tr>
+            <td class="header">
+                <div class="header-content">
+                    <img src="{{ site_url }}/static/images/logo.png" alt="Grandview Logo" />
+                    <h1>Cashback Bonus Claimed!</h1>
+                </div>
+            </td>
+        </tr>
+        <!-- Content -->
+        <tr>
+            <td class="content">
+                <p>Dear {{ user.username }},</p>
+                <p>Congratulations! You've successfully claimed your cashback bonus for your <strong>{{ package.name }}</strong> package.</p>
+                <p class="highlight">🎉 {{ bonus_amount }} Added to Your Earnings!</p>
+                <p>The bonus has been credited to your views earnings balance. Keep exploring premium advertisements to maximize your earnings!</p>
+                <a href="{{ site_url }}" class="cta-button">Explore More Opportunities</a>
+                <p>If you have any questions, our support team is here to help 24/7.</p>
+            </td>
+        </tr>
+        <!-- Footer -->
+        <tr>
+            <td class="footer">
+                <p>Best regards,<br>The Grandview Team</p>
+                <p><a href="{{ site_url }}/support">Contact Support</a> | <a href="{{ site_url }}/terms">Terms & Conditions</a></p>
+                <p>&copy; {{ current_year }} Grandview. All rights reserved.</p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

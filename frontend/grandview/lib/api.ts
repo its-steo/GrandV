@@ -42,6 +42,7 @@ export interface User {
   referral_code: string;
   is_manager: boolean;
   is_staff: boolean;
+  is_marketer: boolean;
   last_support_view?: string; // Add this
 }
 
@@ -114,6 +115,29 @@ export interface PackageFeature {
   basic: boolean
   standard: boolean
   premium: boolean
+}
+
+export interface Package {
+  id: number
+  name: string
+  image: string // Changed from string | undefined to string
+  validity_days: number
+  rate_per_view: number
+  description: string
+  price: string
+  features?: string[]
+  bonus_amount?: string
+}
+
+export interface Purchase {
+  id: number
+  package: Package
+  purchase_date: string
+  expiry_date: string
+  days_remaining: number
+  bonus_amount?: string
+  claim_cost?: string
+  claimed?: boolean
 }
 
 export interface DepositConfig {
@@ -201,7 +225,23 @@ export interface UserPackage {
   rate_per_view: number
   expiry_date: string
   days_remaining: number
+  bonus_amount?: string
+  claim_cost?: string
+  claimed?: boolean
 }
+
+// Add Purchase interface to fix compile error
+export interface Purchase {
+  id: number
+  package: Package
+  purchase_date: string
+  expiry_date: string
+  days_remaining: number
+  bonus_amount?: string
+  claim_cost?: string
+  claimed?: boolean
+}
+
 
 export interface SubmissionResponse {
   submission: {
@@ -1025,61 +1065,29 @@ export class ApiService {
     }
   }
 
-  static async getCurrentUserPackage(): Promise<UserPackage | null> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/packages/purchases/`, {
-        headers: getAuthHeaders(),
-      })
+  // Removed duplicate getCurrentUserPackage implementation to fix compile error.
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch user purchases")
-      }
-
-      const purchases = await safeParseJSON(response)
-      const now = new Date().toISOString()
-
-      // Properly type the purchases array
-      const purchasesArray = Array.isArray(purchases) ? purchases : []
-      const activePurchase = purchasesArray.find((p: unknown) => {
-        const purchase = p as {
-          expiry_date: string
-          package: { name: string; rate_per_view: number }
-          days_remaining: number
-        }
-        return new Date(purchase.expiry_date) > new Date(now)
-      })
-
-      if (activePurchase) {
-        const purchase = activePurchase as {
-          package: { name: string; rate_per_view: number }
-          expiry_date: string
-          days_remaining: number
-        }
-        return {
-          name: purchase.package.name,
-          rate_per_view: purchase.package.rate_per_view,
-          expiry_date: purchase.expiry_date,
-          days_remaining: purchase.days_remaining,
-        }
-      }
-      return null
-    } catch (error) {
-      console.error("Error fetching current package:", error)
-      return null
-    }
+  static async purchasePackage(packageId: number): Promise<{ message: string; purchase_id: number; bonus_amount: string; is_upgrade: boolean; is_premium_upgrade: boolean; previous_rate: number }> {
+    return this.post('/packages/purchase/', { package: packageId });
   }
 
-  static async purchasePackage(packageId: number): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/packages/purchase/`, {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ package: packageId }),
-    })
+  static async getUserPurchases(): Promise<Purchase[]> {
+    return this.get<Purchase[]>('/packages/purchases/');
+  }
 
-    if (!response.ok) {
-      const error = await safeParseJSON(response)
-      throw new Error((error as { message?: string }).message || "Failed to purchase package")
-    }
+  static async getCurrentUserPackage(): Promise<UserPackage | null> {
+    const purchases = await this.getUserPurchases();
+    const active = purchases.find(p => p.days_remaining > 0);
+    if (!active) return null;
+    return {
+      name: active.package.name,
+      rate_per_view: active.package.rate_per_view,
+      expiry_date: active.expiry_date,
+      days_remaining: active.days_remaining,
+      bonus_amount: active.bonus_amount,
+      claim_cost: active.claim_cost,
+      claimed: active.claimed,
+    };
   }
 
   static async getPackageFeatures(): Promise<PackageFeature[]> {
@@ -1091,6 +1099,11 @@ export class ApiService {
       { name: "Exclusive high-rate ads", basic: false, standard: false, premium: true },
     ]
   }
+
+   static async claimCashback(): Promise<{ message: string }> {
+    return this.post<{ message: string }>('/packages/cashback/claim/', {});
+  }
+  
 
   // Ads endpoints
   static async getAdverts(): Promise<{ adverts: Advert[]; user_package: UserPackage | null }> {

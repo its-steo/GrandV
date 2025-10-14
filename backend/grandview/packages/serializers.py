@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Package, Purchase
+from .models import Package, Purchase, CashbackBonus
 from accounts.models import CustomUser
 from decimal import Decimal
 from wallet.models import Wallet, Transaction
@@ -10,7 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 class PackageSerializer(serializers.ModelSerializer):
-    image = serializers.ImageField()  # Explicitly define to ensure S3 URL is returned
+    image = serializers.ImageField()
 
     class Meta:
         model = Package
@@ -19,15 +19,38 @@ class PackageSerializer(serializers.ModelSerializer):
 class PurchaseSerializer(serializers.ModelSerializer):
     package = PackageSerializer(read_only=True)
     days_remaining = serializers.SerializerMethodField()
+    bonus_amount = serializers.SerializerMethodField()
+    claim_cost = serializers.SerializerMethodField()
+    claimed = serializers.SerializerMethodField()
 
     def get_days_remaining(self, obj):
         if obj.expiry_date > timezone.now():
             return (obj.expiry_date - timezone.now()).days
         return 0
 
+    def get_bonus_amount(self, obj):
+        try:
+            bonus = obj.cashback_bonus
+            return bonus.amount if not bonus.claimed else Decimal('0')
+        except CashbackBonus.DoesNotExist:
+            return Decimal('0')
+
+    def get_claim_cost(self, obj):
+        try:
+            bonus = obj.cashback_bonus
+            return bonus.claim_cost if not bonus.claimed else Decimal('0')
+        except CashbackBonus.DoesNotExist:
+            return Decimal('0')
+
+    def get_claimed(self, obj):
+        try:
+            return obj.cashback_bonus.claimed
+        except CashbackBonus.DoesNotExist:
+            return False
+
     class Meta:
         model = Purchase
-        fields = ['id', 'package', 'purchase_date', 'expiry_date', 'days_remaining']
+        fields = ['id', 'package', 'purchase_date', 'expiry_date', 'days_remaining', 'bonus_amount', 'claim_cost', 'claimed']
 
 class PurchaseCreateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -40,7 +63,6 @@ class PurchaseCreateSerializer(serializers.ModelSerializer):
         logger.debug(f"Processing purchase for user {user.username}, package {package.name}")
 
         with transaction.atomic():
-            # Check for existing active purchase to determine if upgrade
             active_purchase = Purchase.objects.filter(user=user, status='ACTIVE').first()
             is_upgrade = False
             is_premium_upgrade = False
@@ -53,24 +75,19 @@ class PurchaseCreateSerializer(serializers.ModelSerializer):
                     if package.rate_per_view == 120:
                         is_premium_upgrade = True
 
-            # Deactivate all existing active purchases for this user
             Purchase.objects.filter(user=user, status='ACTIVE').update(
                 status='EXPIRED',
                 expiry_date=timezone.now()
             )
             logger.info(f"Deactivated all existing active purchases for user {user.username}")
 
-            # Delete existing purchases for this specific package
             Purchase.objects.filter(user=user, package=package).delete()
 
-            # Always use the full price of the new package
             price = package.price
 
-            # Handle wallet deduction based on marketer status
             user_wallet = Wallet.objects.get(user=user)
             
             if user.is_marketer:
-                # Marketers can use views_earnings_balance, falling back to deposit_balance if needed
                 if user_wallet.views_earnings_balance >= price:
                     user_wallet.views_earnings_balance -= price
                 else:
@@ -81,7 +98,6 @@ class PurchaseCreateSerializer(serializers.ModelSerializer):
                     user_wallet.views_earnings_balance -= from_earnings
                     user_wallet.deposit_balance -= from_deposit
             else:
-                # Non-marketers can only use deposit_balance
                 if user_wallet.deposit_balance < price:
                     raise serializers.ValidationError("Insufficient deposit balance. Non-marketers must use deposit balance.")
                 user_wallet.deposit_balance -= price
@@ -97,10 +113,31 @@ class PurchaseCreateSerializer(serializers.ModelSerializer):
                 description=f"Purchased {package.name}"
             )
 
+            bonus_amount = Decimal('0')
+            claim_cost = Decimal('0')
+            if package.rate_per_view == 90:
+                bonus_amount = Decimal('3000')
+                claim_cost = Decimal('1200')
+            elif package.rate_per_view == 100:
+                bonus_amount = Decimal('6000')
+                claim_cost = Decimal('2000')
+            elif package.rate_per_view == 120:
+                bonus_amount = Decimal('11000')
+                claim_cost = Decimal('3000')
+
+            if bonus_amount > 0:
+                CashbackBonus.objects.create(
+                    user=user,
+                    purchase=purchase,
+                    amount=bonus_amount,
+                    claim_cost=claim_cost
+                )
+
             return {
                 'message': f'Congratulations, you have {"upgraded to" if is_upgrade else "purchased"} the {package.name} package!',
                 'purchase_id': purchase.id,
                 'is_upgrade': is_upgrade,
                 'is_premium_upgrade': is_premium_upgrade,
-                'previous_rate': previous_rate
+                'previous_rate': previous_rate,
+                'bonus_amount': bonus_amount
             }
