@@ -5,16 +5,16 @@ import { Sidebar } from "@/components/layout/sidebar"
 import { PackageCard } from "@/components/packages/package-card"
 import { CurrentPackage } from "@/components/packages/current-package"
 import { PackageComparison } from "@/components/packages/package-comparison"
-import { ApiService, type WalletBalance, type PackageType, type UserPackage } from "@/lib/api"
+import { ApiService, type WalletBalance, type Package, type UserPackage } from "@/lib/api"
 import { formatCurrency } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { toast } from "sonner"
-import { Loader2, TrendingUp, Clock, Wallet, Star, Shield, Zap } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Loader2, TrendingUp, Clock, Wallet, Star, Shield, Zap } from "lucide-react"
 
 export default function PackagesPage() {
-  const [packages, setPackages] = useState<PackageType[]>([])
+  const [packages, setPackages] = useState<Package[]>([])
   const [userPackage, setUserPackage] = useState<UserPackage | null>(null)
   const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null)
   const [loading, setLoading] = useState(true)
@@ -26,6 +26,7 @@ export default function PackagesPage() {
 
   const fetchData = async () => {
     try {
+      setLoading(true)
       const [packagesRes, userPackageRes, walletData] = await Promise.all([
         ApiService.getPackages(),
         ApiService.getCurrentUserPackage(),
@@ -43,7 +44,11 @@ export default function PackagesPage() {
   }
 
   const handlePurchaseSuccess = () => {
-    fetchData() // Refresh all data
+    fetchData()
+  }
+
+  const handleClaimSuccess = () => {
+    fetchData()
   }
 
   if (loading) {
@@ -129,7 +134,7 @@ export default function PackagesPage() {
 
           {userPackage && (
             <div className="max-w-3xl mx-auto">
-              <CurrentPackage package={userPackage} />
+              <CurrentPackage package={userPackage} onClaimSuccess={handleClaimSuccess} />
             </div>
           )}
 

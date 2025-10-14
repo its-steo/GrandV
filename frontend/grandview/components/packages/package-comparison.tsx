@@ -32,6 +32,7 @@ export function PackageComparison() {
           { name: "Dedicated account manager", basic: false, standard: false, premium: true },
           { name: "Advanced analytics dashboard", basic: false, standard: true, premium: true },
           { name: "Early access to new features", basic: false, standard: false, premium: true },
+          { name: "Cashback bonus eligibility", basic: true, standard: true, premium: true },
         ])
       } finally {
         setLoading(false)
