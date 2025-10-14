@@ -43,3 +43,14 @@ class Purchase(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.package.name} ({self.status})"
+
+class CashbackBonus(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='cashback_bonuses')
+    purchase = models.OneToOneField(Purchase, on_delete=models.CASCADE, related_name='cashback_bonus')
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    claim_cost = models.DecimalField(max_digits=10, decimal_places=2)
+    claimed = models.BooleanField(default=False)
+    claim_date = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Cashback for {self.user.username} - {self.amount}"

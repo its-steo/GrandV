@@ -1,3 +1,11 @@
+# Updated views.py to match frontend expectations
+# Changes:
+# - For UpdateCartView: Expect 'cart_item_id' instead of 'product_id'
+# - For RemoveFromCartView: Expect 'cart_item_id' instead of 'product_id'
+# - Added security: Filter by cart__user=request.user to prevent unauthorized access
+# - Improved error handling and logging
+# - No changes to other views as they seem compatible
+
 from django.forms import ValidationError
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -84,18 +92,29 @@ class UpdateCartView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        product_id = request.data.get('product_id')
+        cart_item_id = request.data.get('cart_item_id')
         quantity = request.data.get('quantity')
+        logger.info(f"Updating cart for user {request.user.username} with cart_item_id {cart_item_id}, quantity {quantity}")
+        
+        if not cart_item_id:
+            return Response({"error": "cart_item_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
         try:
             quantity = int(quantity)
             if quantity < 1:
                 return Response({"error": "Quantity must be at least 1"}, status=status.HTTP_400_BAD_REQUEST)
         except ValueError:
             return Response({"error": "Invalid quantity"}, status=status.HTTP_400_BAD_REQUEST)
-        cart = get_object_or_404(Cart, user=request.user)
-        cart_item = get_object_or_404(CartItem, cart=cart, product_id=product_id)
-        cart_item.quantity = quantity
-        cart_item.save()
+        
+        try:
+            cart_item = CartItem.objects.get(id=cart_item_id, cart__user=request.user)
+            cart_item.quantity = quantity
+            cart_item.save()
+        except CartItem.DoesNotExist:
+            logger.warning(f"No cart item found for user {request.user.username}, cart_item_id {cart_item_id}")
+            return Response({"error": f"No cart item found for ID {cart_item_id}"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        cart = cart_item.cart
         serializer = CartSerializer(cart)
         return Response(serializer.data)
 
@@ -103,10 +122,20 @@ class RemoveFromCartView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        product_id = request.data.get('product_id')
-        cart = get_object_or_404(Cart, user=request.user)
-        cart_item = get_object_or_404(CartItem, cart=cart, product_id=product_id)
-        cart_item.delete()
+        cart_item_id = request.data.get('cart_item_id')
+        logger.info(f"Removing cart item for user {request.user.username} with cart_item_id {cart_item_id}")
+        
+        if not cart_item_id:
+            return Response({"error": "cart_item_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            cart_item = CartItem.objects.get(id=cart_item_id, cart__user=request.user)
+            cart = cart_item.cart
+            cart_item.delete()
+        except CartItem.DoesNotExist:
+            logger.warning(f"No cart item found for user {request.user.username}, cart_item_id {cart_item_id}")
+            return Response({"error": f"No cart item found for ID {cart_item_id}"}, status=status.HTTP_400_BAD_REQUEST)
+        
         serializer = CartSerializer(cart)
         return Response(serializer.data)
 
