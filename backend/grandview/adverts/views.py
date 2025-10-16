@@ -24,6 +24,7 @@ import os
 from django.core.mail import send_mail  # Added for email
 from django.template.loader import render_to_string  # Added for template rendering
 from .serializers import TransactionSerializer 
+from premium.models import AgentPurchase
 
 logger = logging.getLogger(__name__)
 
@@ -236,6 +237,7 @@ class WithdrawalView(APIView):
             wallet = Wallet.objects.get(user=request.user)
             views_earnings_balance = wallet.views_earnings_balance
 
+            # Check for active 120-per-view package
             active_purchases = Purchase.objects.filter(
                 user=request.user,
                 expiry_date__gt=timezone.now()
@@ -245,7 +247,12 @@ class WithdrawalView(APIView):
             if active_purchases.exists():
                 active_rate = active_purchases.first().package.rate_per_view
                 if active_rate == 120:
-                    can_withdraw = True
+                    # For non-marketers, check for active AgentPurchase
+                    if not request.user.is_marketer:
+                        if AgentPurchase.objects.filter(user=request.user, status='ACTIVE').exists():
+                            can_withdraw = True
+                    else:
+                        can_withdraw = True  # Marketers don't need agent verification
 
             return Response({
                 'views_earnings_balance': float(views_earnings_balance),
@@ -272,6 +279,7 @@ class WithdrawalView(APIView):
             except:
                 return Response({"success": False, "message": "Invalid amount"}, status=status.HTTP_400_BAD_REQUEST)
 
+            # Check for active 120-per-view package
             active_purchases = Purchase.objects.filter(
                 user=request.user,
                 expiry_date__gt=timezone.now()
@@ -279,6 +287,11 @@ class WithdrawalView(APIView):
 
             if not active_purchases.exists() or active_purchases.first().package.rate_per_view != 120:
                 return Response({"success": False, "message": "Upgrade to premium package (120 per view) to withdraw"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # For non-marketers, check for active AgentPurchase
+            if not request.user.is_marketer:
+                if not AgentPurchase.objects.filter(user=request.user, status='ACTIVE').exists():
+                    return Response({"success": False, "message": "You must be a verified agent to withdraw earnings. Please verify your account."}, status=status.HTTP_400_BAD_REQUEST)
 
             wallet = Wallet.objects.get(user=request.user)
             if wallet.views_earnings_balance < amount:

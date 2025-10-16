@@ -8,6 +8,7 @@ export interface User {
   phone_number: string
   referral_code: string
   is_marketer: boolean
+  is_verified_agent?: boolean
 }
 
 export interface AuthResponse {

@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'dashboard',
     'support',
     'storages',
+    'premium.apps.PremiumConfig',
 ]
 
 # Template configuration

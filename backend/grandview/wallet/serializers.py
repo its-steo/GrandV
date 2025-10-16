@@ -1,10 +1,12 @@
-# Updated serializers.py to deduct full amount and calculate fee after
+
 from rest_framework import serializers
 from .models import Wallet, Transaction, Withdrawal, Deposit
 from packages.models import Purchase
+from premium.models import AgentPurchase
 from django.utils import timezone
 from decimal import Decimal
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -89,35 +91,46 @@ class DepositSerializer(serializers.Serializer):
         else:
             raise serializers.ValidationError("Invalid deposit method.")
 
+
 class WithdrawSerializer(serializers.Serializer):
     amount = serializers.DecimalField(max_digits=10, decimal_places=2)
-    mpesa_number = serializers.CharField(max_length=15, required=True)  # New required field
+    mpesa_number = serializers.CharField(max_length=15)
 
     def validate_amount(self, value):
-        if value <= Decimal('0'):
-            raise serializers.ValidationError("Amount must be positive.")
+        if value <= 0:
+            raise serializers.ValidationError("Withdrawal amount must be positive.")
         return value
 
     def validate_mpesa_number(self, value):
-        if not value.startswith('254') or len(value) != 12:
-            raise serializers.ValidationError("Invalid M-Pesa number format. Use 254xxxxxxxxx")
+        # Normalize input: remove spaces/dashes, convert 2547 to +2547, 7 to 07
+        value = value.replace(" ", "").replace("-", "")
+        if value.startswith("2547"):
+            value = "+" + value
+        elif value.startswith("7") and len(value) == 9:
+            value = "0" + value
+        # Validate format
+        pattern = r'^(?:\+2547\d{8}|07\d{8})$'
+        if not re.match(pattern, value):
+            raise serializers.ValidationError("Invalid M-Pesa number format. Use +2547XXXXXXXX or 07XXXXXXXX.")
         return value
 
     def validate(self, data):
         user = self.context['request'].user
-        wallet, _ = Wallet.objects.get_or_create(user=user)
         balance_type = self.context.get('balance_type', 'main_balance')
+        wallet = Wallet.objects.get(user=user)
 
-        # Check package for views earnings withdrawal restriction
+        if not data.get('mpesa_number'):
+            raise serializers.ValidationError("M-Pesa number is required.")
+
         if balance_type == 'main_balance':
-            active_purchase = Purchase.objects.filter(
-                user=user,
-                expiry_date__gt=timezone.now()
-            ).order_by('-purchase_date').first()
-            if active_purchase and active_purchase.package.rate_per_view in [90, 100]:
-                raise serializers.ValidationError(
-                    "You are not eligible for views withdrawal. Upgrade your account to withdraw your earnings."
-                )
+            # Check for active 120-per-view package
+            active_purchase = Purchase.objects.filter(user=user, status='ACTIVE', package__rate_per_view=120).first()
+            if not active_purchase:
+                raise serializers.ValidationError("You must have an active premium package (120 per view) to withdraw earnings.")
+            # For non-marketers, check Agent Verification
+            if not user.is_marketer:
+                if not AgentPurchase.objects.filter(user=user, status='ACTIVE').exists():
+                    raise serializers.ValidationError("You must be a verified agent to withdraw earnings, Please verify your account.")
             if wallet.deposit_balance + wallet.views_earnings_balance < data['amount']:
                 raise serializers.ValidationError("Insufficient main balance.")
         else:
@@ -137,8 +150,13 @@ class WithdrawSerializer(serializers.Serializer):
         from_earnings = Decimal('0')
 
         if balance_type == 'main_balance':
-            from_earnings = min(amount, wallet.views_earnings_balance)
-            from_deposit = amount - from_earnings
+            if user.is_marketer:
+                from_earnings = min(amount, wallet.views_earnings_balance)
+                from_deposit = amount - from_earnings
+            else:
+                from_deposit = amount  # Non-marketers deduct only from deposit_balance
+            if wallet.deposit_balance < from_deposit:
+                raise serializers.ValidationError("Insufficient deposit balance.")
             wallet.views_earnings_balance -= from_earnings
             wallet.deposit_balance -= from_deposit
         else:

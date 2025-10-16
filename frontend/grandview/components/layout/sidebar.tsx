@@ -20,27 +20,79 @@ import {
   Megaphone,
   TrendingUp,
   MessageCircle,
-  DollarSign, // Added for Withdraw icon
+  DollarSign,
+  Crown,
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: Home, description: "Overview & Analytics", iconColor: "text-blue-500 dark:text-blue-400" },
-  { name: "Advertise", href: "/ads", icon: Megaphone, description: "WhatsApp Ad Campaigns", badge: "New", iconColor: "text-green-500 dark:text-green-400" },
-  { name: "Withdraw", href: "/withdraw", icon: DollarSign,description: "Views Earning Withdrawals", iconColor: "text-green-500 dark:text-green-400" },
-  { name: "Wallet", href: "/wallet", icon: Wallet, description: "Payments & Billing", iconColor: "text-teal-500 dark:text-teal-400" },
-  { name: "Packages", href: "/packages", icon: Package, description: "Subscription Plans", iconColor: "text-amber-500 dark:text-amber-400" },
-  { name: "Store", href: "/store", icon: ShoppingBag, description: "Marketing Tools", iconColor: "text-purple-500 dark:text-purple-400" },
-  { name: "Support", href: "/support", icon: MessageCircle, description: "Help & Assistance", iconColor: "text-pink-500 dark:text-pink-400" },
+  {
+    name: "Dashboard",
+    href: "/dashboard",
+    icon: Home,
+    description: "Overview & Analytics",
+    iconColor: "text-blue-500 dark:text-blue-400",
+  },
+  {
+    name: "Advertise",
+    href: "/ads",
+    icon: Megaphone,
+    description: "WhatsApp Ad Campaigns",
+    badge: "New",
+    iconColor: "text-green-500 dark:text-green-400",
+  },
+  {
+    name: "Withdraw",
+    href: "/withdraw",
+    icon: DollarSign,
+    description: "Views Earning Withdrawals",
+    iconColor: "text-green-500 dark:text-green-400",
+  },
+  {
+    name: "Wallet",
+    href: "/wallet",
+    icon: Wallet,
+    description: "Payments & Billing",
+    iconColor: "text-teal-500 dark:text-teal-400",
+  },
+  {
+    name: "Packages",
+    href: "/packages",
+    icon: Package,
+    description: "Subscription Plans",
+    iconColor: "text-amber-500 dark:text-amber-400",
+  },
+  {
+    name: "Premium",
+    href: "/premium",
+    icon: Crown,
+    description: "Agent Verification",
+    badge: "Pro",
+    iconColor: "text-yellow-500 dark:text-yellow-400",
+  }, // Added Premium link to navigation
+  {
+    name: "Store",
+    href: "/store",
+    icon: ShoppingBag,
+    description: "Marketing Tools",
+    iconColor: "text-purple-500 dark:text-purple-400",
+  },
+  {
+    name: "Support",
+    href: "/support",
+    icon: MessageCircle,
+    description: "Help & Assistance",
+    iconColor: "text-pink-500 dark:text-pink-400",
+  },
 ]
 
 const quickActions = [
   { name: "Profile", href: "/profile", icon: User, iconColor: "text-cyan-500 dark:text-cyan-400" },
   { name: "Orders", href: "/orders", icon: ShoppingCart, iconColor: "text-orange-500 dark:text-orange-400" },
   { name: "Lipa Mdogo", href: "/lipa", icon: CreditCard, iconColor: "text-red-500 dark:text-red-400" },
-   // Added Withdraw
+  // Added Withdraw
 ]
 
 export function Sidebar() {
@@ -58,7 +110,11 @@ export function Sidebar() {
         className="fixed top-4 left-4 z-[60] md:hidden bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300"
         onClick={() => setIsOpen(!isOpen)}
       >
-        {isOpen ? <X className="h-5 w-5 text-gray-600 dark:text-gray-300" /> : <Menu className="h-5 w-5 text-gray-600 dark:text-gray-300" />}
+        {isOpen ? (
+          <X className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+        ) : (
+          <Menu className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+        )}
       </Button>
 
       {/* Sidebar */}
@@ -78,7 +134,9 @@ export function Sidebar() {
                 className="h-56 w-56 sm:h-64 sm:w-64 object-contain"
               />
               <div className="flex flex-col items-center text-center -mt-20">
-                <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">Advertise on WhatsApp and Earn</span>
+                <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
+                  Advertise on WhatsApp and Earn
+                </span>
               </div>
             </div>
 
@@ -99,7 +157,9 @@ export function Sidebar() {
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">{user?.username || "User"}</p>
+                <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">
+                  {user?.username || "User"}
+                </p>
                 <div className="flex items-center gap-2">
                   <div
                     className={cn(

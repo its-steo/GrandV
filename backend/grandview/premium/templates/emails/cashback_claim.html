@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; color: #333; }
+        .container { max-width: 600px; margin: 20px auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .header { background: #28a745; color: #fff; padding: 10px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { padding: 20px; }
+        .footer { text-align: center; font-size: 12px; color: #777; margin-top: 20px; }
+        .button { display: inline-block; padding: 10px 20px; background: #28a745; color: #fff; text-decoration: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Cashback Bonus Claimed!</h2>
+            <p>{{ user.username }}, your cashback has been credited</p>
+        </div>
+        <div class="content">
+            <p>You've successfully claimed your cashback bonus of KSh {{ bonus_amount }} (after KSh {{ claim_cost }} fee).</p>
+            <p>It has been added to your views earnings balance.</p>
+            <p><a href="{{ site_url }}/dashboard" class="button">Check Your Balance</a></p>
+        </div>
+        <div class="footer">
+            <p>&copy; {{ site_url }} | All Rights Reserved</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { User, Edit, Save, X, Crown, Users } from "lucide-react"
+import { User, Edit, Save, X, Crown, Users, Shield } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { toast } from "sonner"
 
@@ -79,7 +79,7 @@ export function UserInfoCard() {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Account Type Badge */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Badge
             className={`${user?.is_marketer ? "bg-gradient-to-r from-purple-500 to-purple-600" : "bg-gradient-to-r from-blue-500 to-blue-600"} text-white`}
           >
@@ -95,6 +95,13 @@ export function UserInfoCard() {
               </>
             )}
           </Badge>
+
+          {user?.is_verified_agent && (
+            <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white animate-pulse">
+              <Shield className="h-3 w-3 mr-1" />
+              Verified Agent
+            </Badge>
+          )}
         </div>
 
         {/* Form Fields */}
