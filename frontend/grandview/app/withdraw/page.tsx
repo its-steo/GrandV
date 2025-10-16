@@ -97,7 +97,8 @@ const fetchWithdrawalData = async () => {
       //    Authorization: `Token ${token}`,
       //  },
       //})
-       const response = await fetch("https://grandview-shop.onrender.com/api/transactions/", {
+
+      const response = await fetch("https://grandview-shop.onrender.com/api/transactions/", {
         headers: {
           Authorization: `Token ${token}`,
         },
@@ -288,7 +289,7 @@ const fetchWithdrawalData = async () => {
                   <div>
                     <p className="text-white font-semibold text-sm">Upgrade Required</p>
                     <p className="text-green-100 text-sm">
-                      Upgrade to Premium Package (120/view) to unlock withdrawals
+                      Verify your account. Upgrade to unlock withdrawals
                     </p>
                   </div>
                 </div>

@@ -3,8 +3,6 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://grandview-shop.
 //const MEDIA_BASE_URL = process.env.NEXT_PUBLIC_MEDIA_URL || "http://localhost:8000"
 const MEDIA_BASE_URL = process.env.NEXT_PUBLIC_MEDIA_URL || "https://grandview-shop.onrender.com"
 
-
-
 // Utility function to safely parse JSON responses
 async function safeParseJSON(response: Response): Promise<unknown> {
   const text = await response.text()
@@ -35,15 +33,16 @@ function getAuthHeaders(excludeContentType = false) {
 // Interfaces
 
 export interface User {
-  id: number;
-  username: string;
-  email: string;
-  phone_number: string;
-  referral_code: string;
-  is_manager: boolean;
-  is_staff: boolean;
-  is_marketer: boolean;
-  last_support_view?: string; // Add this
+  id: number
+  username: string
+  email: string
+  phone_number: string
+  referral_code: string
+  is_manager: boolean
+  is_staff: boolean
+  is_marketer: boolean
+  last_support_view?: string // Add this
+  is_verified_agent?: boolean
 }
 
 export interface Product {
@@ -71,7 +70,7 @@ export interface Product {
   available_coupons?: Array<{
     id: number
     code: string
-    discount_type: 'PERCENT' | 'FIXED'
+    discount_type: "PERCENT" | "FIXED"
     discount_value: number
   }> // Added to support coupon badge and discount calculations
   discounted_price?: string // Added to support discounted price display
@@ -202,7 +201,7 @@ export interface Advert {
   has_submitted: boolean
 }
 
- export interface WithdrawalData {
+export interface WithdrawalData {
   views_earnings_balance: number
   can_withdraw: boolean
 }
@@ -241,7 +240,6 @@ export interface Purchase {
   claim_cost?: string
   claimed?: boolean
 }
-
 
 export interface SubmissionResponse {
   submission: {
@@ -387,7 +385,7 @@ export interface PrivateMessage {
   image: string | null
   created_at: string
   is_read: boolean
-  read_at: string | null  
+  read_at: string | null
 }
 
 // Interfaces
@@ -438,6 +436,45 @@ export interface Activity {
   description: string
   timestamp: string
   related_object_detail?: string
+}
+
+export interface AgentVerificationPackage {
+  id: number
+  name: string
+  image: string
+  validity_days: string
+  description: string
+  price: string
+}
+
+export interface AgentPurchase {
+  id: number
+  package: AgentVerificationPackage
+  purchase_date: string
+  expiry_date: string
+  status: "ACTIVE" | "EXPIRED"
+  days_remaining: number
+}
+
+export interface CashbackBonus {
+  id: number
+  user: number
+  amount: string
+  claim_cost: string
+  claimed: boolean
+  claimed_at: string | null
+  created_at: string
+}
+
+export interface WeeklyBonus {
+  id: number
+  user: number
+  amount: string
+  claim_cost: string
+  claimed: boolean
+  claimed_at: string | null
+  created_at: string
+  week_start: string
 }
 
 export class ApiService {
@@ -902,7 +939,7 @@ export class ApiService {
     return safeParseJSON(response) as Promise<TrackingInfo>
   }
 
-  static async getRecentActivities(page: number = 1, pageSize: number = 20): Promise<{ results: Activity[], count: number }> {
+  static async getRecentActivities(page = 1, pageSize = 20): Promise<{ results: Activity[]; count: number }> {
     const response = await fetch(`${API_BASE_URL}/dashboard/recent-activity/?page=${page}&page_size=${pageSize}`, {
       headers: getAuthHeaders(),
     })
@@ -912,7 +949,7 @@ export class ApiService {
       throw new Error((error as { message?: string }).message || "Failed to fetch recent activities")
     }
 
-    return safeParseJSON(response) as Promise<{ results: Activity[], count: number }>
+    return safeParseJSON(response) as Promise<{ results: Activity[]; count: number }>
   }
 
   // Wallet endpoints
@@ -1067,18 +1104,25 @@ export class ApiService {
 
   // Removed duplicate getCurrentUserPackage implementation to fix compile error.
 
-  static async purchasePackage(packageId: number): Promise<{ message: string; purchase_id: number; bonus_amount: string; is_upgrade: boolean; is_premium_upgrade: boolean; previous_rate: number }> {
-    return this.post('/packages/purchase/', { package: packageId });
+  static async purchasePackage(packageId: number): Promise<{
+    message: string
+    purchase_id: number
+    bonus_amount: string
+    is_upgrade: boolean
+    is_premium_upgrade: boolean
+    previous_rate: number
+  }> {
+    return this.post("/packages/purchase/", { package: packageId })
   }
 
   static async getUserPurchases(): Promise<Purchase[]> {
-    return this.get<Purchase[]>('/packages/purchases/');
+    return this.get<Purchase[]>("/packages/purchases/")
   }
 
   static async getCurrentUserPackage(): Promise<UserPackage | null> {
-    const purchases = await this.getUserPurchases();
-    const active = purchases.find(p => p.days_remaining > 0);
-    if (!active) return null;
+    const purchases = await this.getUserPurchases()
+    const active = purchases.find((p) => p.days_remaining > 0)
+    if (!active) return null
     return {
       name: active.package.name,
       rate_per_view: active.package.rate_per_view,
@@ -1087,7 +1131,7 @@ export class ApiService {
       bonus_amount: active.bonus_amount,
       claim_cost: active.claim_cost,
       claimed: active.claimed,
-    };
+    }
   }
 
   static async getPackageFeatures(): Promise<PackageFeature[]> {
@@ -1100,10 +1144,9 @@ export class ApiService {
     ]
   }
 
-   static async claimCashback(): Promise<{ message: string }> {
-    return this.post<{ message: string }>('/packages/cashback/claim/', {});
+  static async claimCashback(): Promise<{ message: string }> {
+    return this.post<{ message: string }>("/packages/cashback/claim/", {})
   }
-  
 
   // Ads endpoints
   static async getAdverts(): Promise<{ adverts: Advert[]; user_package: UserPackage | null }> {
@@ -1140,7 +1183,7 @@ export class ApiService {
 
     const response = await fetch(`${API_BASE_URL}/adverts/submit/`, {
       method: "POST",
-      headers: getAuthHeaders(true),  // Exclude Content-Type
+      headers: getAuthHeaders(true), // Exclude Content-Type for FormData
       body: formData,
     })
 
@@ -1461,96 +1504,214 @@ export class ApiService {
       throw new Error((error as { message?: string }).message || "Failed to block user")
     }
   }
-static async getAdmins() {
-  return this.get('/support/admins/');
-}
-
-// Generic GET method for internal use
-static async get<T = unknown>(endpoint: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    const error = await safeParseJSON(response);
-    throw new Error((error as { message?: string }).message || `Failed to fetch ${endpoint}`);
+  static async getAdmins() {
+    return this.get("/support/admins/")
   }
 
-  return safeParseJSON(response) as Promise<T>;
-}
-
-static async getPrivateConversations() {
-  return this.get('/support/private-messages/');
-}
-
-static async getPrivateMessages(receiverId: number, page: number = 1) {
-  return this.get(`/support/private-messages/${receiverId}/?page=${page}`);
-}
-
-static async sendPrivateMessage(data: { receiver: number; content: string; image?: File }) {
-  const url = `${API_BASE_URL}/support/private-messages/`;
-  const formData = new FormData();
-  formData.append("receiver", data.receiver.toString());
-  formData.append("content", data.content);
-  if (data.image) {
-    formData.append("image", data.image);
-  }
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: getAuthHeaders(true).Authorization,  // Exclude Content-Type for FormData
-    },
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const error = await safeParseJSON(response);
-    throw new Error((error as { message?: string }).message || "Failed to send private message");
-  }
-
-  return safeParseJSON(response) as Promise<PrivateMessage>;
-}
-
-// Generic POST method for internal use
-static async post<T = unknown>(endpoint: string, data: unknown): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    const error = await safeParseJSON(response);
-    throw new Error((error as { message?: string }).message || `Failed to post to ${endpoint}`);
-  }
-
-  return safeParseJSON(response) as Promise<T>;
-}
-static async confirmDelivery(orderId: number): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/dashboard/orders/${orderId}/confirm-delivery/`, {
-      method: 'POST',
+  // Generic GET method for internal use
+  static async get<T = unknown>(endpoint: string): Promise<T> {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       headers: getAuthHeaders(),
-    });
+    })
 
     if (!response.ok) {
-      const error = await safeParseJSON(response);
-      throw new Error((error as { message?: string }).message || 'Failed to confirm delivery');
+      const error = await safeParseJSON(response)
+      throw new Error((error as { message?: string }).message || `Failed to fetch ${endpoint}`)
+    }
+
+    return safeParseJSON(response) as Promise<T>
+  }
+
+  static async getPrivateConversations() {
+    return this.get("/support/private-messages/")
+  }
+
+  static async getPrivateMessages(receiverId: number, page = 1) {
+    return this.get(`/support/private-messages/${receiverId}/?page=${page}`)
+  }
+
+  static async sendPrivateMessage(data: { receiver: number; content: string; image?: File }) {
+    const url = `${API_BASE_URL}/support/private-messages/`
+    const formData = new FormData()
+    formData.append("receiver", data.receiver.toString())
+    formData.append("content", data.content)
+    if (data.image) {
+      formData.append("image", data.image)
+    }
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: getAuthHeaders(true).Authorization, // Exclude Content-Type for FormData
+      },
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const error = await safeParseJSON(response)
+      throw new Error((error as { message?: string }).message || "Failed to send private message")
+    }
+
+    return safeParseJSON(response) as Promise<PrivateMessage>
+  }
+
+  // Generic POST method for internal use
+  static async post<T = unknown>(endpoint: string, data: unknown): Promise<T> {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    })
+
+    if (!response.ok) {
+      const error = await safeParseJSON(response)
+      throw new Error((error as { message?: string }).message || `Failed to post to ${endpoint}`)
+    }
+
+    return safeParseJSON(response) as Promise<T>
+  }
+  static async confirmDelivery(orderId: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/dashboard/orders/${orderId}/confirm-delivery/`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+    })
+
+    if (!response.ok) {
+      const error = await safeParseJSON(response)
+      throw new Error((error as { message?: string }).message || "Failed to confirm delivery")
     }
   }
 
   static async submitRating(orderId: number, rating: number): Promise<void> {
     const response = await fetch(`${API_BASE_URL}/dashboard/orders/${orderId}/rate/`, {
-      method: 'POST',
+      method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify({ rating }),
-    });
+    })
 
     if (!response.ok) {
-      const error = await safeParseJSON(response);
-      throw new Error((error as { message?: string }).message || 'Failed to submit rating');
+      const error = await safeParseJSON(response)
+      throw new Error((error as { message?: string }).message || "Failed to submit rating")
     }
   }
 
+  static async getAgentPackages(): Promise<AgentVerificationPackage[]> {
+    const response = await fetch(`${API_BASE_URL}/premium/packages/`, {
+      headers: getAuthHeaders(),
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch agent packages")
+    }
+
+    const packages = (await safeParseJSON(response)) as AgentVerificationPackage[]
+    return packages.map((pkg) => ({
+      ...pkg,
+      image: pkg.image
+        ? pkg.image.startsWith("http")
+          ? pkg.image
+          : `${MEDIA_BASE_URL}${pkg.image.startsWith("/") ? "" : "/"}${pkg.image}`
+        : "/premium-package.png",
+    }))
+  }
+
+  static async purchaseAgentPackage(packageId: number): Promise<{
+    message: string
+    purchase_id: number
+  }> {
+    console.log("[v0] Attempting to purchase agent package:", packageId)
+    console.log("[v0] Request payload:", { package: packageId })
+
+    const response = await fetch(`${API_BASE_URL}/premium/purchase/`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ package: packageId }),
+    })
+
+    console.log("[v0] Response status:", response.status)
+    console.log("[v0] Response headers:", Object.fromEntries(response.headers.entries()))
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error("[v0] Error response body:", errorText)
+
+      try {
+        const error = JSON.parse(errorText)
+        throw new Error((error as { error?: string }).error || "Failed to purchase package")
+      } catch (parseError) {
+        throw new Error(`Server error (${response.status}): ${errorText}`)
+      }
+    }
+
+    const result = await safeParseJSON(response)
+    console.log("[v0] Purchase successful:", result)
+    return result as { message: string; purchase_id: number }
+  }
+
+  static async getUserAgentPurchases(): Promise<AgentPurchase[]> {
+    const response = await fetch(`${API_BASE_URL}/premium/purchases/`, {
+      headers: getAuthHeaders(),
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch agent purchases")
+    }
+
+    return safeParseJSON(response) as Promise<AgentPurchase[]>
+  }
+
+  static async getUserCashbackBonuses(): Promise<CashbackBonus[]> {
+    const response = await fetch(`${API_BASE_URL}/premium/cashback/`, {
+      headers: getAuthHeaders(),
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch cashback bonuses")
+    }
+
+    return safeParseJSON(response) as Promise<CashbackBonus[]>
+  }
+
+  static async getUserWeeklyBonuses(): Promise<WeeklyBonus[]> {
+    const response = await fetch(`${API_BASE_URL}/premium/weekly-bonus/`, {
+      headers: getAuthHeaders(),
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch weekly bonuses")
+    }
+
+    return safeParseJSON(response) as Promise<WeeklyBonus[]>
+  }
+
+  static async claimCashbackBonus(bonusId: number): Promise<{ message: string }> {
+    const response = await fetch(`${API_BASE_URL}/premium/cashback/claim/`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ bonus_id: bonusId }),
+    })
+
+    if (!response.ok) {
+      const error = await safeParseJSON(response)
+      throw new Error((error as { error?: string }).error || "Failed to claim cashback bonus")
+    }
+
+    return safeParseJSON(response) as Promise<{ message: string }>
+  }
+
+  static async claimWeeklyBonus(bonusId: number): Promise<{ message: string }> {
+    const response = await fetch(`${API_BASE_URL}/premium/weekly-bonus/claim/`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ bonus_id: bonusId }),
+    })
+
+    if (!response.ok) {
+      const error = await safeParseJSON(response)
+      throw new Error((error as { error?: string }).error || "Failed to claim weekly bonus")
+    }
+
+    return safeParseJSON(response) as Promise<{ message: string }>
+  }
 }
 export default ApiService
