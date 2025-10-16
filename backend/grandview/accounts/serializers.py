@@ -1,7 +1,12 @@
 from rest_framework import serializers
 from .models import CustomUser
 from django.contrib.auth import authenticate
-import datetime
+from phonenumber_field.phonenumber import PhoneNumber
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['id', 'username', 'email', 'phone_number', 'referral_code', 'is_manager', 'is_staff', 'is_verified_agent']
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True)
@@ -53,7 +58,6 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         fields = ['username', 'email', 'phone_number']
 
     def validate_phone_number(self, value):
-        from phonenumber_field.phonenumber import PhoneNumber
         try:
             parsed = PhoneNumber.from_string(value)
             if not parsed.is_valid():
@@ -74,5 +78,5 @@ class PasswordChangeSerializer(serializers.Serializer):
             raise serializers.ValidationError({"new_password": "Password must be at least 8 characters long."})
         user = self.context['request'].user
         if not user.check_password(data['current_password']):
-            raise serializers.ValidationError({"current_password": "Current password is incorrect."})
+            raise serializers.ValidationError({"current_current": "Current password is incorrect."})
         return data

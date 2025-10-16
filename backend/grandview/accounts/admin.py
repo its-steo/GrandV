@@ -4,11 +4,11 @@ from .models import CustomUser
 
 class CustomUserAdmin(UserAdmin):
     list_display = ('username', 'email', 'phone_number', 'referral_code', 'referred_by', 'is_marketer', 'get_downline_count')
-    list_filter = ('referred_by', 'is_marketer')
+    list_filter = ('referred_by', 'is_marketer', 'is_verified_agent')
     search_fields = ('username', 'email', 'phone_number', 'referral_code')
     fieldsets = (
         (None, {'fields': ('username', 'email', 'password')}),
-        ('Personal Info', {'fields': ('phone_number', 'referral_code', 'referred_by', 'is_marketer')}),
+        ('Personal Info', {'fields': ('phone_number', 'referral_code', 'referred_by', 'is_marketer', 'is_verified_agent')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Important dates', {'fields': ('last_login', 'date_joined')}),
     )
