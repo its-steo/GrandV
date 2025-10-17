@@ -41,7 +41,7 @@ export function BonusClaimCard({ bonus, type, onClaimClick }: BonusClaimCardProp
         </div>
 
         {/* Claim Cost */}
-        <div className="flex items-center justify-between text-sm">
+        {/*<div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Claim Cost:</span>
           <span className="font-semibold">{formatCurrency(bonus.claim_cost)}</span>
         </div>

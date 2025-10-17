@@ -43,6 +43,7 @@ export interface User {
   is_marketer: boolean
   last_support_view?: string // Add this
   is_verified_agent?: boolean
+  is_email_verified: boolean;
 }
 
 export interface Product {
@@ -325,6 +326,9 @@ export interface Order {
   items: OrderItem[]
   installment_order?: InstallmentOrder
   rating?: number
+  discounted_total?:string
+  ordered_at?:string
+  
 }
 
 export interface OrderItem {
@@ -338,6 +342,7 @@ export interface OrderItem {
   quantity: number
   price: string
   subtotal: string
+
 }
 
 interface CartResponse {

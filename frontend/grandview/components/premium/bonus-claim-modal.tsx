@@ -92,7 +92,6 @@ export function BonusClaimModal({ bonus, type, isOpen, onClose, onClaimSuccess }
               <p className="text-4xl font-bold bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">
                 {formatCurrency(bonus.amount)}
               </p>
-              <p className="text-purple-300 text-xs">Claim cost: {formatCurrency(bonus.claim_cost)}</p>
             </div>
 
             {/* Loading/Success State */}

@@ -9,6 +9,7 @@ export interface User {
   referral_code: string
   is_marketer: boolean
   is_verified_agent?: boolean
+  is_email_verified: boolean
 }
 
 export interface AuthResponse {
