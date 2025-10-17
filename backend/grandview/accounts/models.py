@@ -1,4 +1,3 @@
-
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from phonenumber_field.modelfields import PhoneNumberField
@@ -13,7 +12,9 @@ class CustomUser(AbstractUser):
     is_manager = models.BooleanField(default=False)
     is_verified_agent = models.BooleanField(default=False)
     last_support_view = models.DateTimeField(null=True, blank=True)
-
+    is_email_verified = models.BooleanField(default=False)
+    email_verification_code = models.CharField(max_length=6, blank=True, null=True)
+    email_verification_expiry = models.DateTimeField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
         if not self.referral_code:

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Verification Purchase Confirmation</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background-color: #f4f4f4; color: #333333;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f4f4f4;">
+        <tr>
+            <td align="center" style="padding: 20px 0;">
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color: #4CAF50; padding: 20px; text-align: center; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+                            <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Agent Verification Purchase Confirmation</h1>
+                        </td>
+                    </tr>
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 30px;">
+                            <h2 style="font-size: 20px; color: #333333; margin: 0 0 20px;">Hello {{ user.first_name|default:user.username }},</h2>
+                            <p style="font-size: 16px; line-height: 1.5; color: #555555;">
+                                Congratulations! Your agent verification purchase has been successfully processed. You are now a verified agent, unlocking the ability to withdraw your earnings.
+                            </p>
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="10" style="background-color: #f9f9f9; border-radius: 4px; margin: 20px 0;">
+                                <tr>
+                                    <td style="font-size: 16px; color: #333333;"><strong>Purchase Details</strong></td>
+                                </tr>
+                                <tr>
+                                    <td style="font-size: 14px; color: #555555;">
+                                        <strong>Agent Package:</strong> {{ agent_purchase.package_name|default:"Verified Agent Package" }}<br>
+                                        <strong>Purchase Date:</strong> {{ agent_purchase.purchase_date|date:"F d, Y" }}<br>
+                                        <strong>Status:</strong> {{ agent_purchase.status }}<br>
+                                        <strong>Amount:</strong> KSH {{ agent_purchase.amount|floatformat:2 }}
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="font-size: 16px; line-height: 1.5; color: #555555;">
+                                With your verified agent status, you can now withdraw your earnings, provided you have an active premium package (120 per view). Visit your dashboard to manage your withdrawals or explore more opportunities.
+                            </p>
+                            <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 20px 0;">
+                                <tr>
+                                    <td>
+                                        <a href="{{ dashboard_url|default:'https://yourdomain.com/dashboard' }}" style="display: inline-block; padding: 12px 24px; background-color: #4CAF50; color: #ffffff; text-decoration: none; border-radius: 4px; font-size: 16px;">
+                                            Go to Dashboard
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="font-size: 14px; line-height: 1.5; color: #777777;">
+                                If you have any questions or need assistance, please contact our support team at <a href="mailto:{{ support_email|default:'support@yourdomain.com' }}" style="color: #4CAF50; text-decoration: none;">{{ support_email|default:'support@yourdomain.com' }}</a>.
+                            </p>
+                        </td>
+                    </tr>
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f4f4f4; padding: 20px; text-align: center; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;">
+                            <p style="font-size: 12px; color: #777777; margin: 0;">
+                                &copy; {{ current_year|default:2025 }} Your Company Name. All rights reserved.<br>
+                                <a href="{{ privacy_url|default:'https://yourdomain.com/privacy' }}" style="color: #4CAF50; text-decoration: none;">Privacy Policy</a> | 
+                                <a href="{{ terms_url|default:'https://yourdomain.com/terms' }}" style="color: #4CAF50; text-decoration: none;">Terms of Service</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

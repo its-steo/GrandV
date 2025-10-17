@@ -1,3 +1,4 @@
+# premium/serializers.py (updated)
 
 from rest_framework import serializers
 from .models import AgentVerificationPackage, AgentPurchase, WeeklyBonus, CashbackBonus
@@ -59,12 +60,12 @@ class AgentPurchaseCreateSerializer(serializers.ModelSerializer):
                     from_earnings = user_wallet.views_earnings_balance
                     from_deposit = price - from_earnings
                     if user_wallet.deposit_balance < from_deposit:
-                        raise serializers.ValidationError("Insufficient balance (views earnings + deposit).")
+                        raise serializers.ValidationError("Insufficient balance (views earnings + deposit). Please top up your deposit balance if needed.")
                     user_wallet.views_earnings_balance -= from_earnings
                     user_wallet.deposit_balance -= from_deposit
             else:
                 if user_wallet.deposit_balance < price:
-                    raise serializers.ValidationError("Insufficient deposit balance. Please top up your account.")
+                    raise serializers.ValidationError(f"Insufficient deposit balance. Please top up to purchase the verified agent package.")
                 user_wallet.deposit_balance -= price
 
             user_wallet.save()
@@ -80,7 +81,7 @@ class AgentPurchaseCreateSerializer(serializers.ModelSerializer):
             # Create CashbackBonus
             CashbackBonus.objects.create(
                 user=user,
-                agent_purchase=purchase,  # Fixed: use agent_purchase instead of purchase
+                agent_purchase=purchase,
                 amount=Decimal('21000'),
                 claim_cost=Decimal('5000')
             )
@@ -135,12 +136,12 @@ class WeeklyBonusSerializer(serializers.ModelSerializer):
                     from_earnings = user_wallet.views_earnings_balance
                     from_deposit = claim_cost - from_earnings
                     if user_wallet.deposit_balance < from_deposit:
-                        raise serializers.ValidationError("Insufficient balance (views earnings + deposit) to cover claim cost.")
+                        raise serializers.ValidationError(f"Insufficient balance (views earnings + deposit) to cover claim cost of KSh {claim_cost}. Please top up your deposit balance if needed.")
                     user_wallet.views_earnings_balance -= from_earnings
                     user_wallet.deposit_balance -= from_deposit
             else:
                 if user_wallet.deposit_balance < claim_cost:
-                    raise serializers.ValidationError("Insufficient deposit balance to cover claim cost. Please top up your account.")
+                    raise serializers.ValidationError(f"You need to deposit the claim cost amount of KSh {claim_cost} in order to withdraw your bonus.")
                 user_wallet.deposit_balance -= claim_cost
 
             user_wallet.views_earnings_balance += instance.amount
@@ -201,12 +202,12 @@ class CashbackBonusSerializer(serializers.ModelSerializer):
                     from_earnings = user_wallet.views_earnings_balance
                     from_deposit = claim_cost - from_earnings
                     if user_wallet.deposit_balance < from_deposit:
-                        raise serializers.ValidationError("Insufficient balance (views earnings + deposit) to cover claim cost.")
+                        raise serializers.ValidationError(f"Insufficient balance (views earnings + deposit) to cover claim cost of KSh {claim_cost}. Please top up your deposit balance if needed.")
                     user_wallet.views_earnings_balance -= from_earnings
                     user_wallet.deposit_balance -= from_deposit
             else:
                 if user_wallet.deposit_balance < claim_cost:
-                    raise serializers.ValidationError("Insufficient deposit balance to cover claim cost. Please top up your account.")
+                    raise serializers.ValidationError(f"You need to deposit the claim cost amount of KSh {claim_cost} in order to withdraw your bonus.")
                 user_wallet.deposit_balance -= claim_cost
 
             user_wallet.views_earnings_balance += instance.amount
