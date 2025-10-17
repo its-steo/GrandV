@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   description:
     "Professional advertising platform for WhatsApp marketing campaigns with advanced analytics and user management",
   generator: "v0.app",
-  manifest: "/manifest.json", // Ensure manifest is referenced
+  manifest: "/manifest.json",
   icons: {
     icon: [
       { url: "/images/grandvlogo-192.png", sizes: "192x192", type: "image/png" },
@@ -42,8 +42,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="dark"
           disableTransitionOnChange
         >
           <AuthProvider>

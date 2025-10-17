@@ -1,39 +1,41 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/hooks/use-auth"
-import { LoginForm } from "@/components/auth/login-form"
-import { RegisterForm } from "@/components/auth/register-form"
+import { useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { VerifyEmailForm } from "@/components/auth/verify-email-form"
 import { Loader2 } from "lucide-react"
 import { motion } from "framer-motion"
 
-export default function AuthPage() {
-  const [isLogin, setIsLogin] = useState(true)
-  const { isAuthenticated, isLoading, user } = useAuth()
+export default function VerifyPage() {
+  const searchParams = useSearchParams()
   const router = useRouter()
+  const [email, setEmail] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    if (isAuthenticated && user) {
-      router.push(user.is_email_verified ? "/dashboard" : `/verify?email=${user.email}`)
-    }
-  }, [isAuthenticated, user, router])
+    const emailParam = searchParams.get("email")
 
-  if (isLoading) {
+    if (!emailParam) {
+      // Redirect to auth page if no email provided
+      router.push("/auth")
+      return
+    }
+
+    setEmail(emailParam)
+    setIsLoading(false)
+  }, [searchParams, router])
+
+  if (isLoading || !email) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-blue-600/30 to-cyan-400">
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-blue-500 to-cyan-400 flex items-center justify-center mx-auto mb-6 shadow-lg">
             <Loader2 className="h-8 w-8 animate-spin text-white" />
           </div>
-          <p className="text-white text-lg font-medium">Verifying your session...</p>
+          <p className="text-white text-lg font-medium">Loading verification...</p>
         </motion.div>
       </div>
     )
-  }
-
-  if (isAuthenticated) {
-    return null
   }
 
   return (
@@ -45,11 +47,7 @@ export default function AuthPage() {
       </div>
 
       <div className="w-full max-w-2xl relative z-10">
-        {isLogin ? (
-          <LoginForm onToggleMode={() => setIsLogin(false)} />
-        ) : (
-          <RegisterForm onToggleMode={() => setIsLogin(true)} />
-        )}
+        <VerifyEmailForm email={email} />
       </div>
     </div>
   )
