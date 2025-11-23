@@ -107,13 +107,20 @@ export function Sidebar() {
       <Button
         variant="ghost"
         size="icon"
-        className="fixed top-4 left-4 z-[60] md:hidden bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300"
+        className="fixed top-4 left-4 z-[60] md:hidden 
+                   h-12 w-12 sm:h-14 sm:w-14   /* This makes it bigger */
+                   rounded-xl 
+                   bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm 
+                   border border-slate-300 dark:border-slate-600 
+                   shadow-xl hover:shadow-2xl 
+                   transition-all duration-300 
+                   flex items-center justify-center"
         onClick={() => setIsOpen(!isOpen)}
       >
         {isOpen ? (
-          <X className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+          <X className="h-7 w-7 text-gray-700 dark:text-gray-200" />
         ) : (
-          <Menu className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+          <Menu className="h-7 w-7 text-gray-700 dark:text-gray-200" />
         )}
       </Button>
 
